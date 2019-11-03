@@ -12,16 +12,16 @@ namespace llist section
     instance llist_to_list : has_coe (llist V) (list V) := ⟨to_list⟩
 
     def head    :           llist V -> V       |     (P v) := v         |     (L v l) := v
+    def tail    :           llist V -> list V  |     (P v) := []        |     (L v l) := l.head :: tail l
+    def init    :           llist V -> list V  |     (P v) := []        |     (L v l) := v :: init l
     def last    :           llist V -> V       |     (P v) := v         |     (L v l) := last l
+    def inside  :           llist V -> list V  |     (P v) := []        |     (L v l) := init l
     def is_path :           llist V -> Prop    |     (P v) := true      |     (L v l) := adj v l.head ∧ is_path l
     def append  :      V -> llist V -> llist V |   x (P v) := L v (P x) |   x (L v l) := L v (append x l)
     def rev     :           llist V -> llist V |     (P v) := (P v)     |     (L v l) := append v (rev l)
+    def mem2    : V -> V -> llist V -> Prop    | _ _ (P v) := false     | x y (L v l) := (x = v ∧ y ∈ l) ∨ mem2 x y l
 
     @[simp] def nodup   :           llist V -> Prop    |     (P v) := true      |     (L v l) := ¬ (mem v l) ∧ nodup l
-    @[simp] def tail    :           llist V -> list V  |     (P v) := []        |     (L v l) := l.head :: tail l
-    @[simp] def init    :           llist V -> list V  |     (P v) := []        |     (L v l) := v :: init l
-    @[simp] def inside  :           llist V -> list V  |     (P v) := []        |     (L v l) := init l
-    @[simp] def mem2    : V -> V -> llist V -> Prop    | _ _ (P v) := false     | x y (L v l) := (x = v ∧ mem y l) ∨ mem2 x y l
 
     @[simp] def compat (l₁ l₂ : llist V) := last l₁ = head l₂
 
@@ -49,12 +49,12 @@ namespace llist section
     @[simp] lemma mem_last        : mem (last l) l                                     := by { induction l; finish }
 
     lemma mem2_nodup : nodup l <-> ¬ ∃ x, mem2 x x l
-        := by { induction l with v v l hr, simp, split; simp; intro h1,
+        := by { induction l with v v l hr, simp [mem2], split; simp; intro h1,
             { rintros h2 x h, cases h with h h, exact h1 (h.1 ▸ h.2), exact hr.mp h2 ⟨x,h⟩ },
             { exact ⟨λ h, h1 v (or.inl ⟨rfl, h⟩), hr.mpr (λ ⟨x,h⟩, h1 x (or.inr h))⟩ } }
 
     lemma mem2_nodup' : ¬ nodup l <-> ∃ x, mem2 x x l
-        := by { induction l with v v l hr, simp, unfold nodup, push_neg, split; intro h1,
+        := by { induction l with v v l hr, simp [mem2], unfold nodup, push_neg, split; intro h1,
             { cases h1 with h1 h1, exact ⟨v, or.inl ⟨rfl,h1⟩⟩, { cases (hr.mp h1) with u hu, exact ⟨u, or.inr hu⟩ } },
             { cases h1 with x h2, cases h2 with h2 h2, exact or.inl (h2.1 ▸ h2.2), exact or.inr (hr.mpr ⟨x, h2⟩) } }
 
