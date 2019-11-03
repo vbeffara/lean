@@ -50,7 +50,7 @@ namespace path section
     lemma mem_edges {p : path G x y} {e : edge G} : e ∈ p.edges -> e.1.1 ∈ p.l ∧ e.1.2 ∈ p.l
         := by {
             rcases p with ⟨⟨l,hx,hy⟩,ha⟩, revert x y, induction l with v v l hr; intros; simp at *; cases a,
-            { subst a, exact ⟨or.inl rfl, or.inr llist.mem_first⟩ },
+            { subst a, exact ⟨or.inl rfl, or.inr llist.mem_head⟩ },
             { have h1 := hr rfl hy ha.2 a, exact ⟨or.inr h1.1, or.inr h1.2⟩ }
         }
 
@@ -80,7 +80,7 @@ section embedding
         (inj      : injective f)
         (sym      : ∀ e : edge G, df e.flip = (df e).rev)
         --
-        (endpoint : ∀ e z, z ∈ (df e).l ∧ (∃ x, z = f x) -> z = (df e).l.first ∨ z = (df e).l.last)
+        (endpoint : ∀ e z, z ∈ (df e).l ∧ (∃ x, z = f x) -> z = (df e).l.head ∨ z = (df e).l.last)
         (disjoint : ∀ e e' z, z ∈ (df e).l ∧ z ∈ (df e').l -> edge.same e e' ∨ ∃ x, z = f x)
         --
         -- (disjoint : ∀ e e' z, z ∈ llist.inside (df e).l ∧ z ∈ llist.inside (df e').l -> e = e' ∨ e = e'.flip)
@@ -90,9 +90,9 @@ section embedding
 
     variables {G G' G'' : graph} {x y z : G} (F : graph_embedding G G')
 
-    @[simp] def follow_aux : Π {x y} (l : llist G) (hx : x = l.first) (hy : l.last = y) (h : llist.is_path G.adj l), path G' (F.f x) (F.f y)
+    @[simp] def follow_aux : Π {x y} (l : llist G) (hx : x = l.head) (hy : l.last = y) (h : llist.is_path G.adj l), path G' (F.f x) (F.f y)
         | x y (llist.P v)   hx hy h := ⟨⟨llist.P (F.f v), congr_arg F.f hx, congr_arg F.f hy⟩, trivial⟩
-        | x y (llist.L v l) hx hy h := path.concat (F.df ⟨⟨x,l.first⟩, hx.symm ▸ h.1⟩).1 (follow_aux l rfl hy h.2)
+        | x y (llist.L v l) hx hy h := path.concat (F.df ⟨⟨x,l.head⟩, hx.symm ▸ h.1⟩).1 (follow_aux l rfl hy h.2)
 
     @[simp] def follow (p : path G x y) : path G' (F.f x) (F.f y) := follow_aux F p.l p.hx p.hy p.adj
 
@@ -127,8 +127,8 @@ section embedding
             let sp0 := p, rcases p with ⟨⟨⟨l,hx,hy⟩,h⟩,hs⟩, revert x y h hs, induction l with v v l hr; intros; simp at *,
             let p0  : path G x y       := sp0.to_path,
             let es  : list (edge G)    := path.edges p0,
-            let e   : edge G           := ⟨(v,l.first), h.1⟩,
-            let p   : path G l.first y := ⟨⟨l,rfl,hy⟩,h.2⟩,
+            let e   : edge G           := ⟨(v,l.head), h.1⟩,
+            let p   : path G l.head y := ⟨⟨l,rfl,hy⟩,h.2⟩,
             let p₁  : spath G' _ _     := F.df e,
             let p₂  : path G' _ _      := follow F p,
 
