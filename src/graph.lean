@@ -155,10 +155,7 @@ section embedding
     @[simp] def sfollow (p : spath G x y) : spath G' (F.f x) (F.f y) := ⟨follow F p.to_path, follow_simple F⟩
 
     @[simp] lemma sfollow_rev (p : spath G x y) : sfollow F p.rev = (sfollow F p).rev
-        := by {
-            rcases p with ⟨⟨⟨l,hx,hy⟩,hp⟩,hs⟩, revert x y, induction l with v v l hr; intros; simp *,
-            have h1 := hr rfl hy hp.2 hs.2, sorry
-        }
+        := by { sorry }
 
     def comp (F : graph_embedding G G') (F' : graph_embedding G' G'') : (graph_embedding G G'') := {
         f := F'.f ∘ F.f,

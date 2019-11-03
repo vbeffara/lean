@@ -14,10 +14,10 @@ namespace llist section
     def first   :           llist V -> V       |     (P v) := v         |     (L v l) := v
     def last    :           llist V -> V       |     (P v) := v         |     (L v l) := last l
     def is_path :           llist V -> Prop    |     (P v) := true      |     (L v l) := adj v l.first ∧ is_path l
+    def append  :      V -> llist V -> llist V |   x (P v) := L v (P x) |   x (L v l) := L v (append x l)
+    def rev     :           llist V -> llist V |     (P v) := (P v)     |     (L v l) := append v (rev l)
 
     @[simp] def nodup   :           llist V -> Prop    |     (P v) := true      |     (L v l) := ¬ (mem v l) ∧ nodup l
-    @[simp] def append  :      V -> llist V -> llist V |   x (P v) := L v (P x) |   x (L v l) := L v (append x l)
-    @[simp] def rev     :           llist V -> llist V |     (P v) := (P v)     |     (L v l) := append v (rev l)
     @[simp] def tail    :           llist V -> list V  |     (P v) := []        |     (L v l) := l.first :: tail l
     @[simp] def init    :           llist V -> list V  |     (P v) := []        |     (L v l) := v :: init l
     @[simp] def inside  :           llist V -> list V  |     (P v) := []        |     (L v l) := init l
@@ -35,16 +35,16 @@ namespace llist section
     @[simp] lemma concat_last  (h) : last  (concat l l' h) = last  l'             := by { induction l; finish [last] }
     @[simp] lemma append_first     : first (append v l)    = first l              := by { induction l; finish }
     @[simp] lemma append_last      : last  (append v l)    = v                    := by { induction l; finish }
-    @[simp] lemma rev_append       : rev   (append v l)    = L v (rev l)          := by { induction l; finish }
-    @[simp] lemma rev_first        : first (rev l)         = last l               := by { induction l; finish }
-    @[simp] lemma rev_last         : last  (rev l)         = first l              := by { induction l; finish }
-    @[simp] lemma rev_rev          : rev   (rev l)         = l                    := by { induction l; finish }
+    @[simp] lemma rev_append       : rev   (append v l)    = L v (rev l)          := by { induction l; finish [append, rev] }
+    @[simp] lemma rev_first        : first (rev l)         = last l               := by { induction l; finish [rev] }
+    @[simp] lemma rev_last         : last  (rev l)         = first l              := by { induction l; finish [rev] }
+    @[simp] lemma rev_rev          : rev   (rev l)         = l                    := by { induction l; finish [rev] }
 
     @[simp] lemma mem_singleton   : mem x (P y)             <-> x = y                  := iff.rfl
     @[simp] lemma mem_cons        : mem x (L v l)           <-> x = v ∨ mem x l        := iff.rfl
     @[simp] lemma concat_path (h) : is_path (concat l l' h) <-> is_path l ∧ is_path l' := by { induction l; finish [is_path] }
-    @[simp] lemma mem_append      : mem w (append v l)      <-> w = v ∨ mem w l        := by { induction l; finish }
-    @[simp] lemma mem_rev         : mem v (rev l)           <-> mem v l                := by { induction l; finish }
+    @[simp] lemma mem_append      : mem w (append v l)      <-> w = v ∨ mem w l        := by { induction l; finish [append] }
+    @[simp] lemma mem_rev         : mem v (rev l)           <-> mem v l                := by { induction l; finish [rev] }
     @[simp] lemma mem_first       : mem (first l) l                                    := by { cases l; simp [first] }
     @[simp] lemma mem_last        : mem (last l) l                                     := by { induction l; finish }
 
@@ -59,18 +59,18 @@ namespace llist section
             { cases h1 with x h2, cases h2 with h2 h2, exact or.inl (h2.1 ▸ h2.2), exact or.inr (hr.mpr ⟨x, h2⟩) } }
 
     @[simp] lemma append_nodup  : nodup (append x l)           <-> ¬ mem x l ∧ nodup l
-        := by { induction l with v v l hr; simp, exact ne_comm, push_neg, split; rintro ⟨h1,h2⟩,
-            { have h4 := hr.mp h2, exact ⟨⟨h1.1 ∘ eq.symm, h4.1⟩, h1.2, h4.2⟩ },
-            exact ⟨⟨h1.1 ∘ eq.symm, h2.1⟩, hr.mpr ⟨h1.2, h2.2⟩⟩ }
+        := by { induction l with v v l hr; simp, simp[append], exact ne_comm, push_neg, split; rintro ⟨h1,h2⟩,
+            { have h4 := hr.mp h2, simp at h1, push_neg at h1, exact ⟨⟨h1.1 ∘ eq.symm, h4.1⟩, h1.2, h4.2⟩ },
+            { simp [append], push_neg, exact ⟨⟨h1.1 ∘ eq.symm, h2.1⟩, hr.mpr ⟨h1.2, h2.2⟩⟩ } }
 
     @[simp] lemma append_is_path : is_path (append v l) <-> adj (last l) v ∧ is_path l
-        := by { induction l; finish [is_path] }
+        := by { induction l; finish [is_path, append] }
 
     @[simp] lemma rev_nodup     : nodup (rev l)                    <-> nodup l
-        := by { induction l with v v l hr; finish }
+        := by { induction l with v v l hr; finish [rev] }
 
     @[simp] lemma rev_is_path (h : symmetric adj) : is_path (rev l) <-> is_path l
-        := by { induction l with v v l hr; simp, split; intro; finish [h a.1, is_path] }
+        := by { induction l with v v l hr; simp [rev], split; intro; finish [h a.1, is_path] }
 
     @[simp] lemma mem_concat (h) : mem x (concat l l' h) <-> mem x l ∨ mem x l'
         := by { induction l with v v l hr, refine ⟨or.inr, _⟩, simp, finish [last], finish }
