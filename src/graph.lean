@@ -80,11 +80,10 @@ section embedding
         (inj      : injective f)
         (sym      : ∀ e : edge G, df e.flip = (df e).rev)
         --
-        (endpoint : ∀ e z, z ∈ (df e).l ∧ (∃ x, z = f x) -> z = (df e).l.head ∨ z = (df e).l.last)
+        -- (endpoint : ∀ e z, z ∈ (df e).l ∧ (∃ x, z = f x) -> z = (df e).l.head ∨ z = (df e).l.last)
+        (endpoint : ∀ e x, f x ∈ (df e).l -> x = e.1.1 ∨ x = e.1.2)
         (disjoint : ∀ e e' z, z ∈ (df e).l ∧ z ∈ (df e').l -> edge.same e e' ∨ ∃ x, z = f x)
-        --
-        -- (disjoint : ∀ e e' z, z ∈ llist.inside (df e).l ∧ z ∈ llist.inside (df e').l -> e = e' ∨ e = e'.flip)
-        (inside   : ∀ e z, z ∈ llist.inside (df e).l -> ¬ ∃ x, z = f x)
+        (inside   : ∀ e x, f x ∉ llist.inside (df e).l)
 
     def embeds_into (G G' : graph) := nonempty (graph_embedding G G')
 
@@ -97,11 +96,7 @@ section embedding
     @[simp] def follow (p : path G x y) : path G' (F.f x) (F.f y) := follow_aux F p.l p.hx p.hy p.adj
 
     @[simp] lemma follow_concat (p : path G x y) (p' : path G y z) : follow F (path.concat p p') = path.concat (follow F p) (follow F p')
-        := by {
-            rcases p with ⟨⟨l,hx,hy⟩,hp⟩, rcases p' with ⟨⟨l',hx',hy'⟩,hp'⟩, revert x y z,
-            induction l with v v l hr; intros; simp at *, convert rfl, cases l' with w w l, simp, finish,
-            have h1 := hr rfl hy hp.2 hx' hy' hp', clear hr, simp at h1, sorry
-        }
+        := by { sorry }
 
     lemma follow_edges {z} {p : path G x y} {hz : p.l ≠ llist.P y} : z ∈ follow F p <-> ∃ e ∈ path.edges p, z ∈ (F.df e).l
         := by {
@@ -124,32 +119,36 @@ section embedding
 
     lemma follow_simple {p : spath G x y} : path.simple (follow F p.to_path)
         := by {
-            let sp0 := p, rcases p with ⟨⟨⟨l,hx,hy⟩,h⟩,hs⟩, revert x y h hs, induction l with v v l hr; intros; simp at *,
-            let p0  : path G x y       := sp0.to_path,
-            let es  : list (edge G)    := path.edges p0,
-            let e   : edge G           := ⟨(v,l.head), h.1⟩,
+            let sp0 := p,
+            rcases p with ⟨⟨⟨l,hx,hy⟩,h⟩,hs⟩, revert x y h hs, induction l with v v l hr; intros; simp at *,
+
+            let p0  : path G x y      := sp0.to_path,
+            let es  : list (edge G)   := path.edges p0,
+            let e   : edge G          := ⟨(v,l.head), h.1⟩,
             let p   : path G l.head y := ⟨⟨l,rfl,hy⟩,h.2⟩,
-            let p₁  : spath G' _ _     := F.df e,
-            let p₂  : path G' _ _      := follow F p,
+            let p₁  : spath G' _ _    := F.df e,
+            let p₂  : path G' _ _     := follow F p,
 
-            cases l with w w l, { simp at *, subst hx, simp at hs, exact p₁.simple },
+            rw llist.head at hx, subst hx,
+            cases l with w w l, { simp at *, exact p₁.simple },
 
-            have step1 : path.simple p₂,                              by { exact hr rfl hy h.2 hs.2 }, clear hr,
-            have step2 : list.pairwise edge.nsame es,                 by { exact path.edges_simple },
-            suffices   : llist.nodup (path.concat p₁.to_path p₂).l,   by { convert this },
+            have step1 : path.simple p₂,                                by { exact hr rfl hy h.2 hs.2 }, clear hr,
+            have step2 : list.pairwise edge.nsame es,                   by { exact path.edges_simple },
+            suffices   : llist.nodup (path.concat p₁.to_path p₂).l,     by { convert this },
             apply (llist.concat_nodup _).mpr, simp,
             refine ⟨p₁.simple, step1, _⟩, rintros z h1 h2,
-            have step4 : ∃ e' ∈ p.edges, z ∈ (F.df e').l,             by { apply (follow_edges F).mp, exact h2, simp },
-            cases step4 with e' h3, cases h3 with h3 h4,
-            have step5 : ¬ edge.same e e',                            by { cases step2, exact step2_a_1 e' h3 },
-            cases F.disjoint e e' z ⟨h1,h4⟩ with ee' fx, contradiction,
-            have h5 := F.endpoint e z ⟨h1,fx⟩, simp at h5, cases h5, swap, simpa,
-            suffices : ∃ a ∈ llist.L w l, z = F.f a,                       by { rcases this with ⟨a,h7,h8⟩,
-                                                                           have h9 := F.inj (eq.trans h8.symm h5),
-                                                                           cases hs, rw h9 at h7, contradiction },
-            have h6 := F.endpoint e' z ⟨h4,fx⟩, simp at h6,
+            have step3 : ∃ e' ∈ p.edges, z ∈ (F.df e').l,               by { apply (follow_edges F).mp h2, simp },
+            rcases step3 with ⟨e',h3,h4⟩,
+            have step4 : ¬ edge.same e e',                              by { cases step2, exact step2_a_1 e' h3 },
+            have step5 : ∃ x₀ : G, z = F.f x₀,                          by { cases F.disjoint e e' z ⟨h1,h4⟩ with h h,
+                                                                            exact absurd h step4, exact h },
+            cases step5 with x₀ zfx, subst zfx, apply congr_arg,
+            have h5 := F.endpoint e x₀ h1, simp at h5,
+            cases h5, swap, exact h5,
+            suffices : x₀ ∈ llist.L w l,                                by { cases hs, subst h5, contradiction },
+            have h6 := F.endpoint e' x₀ h4,
             have h7 := path.mem_edges h3,
-            cases h6 with h6 h6, exact ⟨e'.1.1, ⟨h7.1,h6⟩⟩, exact ⟨e'.1.2, ⟨h7.2,h6⟩⟩
+            cases h6 with h6 h6, { rw h6, exact h7.1 }, { rw h6, exact h7.2 }
         }
 
     @[simp] def sfollow (p : spath G x y) : spath G' (F.f x) (F.f y) := ⟨follow F p.to_path, follow_simple F⟩
