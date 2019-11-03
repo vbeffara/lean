@@ -59,7 +59,7 @@ namespace path section
             rcases p with ⟨⟨⟨l,hx,hy⟩,ha⟩,hs⟩, revert x y, induction l with v v l hr; intros; simp at *,
             exact list.pairwise.nil, split,
             { intros e he, have h2 : e.1.1 ∈ l ∧ e.1.2 ∈ l := @mem_edges G _ _ ⟨⟨l,rfl,hy⟩,ha.2⟩ e he,
-                push_neg, split; intro h3; rw h3 at h2; simp at h2; apply hs.1, exact h2.1, exact h2.2 },
+                push_neg, split; intro h3; rw h3 at h2; simp at h2; apply hs.1; exact h2 },
             { have h1 := hr rfl hy ha.2 hs.2, exact h1 }
         }
 end end path
