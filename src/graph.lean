@@ -17,7 +17,7 @@ end end graph
 
 namespace edge section
     @[simp] def flip  {G} (e : edge G)    : edge G := ⟨⟨_,_⟩, G.sym e.2⟩
-    @[simp] def same  {G} (e e' : edge G) : Prop   := e' = e ∨ e' = flip e
+    def same  {G} (e e' : edge G) : Prop   := e' = e ∨ e' = flip e
     @[simp] def nsame {G} (e e' : edge G) : Prop   := ¬ same e e'
 end end edge
 
@@ -33,9 +33,12 @@ namespace path section
     def mem (v : G) (p : path G x y) := llist.mem v p.l
     instance has_mem : has_mem G (path G x y) := ⟨mem⟩
 
+    def cons (v : G) (p : path G x y) (h : G.adj v x) : path G v y
+        := ⟨llist'.cons v p.1, by { simp [llist'.cons,llist.is_path], exact ⟨h,p.2⟩ }⟩
+
     @[simp] def linked     (x y : G)        : Prop := nonempty (path G x y)
     @[simp] def connected                   : Prop := ∀ x y, linked x y
-    @[simp] def simple     (p : path G x y) : Prop := llist.nodup p.l
+    def simple     (p : path G x y) : Prop := llist.nodup p.l
 
     @[simp] def rev (p : path G x y) : path G y x
         := { l := llist.rev p.l, hx := by simp, hy := by simp, adj := (llist.rev_is_path G.adj G.sym).mpr p.adj }
@@ -47,7 +50,7 @@ namespace path section
         | (llist.P v)   _ := []
         | (llist.L v l) h := ⟨⟨_,_⟩,h.1⟩ :: edges_aux l h.2
 
-    @[simp] def edges (p : path G x y) : list (edge G) := edges_aux p.l p.adj
+    def edges (p : path G x y) : list (edge G) := edges_aux p.l p.adj
 
     lemma mem_edges {p : path G x y} {e : edge G} : e ∈ p.edges -> e.1.1 ∈ p.l ∧ e.1.2 ∈ p.l
         := by {
@@ -57,7 +60,7 @@ namespace path section
         }
 end end path
 
-structure spath (G : graph) (x y) extends path   G x y := (simple : llist.nodup l)
+structure spath (G : graph) (x y) extends path   G x y := (simple : path.simple to_path)
 
 namespace spath section
     parameters {G : graph}
@@ -72,9 +75,9 @@ namespace spath section
     lemma edges_simple {p : spath G x y} : list.pairwise edge.nsame p.to_path.edges
         := by {
             rcases p with ⟨⟨⟨l,hx,hy⟩,ha⟩,hs⟩, revert x y, induction l with v v l hr; intros; simp at *,
-            exact list.pairwise.nil, split,
+            exact list.pairwise.nil, simp [path.edges], split,
             { intros e he, have h2 : e.1.1 ∈ l ∧ e.1.2 ∈ l := @path.mem_edges G _ _ ⟨⟨l,rfl,hy⟩,ha.2⟩ e he,
-                push_neg, split; intro h3; rw h3 at h2; simp at h2; apply hs.1; exact h2 },
+                rw edge.same, push_neg, split; intro h3; rw h3 at h2; simp at h2; apply hs.1; exact h2 },
             { have h1 := hr rfl hy ha.2 hs.2, exact h1 }
         }
 end end spath
@@ -102,21 +105,41 @@ section embedding
 
     def follow (p : path G x y) : path G' (F.f x) (F.f y) := follow_aux F p.l p.hx p.hy p.adj
 
-    @[simp] lemma follow_nil : follow F ⟨⟨llist.P x, rfl, rfl⟩, trivial⟩ = ⟨⟨llist.P (F.f x), rfl, rfl⟩, trivial⟩ := rfl
+    @[simp] lemma follow_nil : follow F ⟨⟨llist.P x, rfl, rfl⟩, trivial⟩ = ⟨⟨llist.P (F.f x), rfl, rfl⟩, trivial⟩
+        := rfl
+
+    lemma follow_cons {v : G} {p : path G x y} {h : G.adj v x} : follow F (path.cons v p h) = path.concat (F.df ⟨(v,x),h⟩).1 (follow F p)
+        := by { simp [path.cons,llist'.cons,follow], congr; simp }
+
+    lemma congr_arg3 {α β γ δ : Type} (f : α -> β -> γ -> δ) {x x' : α} {y y' : β} {z z' : γ}
+        (hx : x = x') (hy : y = y') (hz : z = z') : f x y z = f x' y' z'
+            := by { subst hx, subst hy, subst hz }
+
+
+    lemma follow_aux_concat {l l' h₁ h₂} : follow_aux F (llist.concat l l' h₁) rfl rfl h₂
+                    = path.concat   (follow_aux F l  (llist.concat_head h₁) h₁ ((llist.concat_path G.adj h₁).mp h₂).1)
+                                    (follow_aux F l' rfl (llist.concat_last h₁).symm ((llist.concat_path G.adj h₁).mp h₂).2)
+        := by { induction l with v v l hr,
+            { simp, apply path.eq, apply llist'.eq, simp, finish },
+            { simp [llist.concat,follow_aux],
+                have h1 := llist.concat_head h₁, rw h1,
+                 } }
 
     @[simp] lemma follow_concat (p : path G x y) (p' : path G y z) : follow F (path.concat p p') = path.concat (follow F p) (follow F p')
         := by {
-            rcases p with ⟨⟨l,hx,hy⟩,h⟩, revert x y z, induction l with v v l hr,
-            { intros, apply path.eq, apply llist'.eq, simp, finish },
-            { intros, apply path.eq, apply llist'.eq, simp [path.concat, llist.concat, follow],
-                have tmp := hr p' rfl hy h.2, simp [follow] at tmp, rw tmp, }
+            rcases p with ⟨⟨l,hx,hy⟩,h⟩, revert x y z, induction l with v v l hr; intros; simp at *,
+            { simp [follow], apply path.eq, apply llist'.eq, finish },
+            { simp [llist.concat,follow], rw llist.concat_assoc, rw llist.last at hy,
+                have h1 := @llist.concat_head G l p'.l (eq.trans hy p'.hx), rw <-h1,
+                have tmp := hr p' rfl hy h.2, simp [follow,path.concat] at tmp,
+                }
         }
 
     lemma follow_edges {z} {p : path G x y} {hz : p.l ≠ llist.P y} : z ∈ follow F p <-> ∃ e ∈ path.edges p, z ∈ (F.df e).l
         := by {
             rcases p with ⟨⟨l,hx,hy⟩,hp⟩, revert x y z, induction l with v v l hr; intros; simp at *,
             { finish },
-            { cases l with w w l, { simp *, subst hx, finish [follow] },
+            { cases l with w w l, { simp [*,path.edges], subst hx, finish [follow] },
                 have h1 := @hr w y z rfl hy hp.2 (by {simp}), clear hr, split,
                 { rintros h2, have h3 := (llist.mem_concat _).mp h2, cases h3,
                     { use ⟨⟨_,_⟩,hp.1⟩, split, left, refl, subst hx, exact h3 },
@@ -141,14 +164,13 @@ section embedding
             let e   : edge G          := ⟨(v,l.head), h.1⟩,
             let p   : path G l.head y := ⟨⟨l,rfl,hy⟩,h.2⟩,
             let p₁  : spath G' _ _    := F.df e,
-            let p₂  : path G' _ _     := follow F p,
 
             rw llist.head at hx, subst hx,
             cases l with w w l, { simp [follow] at *, exact p₁.simple },
 
-            have step1 : path.simple p₂,                                by { exact hr rfl hy h.2 hs.2 }, clear hr,
-            have step2 : list.pairwise edge.nsame es,                   by { exact path.edges_simple },
-            suffices   : llist.nodup (path.concat p₁.to_path p₂).l,     by { convert this },
+            have step1 : path.simple (follow F p),                      by { exact hr rfl hy h.2 hs.2 }, clear hr,
+            have step2 : list.pairwise edge.nsame es,                   by { exact spath.edges_simple },
+            suffices   : llist.nodup (path.concat p₁.1 (follow F p)).l, by { convert this },
             apply (llist.concat_nodup _).mpr, simp,
             refine ⟨p₁.simple, step1, _⟩, rintros z h1 h2,
             have step3 : ∃ e' ∈ p.edges, z ∈ (F.df e').l,               by { apply (follow_edges F).mp h2, simp },

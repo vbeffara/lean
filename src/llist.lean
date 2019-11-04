@@ -21,13 +21,13 @@ namespace llist section
     def rev     :      llist V -> llist V |   (P v) := (P v)     |   (L v l) := append v (rev l)
     def nodup   :      llist V -> Prop    |   (P v) := true      |   (L v l) := v ∉ l ∧ nodup l
 
-    def compat (l₁ l₂ : llist V) := last l₁ = head l₂
+    @[simp] def compat (l₁ l₂ : llist V) := last l₁ = head l₂
 
     def concat : Π (l₁ l₂) (h : compat l₁ l₂), llist V
         | (P _)   l₂ _ := l₂
         | (L v l) l₂ h := L v (concat l l₂ h)
 
-    variables {x y v w : V} {l l' : llist V}
+    variables {x y v w : V} {l l' l'' : llist V}
 
     @[simp] lemma concat_head (h) : head (concat l l' h)  = head l
         := by { cases l; finish [concat, h.symm] }
@@ -95,6 +95,9 @@ namespace llist section
     @[simp] lemma concat_nil2 (h) : concat (P w) l h = l
         := rfl
 
+    lemma concat_assoc {h₁ h₂ h₃ h₄} : concat (concat l l' h₁) l'' h₂ = concat l (concat l' l'' h₃) h₄
+        := by { induction l with v v l hr; simp [concat], exact hr }
+
     lemma concat_nodup (h) : nodup (concat l l' h) <-> nodup l ∧ nodup l' ∧ (∀ x, x ∈ l ∧ x ∈ l' -> x = head l')
         := by { induction l with v v l hr,
             { rw compat at h, finish [nodup, last] },
@@ -114,13 +117,16 @@ namespace llist' section open llist
     parameters {V : Type} (adj : V -> V -> Prop)
     variables {x y z : V}
 
-    lemma eq {l l' : llist' V x y} : l.l = l'.l -> l = l'
-        := by { cases l, cases l', simp }
+    def cons (v : V) (l : llist' V x y) : llist' V v y := ⟨L v l.l, rfl, l.hy⟩
 
-    @[simp] lemma head   {l : llist' V x y}                     : l.l.head = x         := l.hx.symm
-    @[simp] lemma last   {l : llist' V x y}                     : l.l.last = y         := l.hy
+    @[simp] lemma head   {l : llist' V x y}                     : l.l.head = x          := l.hx.symm
+    @[simp] lemma last   {l : llist' V x y}                     : l.l.last = y          := l.hy
     @[simp] lemma compat {l : llist' V x y} {l' : llist' V y z} : llist.compat l.l l'.l := by simp [compat]
 
     @[simp] def concat {x y z : V} (l : llist' V x y) (l' : llist' V y z) : llist' V x z
-        := { l := llist.concat l.l l'.l compat, hx := by simp, hy := by simp }
+        := have c : llist.compat l.l l'.l := eq.trans l.hy l'.hx,
+        ⟨llist.concat l.l l'.l c, eq.trans l.hx (concat_head c).symm, eq.trans (concat_last c) l'.hy⟩
+
+    lemma eq {l l' : llist' V x y} : l.l = l'.l -> l = l'
+        := by { cases l, cases l', simp }
 end end llist'
