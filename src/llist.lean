@@ -92,6 +92,9 @@ namespace llist section
     @[simp] lemma concat_nil (h) : concat l (P w) h = l
         := by { induction l; rw concat, { simp, exact h.symm }, finish }
 
+    @[simp] lemma concat_nil2 (h) : concat (P w) l h = l
+        := rfl
+
     lemma concat_nodup (h) : nodup (concat l l' h) <-> nodup l ∧ nodup l' ∧ (∀ x, x ∈ l ∧ x ∈ l' -> x = head l')
         := by { induction l with v v l hr,
             { rw compat at h, finish [nodup, last] },
@@ -110,6 +113,9 @@ instance llist'_to_llist {V : Type} {x y : V} : has_coe (llist' V x y) (llist V)
 namespace llist' section open llist
     parameters {V : Type} (adj : V -> V -> Prop)
     variables {x y z : V}
+
+    lemma eq {l l' : llist' V x y} : l.l = l'.l -> l = l'
+        := by { cases l, cases l', simp }
 
     @[simp] lemma head   {l : llist' V x y}                     : l.l.head = x         := l.hx.symm
     @[simp] lemma last   {l : llist' V x y}                     : l.l.last = y         := l.hy
