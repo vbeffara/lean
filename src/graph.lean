@@ -51,10 +51,6 @@ namespace path section
         := { to_llist' := llist'.concat p.to_llist' p'.to_llist',
             adj := by { apply (llist.concat_path G.adj llist'.compat).mpr, exact ⟨p.adj,p'.adj⟩ } }
 
-    -- lemma concat_cons {v} {p : path G x y} {p' : path G y z } {h} :
-    --         path.concat (cons v p h) p' = cons v (path.concat p p') h
-    --     := by { sorry }
-
     def edges_aux : Π (l : llist G) (h : llist.is_path G.adj l), list (edge G)
         | (llist.P v)   _ := []
         | (llist.L v l) h := ⟨⟨_,_⟩,h.1⟩ :: edges_aux l h.2
@@ -142,6 +138,25 @@ section embedding
     @[simp] lemma follow_nil : follow F (path.P x) = path.P (F.f x)
         := by { simp [follow,path.P,llist'.P,follow_llist] }
 
+    lemma follow_edges_llist {z : G'} {l : llist G} {h} {hz : l ≠ llist.P l.head} :
+            z ∈ follow_llist F l h <-> ∃ e ∈ path.edges_aux l h, z ∈ (F.df e).l
+        := by { induction l with v v l hr,
+            { simp at hz, contradiction },
+            { simp [llist.is_path] at h, replace hr := @hr h.2, clear hz,
+                have compat : (F.df ⟨(_,_),h.1⟩).l.last = F.f l.head, by simp,
+                simp [follow_llist,path.edges_aux],
+                rw llist.mem_concat, swap, rw llist.compat, convert compat, rw follow_head, split,
+                { intro h1, cases h1 with h1 h1,
+                    { use ⟨(_,_),h.1⟩, simpa },
+                    { cases l with w w l,
+                        { simp [follow_llist] at h1, use ⟨(_,_),h.1⟩, simp, convert llist.mem_last, simpa },
+                        { rcases hr.mp h1 with ⟨e,⟨he1,he2⟩⟩, use e, finish, simp } } },
+                { rintros ⟨e,he1,he2⟩, cases he1 with he1 he1,
+                    { subst he1, left, assumption },
+                    { cases l with w w l,
+                        { cases he1 },
+                        { right, apply hr.mpr, use e, use he1, exact he2, simp } } } } }
+
     -- lemma follow_cons {v : G} {p : path G x y} {h : G.adj v x} :
     --         follow F (path.cons v p h) = path.concat (F.df ⟨(v,x),h⟩).1 (follow F p)
     --     := by { simp [path.cons,llist'.cons,follow], congr; simp }
@@ -149,7 +164,8 @@ section embedding
     -- @[simp] lemma follow_concat {p : path G x y} {p' : path G y z} :
     --         follow F (path.concat p p') = path.concat (follow F p) (follow F p')
     --     := by { rcases p with ⟨⟨l,hx,hy⟩,hp⟩, revert x y, induction l with v v l hr; intros,
-    --         { simp [path.concat,llist'.concat,llist.concat,follow,follow_aux], ext, simp, convert rfl; subst hx; subst hy; simp },
+    --         { simp [path.concat,llist'.concat,llist.concat,follow,follow_aux],
+                    -- ext, simp, convert rfl; subst hx; subst hy; simp },
     --         {
     --             simp [llist.is_path] at hp,
     --             have h1 := @path.concat_cons G l.head y z v ⟨⟨l,rfl,hy⟩,hp.2⟩ p' hp.1,
@@ -157,25 +173,9 @@ section embedding
     --         }
     --     }
 
-    lemma follow_edges {z} {p : path G x y} {hz : p.l ≠ llist.P y} : z ∈ follow F p <-> ∃ e ∈ path.edges p, z ∈ (F.df e).l
-        := by {
-            rcases p with ⟨⟨l,hx,hy⟩,hp⟩, revert x y z, induction l with v v l hr; intros; simp at *,
-            { finish },
-            { cases l with w w l,
-                { sorry },
-                replace hr := @hr w y z rfl hy hp.2 (by {simp}), split,
-                { rintros h2, have h3 := (llist.mem_concat llist'.compat).mp h2, cases h3,
-                    { use ⟨⟨_,_⟩,hp.1⟩, split, left, refl, subst hx, exact h3 },
-                    { have h4 := hr.mp h3,
-                        { rcases h4 with ⟨e,h5,h6⟩, exact ⟨e, or.inr h5, h6⟩ } } },
-                { rintros h2, apply (llist.mem_concat llist'.compat).mpr,
-                    { rcases h2 with ⟨e,h3,h4⟩, cases h3,
-                        { subst h3, subst hx, exact or.inl h4 },
-                        { exact or.inr (hr.mpr ⟨e,h3,h4⟩) }
-                    }
-                }
-            }
-        }
+    lemma follow_edges {z} {p : path G x y} {hz : p.l ≠ llist.P x} :
+            z ∈ follow F p <-> ∃ e ∈ path.edges p, z ∈ (F.df e).l
+        := by { convert follow_edges_llist F, convert hz, simp }
 
     lemma follow_simple {p : spath G x y} : path.simple (follow F p.to_path)
         := by {
@@ -189,7 +189,8 @@ section embedding
             let p₁  : spath G' _ _    := F.df e,
 
             rw llist.head at hx, subst hx, rw llist.last at hy, subst hy,
-            cases l with w w l, { sorry },
+            cases l with w w l, { rw follow, rw path.simple, simp [follow_llist], rw llist.concat_nil,
+                                    exact (F.df _).simple, exact (F.df _).hy },
             replace hr := hr rfl hy h.2 hs.2, simp at hr,
 
             have step2 : list.pairwise edge.nsame es,                   by { exact spath.edges_simple },

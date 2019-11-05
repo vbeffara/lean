@@ -115,6 +115,9 @@ namespace llist section
                 { rintros ⟨⟨h1,h2⟩,h3,h4⟩, rw mem_concat h, push_neg, refine ⟨⟨h1,_⟩,h2,h3,_⟩,
                     { intro h5, have h6 := h4 v (or.inl rfl) h5, subst h6, rw <-h at h1, exact (h1 mem_last) },
                     { rintros x ⟨h5,h6⟩, exact h4 x (or.inr h5) h6, } } } }
+
+    lemma mem_iff : l = l' -> (x ∈ l <-> x ∈ l')
+        := by { intro h, rw h }
 end end llist
 
 structure llist' (V : Type) (x y : V) := (l : llist V) (hx : x = l.head) (hy : l.last = y)
