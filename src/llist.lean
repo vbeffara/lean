@@ -29,6 +29,9 @@ namespace llist section
     @[simp] lemma head_P                          : head (P x)              = x
         := rfl
 
+    @[simp] lemma head_cons                       : head (L v l)            = v
+        := rfl
+
     @[simp] lemma last_P                          : last (P x)              = x
         := rfl
 
@@ -121,6 +124,7 @@ namespace llist' section open llist
     parameters {V : Type} (adj : V -> V -> Prop)
     variables {x y z : V}
 
+    def P    (v : V)                    : llist' V v v := ⟨P v,     rfl, rfl⟩
     def cons (v : V) (l : llist' V x y) : llist' V v y := ⟨L v l.l, rfl, l.hy⟩
 
     @[simp] lemma head   {l : llist' V x y}                     : l.l.head = x          := l.hx.symm
@@ -134,6 +138,7 @@ namespace llist' section open llist
     @[simp] lemma concat_P {l : llist' V x y} {hx' hy'} : concat l ⟨llist.P y, hx', hy'⟩ = l
         := by { rcases l with ⟨l,hx,hy⟩, subst hx, subst hy, rw concat, simp }
 
-    lemma eq {l l' : llist' V x y} : l.l = l'.l -> l = l'
+
+    @[extensionality] lemma eq {l l' : llist' V x y} : l.l = l'.l -> l = l'
         := by { cases l, cases l', simp }
 end end llist'
