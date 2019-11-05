@@ -140,7 +140,7 @@ section embedding
             adj := follow_path F }
 
     @[simp] lemma follow_nil : follow F (path.P x) = path.P (F.f x)
-        := rfl
+        := by { simp [follow,path.P,llist'.P,follow_llist] }
 
     -- lemma follow_cons {v : G} {p : path G x y} {h : G.adj v x} :
     --         follow F (path.cons v p h) = path.concat (F.df ⟨(v,x),h⟩).1 (follow F p)
