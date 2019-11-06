@@ -118,6 +118,17 @@ namespace llist section
 
     lemma mem_iff : l = l' -> (x ∈ l <-> x ∈ l')
         := by { intro h, rw h }
+
+    lemma rev_compat : compat l l' <-> compat l'.rev l.rev
+        := by { finish }
+
+    lemma concat_append : append v (concat l l') = concat l (append v l')
+        := by { induction l with w w l hr, refl, { rw concat, rw append, rw hr, refl } }
+
+    lemma rev_concat (h : compat l l') : rev (concat l l') = concat (rev l') (rev l)
+        := by { induction l with v v l hr,
+            { simp [rev], rw concat_nil, rw rev_last, exact h.symm },
+            { simp [compat,last] at h, simp [hr h,rev,concat,concat_append] } }
 end end llist
 
 structure llist' (V : Type) (x y : V) := (l : llist V) (hx : x = l.head) (hy : l.last = y)

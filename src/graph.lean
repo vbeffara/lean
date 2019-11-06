@@ -93,20 +93,20 @@ namespace spath section
         := path.edges_simple _ p.simple
 end end spath
 
+structure graph_embedding (G G' : graph) :=
+    (f        : G -> G')
+    (df       : Π (e : edge G), spath G' (f e.1.1) (f e.1.2))
+    --
+    (inj      : injective f)
+    (sym      : ∀ e : edge G, (df e.flip) = (df e).rev)
+    --
+    (endpoint : ∀ e x, f x ∈ (df e).l -> x = e.1.1 ∨ x = e.1.2)
+    (disjoint : ∀ e e' z, z ∈ (df e).l -> z ∈ (df e').l -> edge.same e e' ∨ ∃ x, z = f x)
+    (inside   : ∀ e x, f x ∉ (df e).l.inside)
+
+def embeds_into (G G' : graph) := nonempty (graph_embedding G G')
+
 section embedding
-    structure graph_embedding (G G' : graph) :=
-        (f        : G -> G')
-        (df       : Π (e : edge G), spath G' (f e.1.1) (f e.1.2))
-        --
-        (inj      : injective f)
-        (sym      : ∀ e : edge G, df e.flip = (df e).rev)
-        --
-        (endpoint : ∀ e x, f x ∈ (df e).l -> x = e.1.1 ∨ x = e.1.2)
-        (disjoint : ∀ e e' z, z ∈ (df e).l -> z ∈ (df e').l -> edge.same e e' ∨ ∃ x, z = f x)
-        (inside   : ∀ e x, f x ∉ (df e).l.inside)
-
-    def embeds_into (G G' : graph) := nonempty (graph_embedding G G')
-
     variables {G G' G'' : graph} {x y z : G} (F : graph_embedding G G')
 
     def follow_llist : Π (l : llist G) (h : llist.is_path G.adj l), llist G'
@@ -174,6 +174,24 @@ section embedding
             cases F.endpoint e' u h9 with h15 h15; rw h15; assumption
         }
 
+    lemma follow_append {v l} (h) : follow_llist F (llist.append v l) h =
+            let hh := (llist.append_is_path G.adj).mp h in
+            llist.concat (follow_llist F l hh.2) (F.df ⟨(_,_),hh.1⟩).l
+        := by { simp, sorry }
+
+    lemma follow_rev {l} (h) : llist.rev (follow_llist F l h) = follow_llist F l.rev ((llist.rev_is_path G.adj G.sym).mpr h)
+        := by {
+            induction l with v v l hr,
+            { simp [follow_llist,llist.rev] },
+            { cases h with h1 h2, replace hr := hr h2,
+                simp [follow_llist,llist.rev], rw llist.rev_concat,
+                { simp [hr,follow_append], apply congr_arg,
+                    let e : edge G := ⟨(_,_),h1⟩,
+                    have h3 := F.sym e,
+                    have h4 : (F.df e.flip).l = (F.df e).l.rev, by { finish [spath.rev,path.rev] },
+                    convert h4.symm; simp },
+                { rw llist.compat, convert (F.df _).hy, rw follow_head } } }
+
     -- lemma follow_cons {v : G} {p : path G x y} {h : G.adj v x} :
     --         follow F (path.cons v p h) = path.concat (F.df ⟨(v,x),h⟩).1 (follow F p)
     --     := by { simp [path.cons,llist'.cons,follow], congr; simp }
@@ -194,19 +212,20 @@ section embedding
         := ⟨follow F p.to_path, follow_simple F p.adj p.simple⟩
 
     @[simp] lemma sfollow_rev (p : spath G x y) : sfollow F p.rev = (sfollow F p).rev
-        := by { sorry }
+        := by { simp [sfollow,follow,spath.rev,path.rev], apply (follow_rev F _).symm }
 
     def comp (F : graph_embedding G G') (F' : graph_embedding G' G'') : (graph_embedding G G'') := {
         f := F'.f ∘ F.f,
         df := λ e, sfollow F' (F.df e),
         --
         inj := injective_comp F'.inj F.inj,
-        sym := sorry,
+        sym := by { intro e, rw F.sym e, apply sfollow_rev },
         --
         endpoint := sorry,
         disjoint := sorry,
         inside := sorry
     }
 
-    theorem embed_trans : transitive embeds_into := sorry
+    theorem embed_trans : transitive embeds_into
+        := by { rw transitive, intros G G' G'' F F', cases F, cases F', use comp F F' }
 end embedding
