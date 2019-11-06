@@ -11,6 +11,7 @@ namespace llist section
     def to_list : llist V -> list V | (P v) := [v] | (L v l) := v :: to_list l
     instance llist_to_list : has_coe (llist V) (list V) := ⟨to_list⟩
 
+    def is_P    :            llist V -> Prop    |   (P _)    := true      |   (L v l)    := false
     def head    :            llist V -> V       |   (P v)    := v         |   (L v l)    := v
     def tail    :            llist V -> list V  |   (P v)    := []        |   (L v l)    := l.head :: tail l
     def init    :            llist V -> list V  |   (P v)    := []        |   (L v l)    := v :: init l

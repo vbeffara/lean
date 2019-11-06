@@ -113,6 +113,9 @@ section embedding
         | (llist.P v)   _ := llist.P (F.f v)
         | (llist.L v l) h := llist.concat (F.df ⟨(_,_),h.1⟩) (follow_llist l h.2)
 
+    lemma follow_P {l h} (hp : llist.is_P l) : follow_llist F l h = llist.P (F.f l.head)
+        := by { cases l, simp [follow_llist], rw llist.is_P at hp, contradiction }
+
     @[simp] lemma follow_head {l} (h) : llist.head (follow_llist F l h) = F.f l.head
         := by { induction l with v v l hr; rw follow_llist, { refl },
             { let e : edge G := ⟨(_,_),h.1⟩, replace hr := hr h.2,
@@ -134,10 +137,10 @@ section embedding
     @[simp] lemma follow_nil : follow F (path.P x) = path.P (F.f x)
         := by { simp [follow,path.P,llist'.P,follow_llist] }
 
-    lemma follow_edges {z l} (h) (hz : l ≠ llist.P l.head) :
+    lemma follow_edges {z l} (h) (hz : ¬ llist.is_P l) :
             z ∈ follow_llist F l h <-> ∃ e ∈ path.edges_aux l h, z ∈ (F.df e).l
         := by { induction l with v v l hr,
-            { simp at hz, contradiction },
+            { rw llist.is_P at hz, contradiction },
             { simp [llist.is_path] at h, replace hr := hr h.2, clear hz,
                 have compat : (F.df ⟨(_,_),h.1⟩).l.last = F.f l.head, by simp,
                 simp [follow_llist,path.edges_aux],
@@ -146,12 +149,12 @@ section embedding
                     { use ⟨(_,_),h.1⟩, simpa },
                     { cases l with w w l,
                         { simp [follow_llist] at h1, use ⟨(_,_),h.1⟩, simp, convert llist.mem_last, simpa },
-                        { rcases (hr _).mp h1 with ⟨e,⟨he1,he2⟩⟩, use e, finish, simp } } },
+                        { rcases (hr _).mp h1 with ⟨e,⟨he1,he2⟩⟩, use e, finish, rw llist.is_P, simp } } },
                 { rintros ⟨e,he1,he2⟩, cases he1 with he1 he1,
                     { subst he1, left, assumption },
                     { cases l with w w l,
                         { cases he1 },
-                        { right, apply (hr _).mpr, use e, use he1, exact he2, simp } } } } }
+                        { right, apply (hr _).mpr, use e, use he1, exact he2, rw llist.is_P, simp } } } } }
 
     lemma follow_simple {l} (h) (hs : llist.nodup l) : llist.nodup (follow_llist F l h)
         := by {
@@ -160,9 +163,10 @@ section embedding
             replace hr := hr h.2 hs.2,
             have h1 := path.edges_simple h hs, cases h1 with _ _ h2 h1,
             have h3 : llist.compat (F.df e).l (follow_llist F l h.2), by simp,
-            have h4 := classical.em (l = llist.P l.head), cases h4 with h4 h4,
-                { conv {congr,congr,skip,congr,skip,rw h4}, simp [follow_llist],
-                rw llist.concat_nil, exact (F.df _).simple, convert h3, simp },
+            have h4 := classical.em (llist.is_P l), cases h4 with h4 h4,
+                { cases l,
+                    { simp [follow_llist], rw llist.concat_nil, exact (F.df _).simple, convert h3 },
+                    { rw llist.is_P at h4, contradiction } },
             apply (llist.concat_nodup h3).mpr, refine ⟨(F.df _).simple, hr, _⟩,
             rintros x ⟨h6,h7⟩, rcases (follow_edges F h.2 h4).mp h7 with ⟨e',h8,h9⟩,
             have h10 : edge.nsame e e', by { exact h2 e' h8 },
@@ -177,7 +181,12 @@ section embedding
     lemma follow_append {v l} (h) : follow_llist F (llist.append v l) h =
             let hh := (llist.append_is_path G.adj).mp h in
             llist.concat (follow_llist F l hh.2) (F.df ⟨(_,_),hh.1⟩).l
-        := by { simp, sorry }
+        := by { simp, induction l with w w l hr,
+            { simp [llist.append,follow_llist], apply llist.concat_nil, exact (F.df _).hy },
+            { cases h with h1 h2, replace hr := hr h2,
+                simp [follow_llist,llist.append,llist.concat_assoc], rw hr,
+                have h3 : llist.head (llist.append v l) = llist.head l := llist.append_head,
+                congr; simp } }
 
     lemma follow_rev {l} (h) : llist.rev (follow_llist F l h) = follow_llist F l.rev ((llist.rev_is_path G.adj G.sym).mpr h)
         := by {
@@ -221,7 +230,16 @@ section embedding
         inj := injective_comp F'.inj F.inj,
         sym := by { intro e, rw F.sym e, apply sfollow_rev },
         --
-        endpoint := sorry,
+        endpoint := by { intros e x h1, simp [sfollow,follow] at h1,
+            cases classical.em (llist.is_P (F.df e).l) with h0 h0,
+            { rw follow_P F' h0 at h1, simp at h1, refine or.inl (F.inj (F'.inj h1)) },
+            { rw follow_edges at h1, swap, exact h0, rcases h1 with ⟨e',h1,h2⟩,
+                have h3 := F'.endpoint _ _ h2,
+                have h4 := path.mem_edges_aux h1, cases h4 with h4 h5,
+                cases h3 with h3 h3,
+                { rw <-h3 at h4, exact F.endpoint _ _ h4 },
+                { rw <-h3 at h5, exact F.endpoint _ _ h5 } } },
+        --
         disjoint := sorry,
         inside := sorry
     }
