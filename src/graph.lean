@@ -100,7 +100,7 @@ section embedding
         (sym      : ∀ e : edge G, df e.flip = (df e).rev)
         --
         (endpoint : ∀ e x, f x ∈ (df e).l -> x = e.1.1 ∨ x = e.1.2)
-        (disjoint : ∀ e e' z, z ∈ (df e).l ∧ z ∈ (df e').l -> edge.same e e' ∨ ∃ x, z = f x)
+        (disjoint : ∀ e e' z, z ∈ (df e).l -> z ∈ (df e').l -> edge.same e e' ∨ ∃ x, z = f x)
         (inside   : ∀ e x, f x ∉ (df e).l.inside)
 
     def embeds_into (G G' : graph) := nonempty (graph_embedding G G')
@@ -160,30 +160,25 @@ section embedding
 
     example {l h} {hs : llist.nodup l} : llist.nodup (follow_llist F l h)
         := by {
-            induction l with v v l hr, simp [follow_llist],
-            let es : list (edge G) := path.edges_aux (llist.L v l) h,
-            have h0 : list.pairwise edge.nsame es, by { apply path.edges_simple, exact hs },
-            rw [llist.is_path] at h, cases h with h1 h2,
-            rw [llist.nodup] at hs, cases hs with h3 h4,
-            replace hr := @hr h2 h4,
-            let e : edge G := ⟨(_,_),h1⟩,
-            have h5 : llist.compat (F.df e).l (follow_llist F l h2), by { simp },
-            have h55 := classical.em (l = llist.P l.head), cases h55 with h55 h55,
-            {
-                conv { congr, congr, skip, congr, skip, rw h55 }, simp [follow_llist],
-                rw llist.concat_nil, exact (F.df _).simple, convert h5, rw follow_head
-            },
-            rw follow_llist, apply (llist.concat_nodup h5).mpr,
-            refine ⟨(F.df _).simple, hr, _⟩, rintros x ⟨h6,h7⟩,
-            obtain ⟨e',h8,h9⟩ : ∃ e' ∈ path.edges_aux l h2, x ∈ (F.df e').l,
-                by { apply (follow_edges F).mp h7, exact h55 },
-            have h10 : edge.nsame e e', by { cases h0, exact h0_a_1 e' h8 },
-            obtain ⟨u, h11⟩ : ∃ u : G, x = F.f u, by { cases F.disjoint e e' x ⟨h6,h9⟩ with h h, cases h10 h, exact h },
+            induction l with v v l hr; simp [follow_llist],
+            let e : edge G := ⟨(_,_),h.1⟩,
+            replace hr := @hr h.2 hs.2,
+            have h1 := @path.edges_simple _ _ h hs, cases h1 with _ _ h2 h1,
+            have h3 : llist.compat (F.df e).l (follow_llist F l h.2), by simp,
+            have h4 := classical.em (l = llist.P l.head), cases h4 with h4 h4,
+                { conv {congr,congr,skip,congr,skip,rw h4}, simp [follow_llist],
+                rw llist.concat_nil, exact (F.df _).simple, convert h3, simp },
+            apply (llist.concat_nodup h3).mpr, refine ⟨(F.df _).simple, hr, _⟩,
+            rintros x ⟨h6,h7⟩,
+            rcases (@follow_edges G G' F x l h.2 h4).mp h7 with ⟨e',h8,h9⟩,
+            have h10 : edge.nsame e e', by { exact h2 e' h8 },
+            obtain ⟨u, h11⟩ : ∃ u : G, x = F.f u, by {
+                cases F.disjoint e e' x h6 h9 with h h, cases h10 h, exact h },
             subst h11, rw follow_head, apply congr_arg,
             have h12 := F.endpoint e u h6, simp at h12, cases h12, swap, exact h12,
-            suffices : u ∈ l, by { rw h12 at this, contradiction },
+            suffices : u ∈ l, by { cases hs.1 (h12 ▸ this) },
             cases path.mem_edges_aux h8 with h13 h14,
-            have h15 := F.endpoint e' u h9, cases h15 with h15 h15; rw h15; assumption
+            cases F.endpoint e' u h9 with h15 h15; rw h15; assumption
         }
 
     lemma follow_simple {p : spath G x y} : path.simple (follow F p.to_path)
@@ -208,7 +203,7 @@ section embedding
             refine ⟨p₁.simple, hr, _⟩, rintros z h1 h2,
             obtain ⟨e',h3,h4⟩ : ∃ e' ∈ p.edges, z ∈ (F.df e').l,        by { apply (follow_edges F).mp h2, simp },
             have step4 : ¬ edge.same e e',                              by { cases step2, exact step2_a_1 e' h3 },
-            obtain ⟨x₀, zfx⟩ : ∃ x₀ : G, z = F.f x₀,                    by { cases F.disjoint e e' z ⟨h1,h4⟩ with h h,
+            obtain ⟨x₀, zfx⟩ : ∃ x₀ : G, z = F.f x₀,                    by { cases F.disjoint e e' z h1 h4 with h h,
                                                                             exact absurd h step4, exact h },
             subst zfx, apply congr_arg,
             have h5 := F.endpoint e x₀ h1, simp at h5,
