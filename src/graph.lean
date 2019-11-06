@@ -164,11 +164,9 @@ section embedding
                 { conv {congr,congr,skip,congr,skip,rw h4}, simp [follow_llist],
                 rw llist.concat_nil, exact (F.df _).simple, convert h3, simp },
             apply (llist.concat_nodup h3).mpr, refine ⟨(F.df _).simple, hr, _⟩,
-            rintros x ⟨h6,h7⟩,
-            rcases (follow_edges F h.2 h4).mp h7 with ⟨e',h8,h9⟩,
+            rintros x ⟨h6,h7⟩, rcases (follow_edges F h.2 h4).mp h7 with ⟨e',h8,h9⟩,
             have h10 : edge.nsame e e', by { exact h2 e' h8 },
-            obtain ⟨u, h11⟩ : ∃ u : G, x = F.f u, by {
-                cases F.disjoint e e' x h6 h9 with h h, cases h10 h, exact h },
+            cases F.disjoint e e' x h6 h9 with h h, cases h10 h, cases h with u h11,
             subst h11, rw follow_head, apply congr_arg,
             have h12 := F.endpoint e u h6, simp at h12, cases h12, swap, exact h12,
             suffices : u ∈ l, by { cases hs.1 (h12 ▸ this) },
