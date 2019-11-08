@@ -130,6 +130,18 @@ namespace llist section
     lemma mem_tail : x ∈ tail l -> x ∈ l
         := by { induction l; finish [tail] }
 
+    lemma nodup_mem_head : nodup l -> head l ∉ tail l
+        := by { cases l with v v l; simp [tail],
+            simp [nodup], intros h1 h2, push_neg, split,
+            { intro h3, apply h1, rw h3, exact mem_head },
+            { intro h3, exact h1 (mem_tail h3) } }
+
+    lemma nodup_mem_last : nodup l -> last l ∉ init l
+        := by { induction l with v v l hr; simp [init],
+            simp [nodup,last], intros h1 h2, push_neg, split,
+            { intro h3, apply h1, rw <-h3, exact mem_last },
+            { exact hr h2 } }
+
     lemma rev_compat : compat l l' <-> compat l'.rev l.rev
         := by { finish }
 

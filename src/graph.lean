@@ -150,26 +150,13 @@ section embedding
     variables {G G' G'' : graph} {x y z : G} (F : graph_embedding G G')
 
     lemma endpoint_init {e : edge G} : F.f x ∈ llist.init (F.df e).l -> x = e.1.1
-        := by { intro h1, have h2 := F.endpoint (llist.mem_init h1), cases h2, assumption,
-            have lem : ∀ l : llist G', l.nodup -> l.last ∉ l.init, by {
-                intro l, induction l with v v l hr,
-                { simp [llist.init] },
-                { simp [llist.nodup,llist.last,llist.init], intros h1 h2, push_neg, split,
-                    { intro h3, apply h1, rw <-h3, exact llist.mem_last },
-                    { exact hr h2 } } },
-            subst h2, exfalso, apply lem (F.df e), exact (F.df e).simple,
+        := by { intro h1, cases F.endpoint (llist.mem_init h1), assumption,
+            subst h, exfalso, apply llist.nodup_mem_last (F.df e).simple,
             convert h1, exact (F.df e).hy }
 
     lemma endpoint_tail {e : edge G} : F.f x ∈ llist.tail (F.df e).l -> x = e.1.2
-        := by { intro h1, have h2 := F.endpoint (llist.mem_tail h1), cases h2, swap, assumption,
-            have lem : ∀ l : llist G', l.nodup -> l.head ∉ l.tail, by {
-                intro l, induction l with v v l hr,
-                { simp [llist.tail] },
-                { simp [llist.nodup,llist.tail], intros h1 h2, push_neg, split,
-                    { intro h3, apply h1, rw h3, exact llist.mem_head },
-                    { intro h3, exact h1 (llist.mem_tail h3) }}
-            },
-            subst h2, exfalso, apply lem (F.df e), exact (F.df e).simple,
+        := by { intro h1, cases F.endpoint (llist.mem_tail h1), swap, assumption,
+            subst h, exfalso, apply llist.nodup_mem_head (F.df e).simple,
             convert h1, exact (F.df e).hx.symm }
 
     def follow_llist : Π (l : llist G) (h : llist.is_path G.adj l), llist G'
