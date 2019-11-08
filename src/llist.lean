@@ -8,9 +8,7 @@ namespace llist section
     def mem : V -> llist V -> Prop | x (P v) := x = v | x (L v l) := x = v ∨ mem x l
     instance has_mem_llist : has_mem V (llist V) := ⟨mem⟩
 
-    def to_list : llist V -> list V | (P v) := [v] | (L v l) := v :: to_list l
-    instance llist_to_list : has_coe (llist V) (list V) := ⟨to_list⟩
-
+    def to_list :            llist V -> list V  |   (P v)    := [v]       |   (L v l)    := v :: to_list l
     def is_P    :            llist V -> Prop    |   (P _)    := true      |   (L v l)    := false
     def size    :            llist V -> nat     |   (P _)    := 0         |   (L v l)    := (size l) + 1
     def head    :            llist V -> V       |   (P v)    := v         |   (L v l)    := v
@@ -25,6 +23,7 @@ namespace llist section
     def concat  : llist V -> llist V -> llist V |   (P _) l' := l'        |   (L v l) l' := L v (concat l l')
 
     @[simp] def compat (l₁ l₂ : llist V) := last l₁ = head l₂
+    def qnodup (l : llist V) := head l ∉ inside l ∧ last l ∉ inside l ∧ list.nodup (inside l)
 
     variables {x y v w : V} {l l' l'' : llist V}
 
@@ -52,8 +51,11 @@ namespace llist section
     @[simp] lemma rev_append                      : rev  (append v l)       = L v (rev l)
         := by { induction l; finish [append, rev] }
 
+    @[simp] lemma append_rev                      : rev (L v l)             = append v (rev l)
+        := by { induction l; finish [append, rev] }
+
     @[simp] lemma rev_head                        : head (rev l)            = last l
-        := by { induction l; finish [rev] }
+        := by { induction l; simp [rev,append,last], assumption}
 
     @[simp] lemma rev_last                        : last (rev l)            = head l
         := by { induction l; finish [rev] }
@@ -82,6 +84,9 @@ namespace llist section
     @[simp] lemma mem_last                        : last l ∈ l
         := by { induction l; finish }
 
+    @[simp] lemma mem_list                        : x ∈ to_list l         <-> x ∈ l
+        := by { induction l with v v l hr; simp [to_list], rw hr }
+
     @[simp] lemma append_nodup                    : nodup (append x l)    <-> x ∉ l ∧ nodup l
         := by { induction l; finish [append, nodup] }
 
@@ -90,6 +95,27 @@ namespace llist section
 
     @[simp] lemma rev_nodup                       : nodup (rev l)         <-> nodup l
         := by { induction l; finish [rev, nodup] }
+
+    @[simp] lemma init_append                     : init (append x l)       = to_list l
+        := by { induction l with v v l hr; simp [append,init,to_list], assumption }
+
+    @[simp] lemma list_head_tail                  : head l :: tail l        = to_list l
+        := by { induction l; simp [to_list,tail], assumption }
+
+    @[simp] lemma inside_append                   : inside (append x l)     = tail l
+        := by { induction l with v v l hr; simp [append,inside,init,tail,to_list], }
+
+    @[simp] lemma tail_append                     : tail (append x l) = tail l ++ [x]
+        := by { induction l with v v l hr; simp [append,tail], rw [hr,<-list_head_tail], refl }
+
+    @[simp] lemma tail_rev                        : tail (rev l) = list.reverse (init l)
+        := by { induction l with v v l hr; simp [rev,tail,init], rw hr }
+
+    @[simp] lemma rev_inside                      : inside (rev l)          = list.reverse (inside l)
+        := by { induction l with v v l hr; simp [rev,inside] }
+
+    @[simp] lemma rev_qnodup                      : qnodup (rev l)        <-> qnodup l
+        := by { simp [qnodup], finish }
 
     @[simp] lemma rev_is_path (h : symmetric adj) : is_path (rev l)       <-> is_path l
         := by { induction l; simp [rev, is_path], tidy }
@@ -128,13 +154,16 @@ namespace llist section
         := by { induction l; finish [init] }
 
     lemma mem_tail : x ∈ tail l -> x ∈ l
-        := by { induction l; finish [tail] }
+        := by { induction l with v v l hr; simp [tail], intro, right, assumption }
+
+    @[simp] lemma mem_init_last : x ∈ init l ∨ x = last l <-> x ∈ l
+        := by { split, { intro h, cases h, exact mem_init h, convert mem_last }, 
+            { induction l with v v l hr; simp [init,last], intro h, cases h,
+                { left, left, assumption },
+                { cases (hr h), left, right, exact h_1, right, exact h_1 } } }
 
     lemma nodup_mem_head : nodup l -> head l ∉ tail l
-        := by { cases l with v v l; simp [tail],
-            simp [nodup], intros h1 h2, push_neg, split,
-            { intro h3, apply h1, rw h3, exact mem_head },
-            { intro h3, exact h1 (mem_tail h3) } }
+        := by { cases l with v v l; simp [tail,nodup], intros h1 h2, assumption } 
 
     lemma nodup_mem_last : nodup l -> last l ∉ init l
         := by { induction l with v v l hr; simp [init],
@@ -152,6 +181,24 @@ namespace llist section
         := by { induction l with v v l hr,
             { simp [rev], rw concat_nil, rw rev_last, exact h.symm },
             { simp [compat,last] at h, simp [hr h,rev,concat,concat_append] } }
+
+    lemma nodup_init : nodup l -> list.nodup (init l)
+        := by { induction l with v v l hr; simp [init,nodup],
+            intros h1 h2, refine ⟨_,hr h2⟩, intro h, exact h1 (mem_init h) }
+
+    lemma nodup_qnodup : nodup l -> qnodup l
+        := by { induction l with v v l hr; simp [nodup,qnodup,inside,last],
+            intros h1 h2, refine ⟨_,nodup_mem_last h2, nodup_init h2⟩, intro h, exact h1 (mem_init h) }
+
+    lemma nodup_of_init : list.nodup (init l) -> last l ∉ init l -> nodup l 
+        := by { induction l with v v l hr; simp [init,last,nodup], push_neg, simp, intros h1 h2 h3 h4, split,
+            { intro h, replace h := mem_init_last.mpr h, cases h, contradiction, exact h3 h.symm }, 
+            { exact hr h2 h4 } }
+
+    lemma qnodup_ne_nodup : qnodup l -> head l ≠ last l -> nodup l
+        := by { cases l with v v l; simp [nodup,qnodup,last,inside],
+            intros h1 h2 h3 h4, split, { intro h, cases mem_init_last.mpr h; contradiction }, 
+            { apply nodup_of_init h3 h2 } } 
 end end llist
 
 structure llist' (V : Type) (x y : V) := (l : llist V) (hx : x = l.head) (hy : l.last = y)

@@ -72,7 +72,7 @@ namespace path section
     def linked     (x y : G)        : Prop := nonempty (path G x y)
     def connected                   : Prop := ∀ x y, linked x y
     def simple     (p : path G x y) : Prop := llist.nodup p.l
-    def qsimple    (p : path G x y) : Prop := x ∉ p.l.inside ∧ y ∉ p.l.inside ∧ p.l.inside.nodup
+    def qsimple    (p : path G x y) : Prop := llist.qnodup p.l
 
     def rev (p : path G x y) : path G y x
         := ⟨⟨llist.rev p.l, by simp, by simp⟩, (llist.rev_is_path G.adj G.sym).mpr p.adj⟩
@@ -133,9 +133,28 @@ namespace spath section
         := path.edges_simple _ p.simple
 end end spath
 
+namespace qspath section
+    parameters {G : graph}
+    variables {x y z : G}
+
+    def mem (z) (p : qspath G x y) := z ∈ to_path p
+    instance : has_mem G.V (qspath G x y) := ⟨mem⟩
+
+    @[simp] lemma mem_simp {z p h} : z ∈ (⟨p,h⟩ : qspath G x y) <-> z ∈ p
+        := by { simp [(∈),mem] }
+
+    instance : has_coe (qspath G x y) (path G x y) := ⟨qspath.to_path⟩
+
+    def rev (p : qspath G x y) : qspath G y x
+        := ⟨p.to_path.rev, llist.rev_nodup.mpr p.qsimple⟩
+
+    lemma edges_simple {p : spath G x y} : list.pairwise edge.nsame p.to_path.edges
+        := path.edges_simple _ p.simple
+end end spath
+
 structure graph_embedding (G G' : graph) :=
     (f        : G -> G')
-    (df       : Π (e : edge G), spath G' (f e.1.1) (f e.1.2)) -- problem if e.1.1 = e.1.2
+    (df       : Π (e : edge G), qspath G' (f e.1.1) (f e.1.2))
     --
     (inj      : injective f)
     (nop      : ∀ e, 0 < llist.size (df e).l)
