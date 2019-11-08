@@ -12,6 +12,7 @@ namespace llist section
     instance llist_to_list : has_coe (llist V) (list V) := ⟨to_list⟩
 
     def is_P    :            llist V -> Prop    |   (P _)    := true      |   (L v l)    := false
+    def size    :            llist V -> nat     |   (P _)    := 0         |   (L v l)    := (size l) + 1
     def head    :            llist V -> V       |   (P v)    := v         |   (L v l)    := v
     def tail    :            llist V -> list V  |   (P v)    := []        |   (L v l)    := l.head :: tail l
     def init    :            llist V -> list V  |   (P v)    := []        |   (L v l)    := v :: init l
@@ -102,6 +103,9 @@ namespace llist section
     @[simp] lemma concat_nil2                     : concat (P w) l          = l
         := rfl
 
+    @[simp] lemma concat_size                     : size (concat l l')      = size l + size l'
+        := by {induction l; rw concat; rw size, simp, rw size, rw l_ih, simp }
+
     lemma concat_assoc : concat (concat l l') l'' = concat l (concat l' l'')
         := by { induction l with v v l hr; simp [concat], exact hr }
 
@@ -119,6 +123,12 @@ namespace llist section
 
     lemma mem_iff : l = l' -> (x ∈ l <-> x ∈ l')
         := by { intro h, rw h }
+
+    lemma mem_init : x ∈ init l -> x ∈ l
+        := by { induction l; finish [init] }
+
+    lemma mem_tail : x ∈ tail l -> x ∈ l
+        := by { induction l; finish [tail] }
 
     lemma rev_compat : compat l l' <-> compat l'.rev l.rev
         := by { finish }
@@ -138,6 +148,12 @@ instance llist'_to_llist {V : Type} {x y : V} : has_coe (llist' V x y) (llist V)
 namespace llist' section open llist
     parameters {V : Type} (adj : V -> V -> Prop)
     variables {x y z : V}
+
+    def mem (v : V) (l : llist' V x y) := v ∈ l.l
+    instance has_mem : has_mem V (llist' V x y) := ⟨mem⟩
+
+    @[simp] lemma mem_simp {v l hx hy} : v ∈ (⟨l,hx,hy⟩ : llist' V x y) <-> v ∈ l
+        := by { simp [(∈),mem] }
 
     def P    (v : V)                    : llist' V v v := ⟨P v,     rfl, rfl⟩
     def cons (v : V) (l : llist' V x y) : llist' V v y := ⟨L v l.l, rfl, l.hy⟩
