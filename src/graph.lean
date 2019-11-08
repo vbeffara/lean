@@ -267,22 +267,6 @@ section embedding
                     convert h4.symm; simp },
                 { rw llist.compat, convert (F.df _).hy, rw follow_head } } }
 
-    -- lemma follow_cons {v : G} {p : path G x y} {h : G.adj v x} :
-    --         follow F (path.cons v p h) = path.concat (F.df ⟨(v,x),h⟩).1 (follow F p)
-    --     := by { simp [path.cons,llist'.cons,follow], congr; simp }
-
-    -- @[simp] lemma follow_concat {p : path G x y} {p' : path G y z} :
-    --         follow F (path.concat p p') = path.concat (follow F p) (follow F p')
-    --     := by { rcases p with ⟨⟨l,hx,hy⟩,hp⟩, revert x y, induction l with v v l hr; intros,
-    --         { simp [path.concat,llist'.concat,llist.concat,follow,follow_aux],
-                    -- ext, simp, convert rfl; subst hx; subst hy; simp },
-    --         {
-    --             simp [llist.is_path] at hp,
-    --             have h1 := @path.concat_cons G l.head y z v ⟨⟨l,rfl,hy⟩,hp.2⟩ p' hp.1,
-    --             simp [path.cons,llist'.cons] at h1, replace h1 := congr_arg (follow F) h1,
-    --         }
-    --     }
-
     @[simp] def sfollow (p : spath G x y) : spath G' (F.f x) (F.f y)
         := ⟨follow F p.to_path, follow_simple F p.adj p.simple⟩
 
