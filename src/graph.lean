@@ -42,10 +42,11 @@ namespace edge section
     def nsame (e e' : edge G) : Prop   := ¬ same e e'
 
     lemma same_mem {e e'} : same e e' <-> ∀ x, x ∈ e <-> x ∈ e'
-        := by { rw same, split, { finish [(∈),mem] },
-            simp [(∈),mem], intro,
+        := by { rw same, split, 
+            { intro h, cases h, rw h, simp, subst h, intro, simp [(∈),mem,flip], rw or.comm },
+            { simp [(∈),mem], intro,
             have h1 := a e.1.1, have h2 := a e.1.2, have h3 := a e'.1.1, have h4 := a e'.1.2,
-            clear a, simp at *, cases h1, { left, ext; finish }, { right, ext; finish } }
+            clear a, simp at *, cases h1, { left, ext; finish }, { right, ext; finish } } }
 
     def ends (e : edge G) : set G := {e.1.1, e.1.2}
 end end edge
@@ -109,21 +110,9 @@ namespace path section
             intros e he, have h5 := mem_edges_aux he,
             rw [edge.nsame, edge.same], push_neg, split; intro h6; subst h6,
             exact h1 h5.1, exact h1 h5.2 }
-
-    -- lemma edges_qsimple {l} (h) (hs : llist.qnodup l) : list.pairwise edge.nsame (edges_aux l h)
-    --     := by { induction l with v v l hr; rw edges_aux, exact list.pairwise.nil,
-    --         simp, 
-    --         cases h with h4 h5, 
-    --         refine ⟨_, hr h5 (llist.qnodup_tail hs)⟩,
-    --         rcases hs with ⟨h1,h2,h3⟩, 
-    --         intros e he, have h6 := mem_edges_aux he, cases h6 with h6 h7,
-    --         rw [edge.nsame, edge.same], push_neg, split; intro h6; subst h6,
-    --         { simp [llist.last,llist.inside] at *, },
-    --         { } }
 end end path
 
 structure  spath (G : graph) (x y) extends path G x y := ( simple : path.simple  to_path)
-structure qspath (G : graph) (x y) extends path G x y := (qsimple : path.qsimple to_path)
 
 namespace spath section
     parameters {G : graph}
@@ -143,25 +132,6 @@ namespace spath section
     lemma edges_simple {p : spath G x y} : list.pairwise edge.nsame p.to_path.edges
         := path.edges_simple _ p.simple
 end end spath
-
-namespace qspath section
-    parameters {G : graph}
-    variables {x y z : G}
-
-    def mem (z) (p : qspath G x y) := z ∈ to_path p
-    instance : has_mem G.V (qspath G x y) := ⟨mem⟩
-
-    @[simp] lemma mem_simp {z p h} : z ∈ (⟨p,h⟩ : qspath G x y) <-> z ∈ p
-        := by { simp [(∈),mem] }
-
-    instance : has_coe (qspath G x y) (path G x y) := ⟨qspath.to_path⟩
-
-    def rev (p : qspath G x y) : qspath G y x
-        := ⟨p.to_path.rev, llist.rev_qnodup.mpr p.qsimple⟩
-
-    lemma edges_simple {p : spath G x y} : list.pairwise edge.nsame p.to_path.edges
-        := path.edges_simple _ p.simple
-end end qspath
 
 structure graph_embedding (G G' : graph) :=
     (f        : G -> G')
@@ -247,13 +217,10 @@ section embedding
             replace hr := hr h.2 hs.2,
             have h1 := path.edges_simple h hs, cases h1 with _ _ h2 h1,
             have h3 : llist.compat (F.df e).l (follow_llist F l h.2), by simp,
-            have h4 := classical.em (llist.is_P l), cases h4 with h4 h4,
-                { cases l,
-                    { simp [follow_llist], rw llist.concat_nil, 
-                        exact (F.df _).simple, exact (F.df _).hy },
-                    { rw llist.is_P at h4, contradiction } },
-            have hh4 : 0 < llist.size l, by { cases l, simp [llist.is_P] at h4, cases h4,
-                rw llist.size, exact nat.succ_pos' },
+            have h4 := classical.em (llist.size l = 0), cases h4 with h4 h4,
+                { cases l, swap, cases h4, simp [follow_llist], rw llist.concat_nil,
+                exact (F.df _).simple, exact (F.df _).hy },
+            have hh4 : 0 < llist.size l := zero_lt_iff_ne_zero.mpr h4,
             apply (llist.concat_nodup h3).mpr, refine ⟨_, hr, _⟩,
             { exact (F.df e).simple },
             rintros x ⟨h6,h7⟩, rcases (follow_edges F h.2 hh4).mp h7 with ⟨e',h8,h9⟩,
@@ -280,7 +247,7 @@ section embedding
         = follow_llist F l.rev ((llist.rev_is_path G.adj G.sym).mpr h)
         := by {
             induction l with v v l hr,
-            { simp [follow_llist,llist.rev] },
+            { simp [follow_llist, llist.rev] },
             { cases h with h1 h2, replace hr := hr h2,
                 simp [follow_llist,llist.rev], rw llist.rev_concat,
                 { simp [hr,follow_append], apply congr_arg,
@@ -301,7 +268,9 @@ section embedding
         df := λ e, sfollow F' (F.df e),
         --
         inj := injective_comp F'.inj F.inj,
+        -- 
         sym := by { intro e, rw F.sym e, apply sfollow_rev },
+        -- 
         nop := by { intro e, have hz := F.nop e, rcases (F.df e) with ⟨⟨⟨l,hx,hy⟩,hp⟩,hs⟩, simp, intro hz,
             cases l with v v l, cases hz, rw follow, simp, rw follow_llist, simp,
             have hz' := F'.nop ⟨(_,_),hp.1⟩, apply nat.lt_add_left, assumption },
@@ -345,11 +314,9 @@ section embedding
             },
             { cases h7 with x hx, subst hx,
                 have h8 : x ∈ F.df e1,
-                    by { cases path.mem_edges_aux h3 with h3l h3r,
-                    cases F'.endpoint h4; rw h; assumption },
+                    by { cases path.mem_edges_aux h3, cases F'.endpoint h4; rw h; assumption },
                 have h9 : x ∈ F.df e2,
-                    by { cases path.mem_edges_aux h5 with h3l h3r,
-                    cases F'.endpoint h6; rw h; assumption },
+                    by { cases path.mem_edges_aux h5, cases F'.endpoint h6; rw h; assumption },
                 cases (F.disjoint h8 h9),
                 { exact or.inl h },
                 { cases h with x1 h, right, use x1, rw h } }
