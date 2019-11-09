@@ -40,28 +40,28 @@ namespace llist section
         := by { cases l; simp [head,last,concat], exact h.symm }
 
     @[simp] lemma concat_last                     : last (concat l l')      = last  l'
-        := by { induction l; finish [concat, last] }
+        := by { induction l; simp [concat, last], assumption }
 
     @[simp] lemma append_head                     : head (append v l)       = head l
-        := by { cases l; finish }
+        := by { cases l; simp [append] }
 
     @[simp] lemma append_last                     : last (append v l)       = v
-        := by { induction l; finish }
+        := by { induction l; simp [append,last], assumption }
 
     @[simp] lemma rev_append                      : rev  (append v l)       = L v (rev l)
-        := by { induction l; finish [append, rev] }
+        := by { induction l; simp [append, rev], rw l_ih, simp [append] }
 
     @[simp] lemma append_rev                      : rev (L v l)             = append v (rev l)
-        := by { induction l; finish [append, rev] }
+        := by { induction l; simp [append, rev] }
 
     @[simp] lemma rev_head                        : head (rev l)            = last l
         := by { induction l; simp [rev,append,last], assumption}
 
     @[simp] lemma rev_last                        : last (rev l)            = head l
-        := by { induction l; finish [rev] }
+        := by { induction l; simp [rev] }
 
     @[simp] lemma rev_rev                         : rev  (rev l)            = l
-        := by { induction l; finish [rev] }
+        := by { induction l; simp [rev], assumption }
 
     @[simp] lemma mem_singleton                   : x ∈ P y               <-> x = y
         := iff.rfl
@@ -73,16 +73,16 @@ namespace llist section
         := by { induction l with v v l hr; simp [concat,is_path], simp [last] at h, rw [concat_head h, hr h], tauto }
 
     @[simp] lemma mem_append                      : w ∈ append v l        <-> w = v ∨ w ∈ l
-        := by { induction l; finish [append] }
+        := by { induction l; simp [append]; cc }
 
     @[simp] lemma mem_rev                         : v ∈ rev l             <-> v ∈ l
-        := by { induction l; finish [rev] }
+        := by { induction l; simp [rev], cc }
 
     @[simp] lemma mem_head                        : head l ∈ l
         := by { cases l; simp [head] }
 
     @[simp] lemma mem_last                        : last l ∈ l
-        := by { induction l; finish }
+        := by { induction l; simp [last], right, assumption }
 
     @[simp] lemma mem_list                        : x ∈ to_list l         <-> x ∈ l
         := by { induction l with v v l hr; simp [to_list], rw hr }
@@ -101,6 +101,15 @@ namespace llist section
 
     @[simp] lemma list_head_tail                  : head l :: tail l        = to_list l
         := by { induction l; simp [to_list,tail], assumption }
+
+    @[simp] lemma list_init_last                  : init l ++ [last l]      = to_list l
+        := by { induction l; simp [to_list,init], assumption }
+
+    @[simp] lemma list_head_init (h : 0 < size l) : head l :: inside l      = init l
+        := by { cases l with v v l, cases h, simp [head,inside,init] }
+
+    @[simp] lemma list_tail_last (h : 0 < size l) : inside l ++ [last l]    = tail l
+        := by { cases l with v v l, cases h, simp [inside,last,tail],  }
 
     @[simp] lemma inside_append                   : inside (append x l)     = tail l
         := by { induction l with v v l hr; simp [append,inside,init,tail,to_list], }
@@ -156,11 +165,21 @@ namespace llist section
     lemma mem_tail : x ∈ tail l -> x ∈ l
         := by { induction l with v v l hr; simp [tail], intro, right, assumption }
 
-    @[simp] lemma mem_init_last : x ∈ init l ∨ x = last l <-> x ∈ l
-        := by { split, { intro h, cases h, exact mem_init h, convert mem_last }, 
+    lemma mem_init_last : x ∈ l <-> x ∈ init l ∨ x = last l
+        := by { split, 
             { induction l with v v l hr; simp [init,last], intro h, cases h,
                 { left, left, assumption },
-                { cases (hr h), left, right, exact h_1, right, exact h_1 } } }
+                { cases (hr h), left, right, exact h_1, right, exact h_1 } },
+            { intro h, cases h, exact mem_init h, convert mem_last } }
+
+    lemma mem_head_tail : x ∈ l <-> x = head l ∨ x ∈ tail l
+        := by { cases l; simp [tail] }
+
+    lemma mem_init_inside (h : 0 < size l) : x ∈ init l <-> x = head l ∨ x ∈ inside l
+        := by { rw <-(list_head_init h), simp }
+
+    lemma mem_tail_inside (h : 0 < size l) : x ∈ tail l <-> x ∈ inside l ∨ x = last l
+        := by { rw <-(list_tail_last h), simp }
 
     lemma nodup_mem_head : nodup l -> head l ∉ tail l
         := by { cases l with v v l; simp [tail,nodup], intros h1 h2, assumption } 
@@ -192,12 +211,12 @@ namespace llist section
 
     lemma nodup_of_init : list.nodup (init l) -> last l ∉ init l -> nodup l 
         := by { induction l with v v l hr; simp [init,last,nodup], push_neg, simp, intros h1 h2 h3 h4, split,
-            { intro h, replace h := mem_init_last.mpr h, cases h, contradiction, exact h3 h.symm }, 
+            { intro h, replace h := mem_init_last.mp h, cases h, contradiction, exact h3 h.symm }, 
             { exact hr h2 h4 } }
 
     lemma qnodup_ne_nodup : qnodup l -> head l ≠ last l -> nodup l
         := by { cases l with v v l; simp [nodup,qnodup,last,inside],
-            intros h1 h2 h3 h4, split, { intro h, cases mem_init_last.mpr h; contradiction }, 
+            intros h1 h2 h3 h4, split, { intro h, cases mem_init_last.mp h; contradiction }, 
             { apply nodup_of_init h3 h2 } } 
 end end llist
 
