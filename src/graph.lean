@@ -31,24 +31,12 @@ namespace edge section
     @[extensionality] lemma eq {e e' : edge G} : e.1.1 = e'.1.1 -> e.1.2 = e'.1.2 -> e = e'
         := by { cases e, cases e', simp at *, ext }
 
-    @[simp] lemma fst {x y h} : (⟨(x,y),h⟩ : edge G).val.fst = x
-        := by simp
-
     lemma mem.fst {e : edge G} : e.1.1 ∈ e
         := by { simp [(∈),mem] }
 
     def flip  (e : edge G)    : edge G := ⟨⟨_,_⟩, G.sym e.2⟩
     def same  (e e' : edge G) : Prop   := e' = e ∨ e' = flip e
     def nsame (e e' : edge G) : Prop   := ¬ same e e'
-
-    lemma same_mem {e e'} : same e e' <-> ∀ x, x ∈ e <-> x ∈ e'
-        := by { rw same, split, 
-            { intro h, cases h, rw h, simp, subst h, intro, simp [(∈),mem,flip], rw or.comm },
-            { simp [(∈),mem], intro,
-            have h1 := a e.1.1, have h2 := a e.1.2, have h3 := a e'.1.1, have h4 := a e'.1.2,
-            clear a, simp at *, cases h1, { left, ext; finish }, { right, ext; finish } } }
-
-    def ends (e : edge G) : set G := {e.1.1, e.1.2}
 end end edge
 
 structure path  (G : graph) (x y) extends llist' G x y := (adj : llist.is_path G.adj l)
@@ -82,34 +70,35 @@ namespace path section
         := ⟨llist'.concat p.to_llist' p'.to_llist',
             by { apply (llist.concat_path G.adj llist'.compat).mpr, exact ⟨p.adj,p'.adj⟩ }⟩
 
-    def edges_aux : Π (l : llist G) (h : llist.is_path G.adj l), list (edge G)
+    def edges_aux : Π {l : llist G} (h : llist.is_path G.adj l), list (edge G)
         | (llist.P v)   _ := []
-        | (llist.L v l) h := ⟨⟨_,_⟩,h.1⟩ :: edges_aux l h.2
+        | (llist.L v l) h := ⟨⟨v,l.head⟩,h.1⟩ :: edges_aux h.2
 
     def edges (p : path G x y) : list (edge G)
-        := edges_aux p.l p.adj
+        := edges_aux p.adj
 
-    lemma mem_edges_aux {l h} {e : edge G} : e ∈ edges_aux l h -> e.1.1 ∈ l ∧ e.1.2 ∈ l
-        := by { induction l with v v l hr; intro e; cases e with he he,
-            { subst he, simp },
-            { replace hr := hr he, exact ⟨or.inr hr.1, or.inr hr.2⟩ } }
-
-    lemma mem_edges_aux' {l h} {e : edge G} : e ∈ edges_aux l h -> e.1.1 ∈ l.init ∧ e.1.2 ∈ l.tail
+    lemma mem_edges_aux' {l} {h : llist.is_path G.adj l} {e : edge G} : e ∈ edges_aux h -> e.1.1 ∈ l.init ∧ e.1.2 ∈ l.tail
         := by { induction l with v v l hr; intros he,
             { cases he },
             { cases he with he he,
                 { subst he, simp[llist.init,llist.tail] },
                 { replace hr := hr he, exact ⟨or.inr hr.1, or.inr hr.2⟩ } } }
 
+    lemma mem_edges_aux {l} {h : llist.is_path G.adj l} {e : edge G} : e ∈ edges_aux h -> e.1.1 ∈ l ∧ e.1.2 ∈ l
+        := by { intro h1, have h2 := mem_edges_aux' h1, split, 
+            { exact llist.mem_init_last.mpr (or.inl h2.1) },
+            { exact llist.mem_head_tail.mpr (or.inr h2.2) } }
+
     lemma mem_edges {p : path G x y} {e : edge G} : e ∈ p.edges -> e.1.1 ∈ p.l ∧ e.1.2 ∈ p.l
         := mem_edges_aux
 
-    lemma edges_simple {l} (h) (hs : llist.nodup l) : list.pairwise edge.nsame (edges_aux l h)
+    lemma edges_simple {l} (h : llist.is_path G.adj l) (hs : llist.nodup l) : list.pairwise edge.nsame (edges_aux h)
         := by { induction l with v v l hr; rw edges_aux, exact list.pairwise.nil,
-            simp, cases hs with h1 h2, cases h with h3 h4, refine ⟨_, hr h4 h2⟩,
-            intros e he, have h5 := mem_edges_aux he,
-            rw [edge.nsame, edge.same], push_neg, split; intro h6; subst h6,
-            exact h1 h5.1, exact h1 h5.2 }
+            apply list.pairwise.cons, 
+            { intros e he, rw [edge.nsame, edge.same], push_neg, have h5 := mem_edges_aux he,
+                split; intro h6; subst h6, exact hs.1 h5.1, exact hs.1 h5.2 },
+            { exact hr h.2 hs.2 }
+        }
 end end path
 
 structure  spath (G : graph) (x y) extends path G x y := ( simple : path.simple  to_path)
@@ -146,96 +135,94 @@ structure graph_embedding (G G' : graph) :=
 
 def embeds_into (G G' : graph) := nonempty (graph_embedding G G')
 
-section embedding
-    variables {G G' G'' : graph} {x y z : G} (F : graph_embedding G G')
+namespace embedding section
+    parameters {G G' G'' : graph} (F : graph_embedding G G')
+    variables {x y z : G} 
 
-    lemma endpoint_init {e : edge G} : F.f x ∈ llist.init (F.df e).l -> x = e.1.1
-        := by { intro h1, 
-            have h2 : F.f x ∈ F.df e, by { apply llist.mem_init_last.mpr, left, assumption },
-            have h3 := F.endpoint h2, cases h3, assumption,
-            have h4 : F.f x = (F.df e).l.last, by { convert (F.df e).hy.symm },
-            have h5 := llist.nodup_mem_last (F.df e).simple, rw <-h4 at h5, contradiction }
+    lemma endpoint_init {e : edge G} : F.f x ∈ llist.init (F.df e).l <-> x = e.1.1
+        := by { split; intro h1, 
+            { have h2 : F.f x ∈ F.df e, by { apply llist.mem_init_last.mpr, left, assumption },
+                have h3 := F.endpoint h2, cases h3, assumption,
+                have h4 : F.f x = (F.df e).l.last, by { convert (F.df e).hy.symm },
+                have h5 := llist.nodup_mem_last (F.df e).simple, rw <-h4 at h5, contradiction },
+            { subst h1, convert llist.mem_head_init (F.nop e), simp } }
 
-    lemma endpoint_tail {e : edge G} : F.f x ∈ llist.tail (F.df e).l -> x = e.1.2
-        := by { intro h1, 
-            have h2 : F.f x ∈ F.df e, by { apply llist.mem_head_tail.mpr, right, assumption },
-            have h3 := F.endpoint h2, cases h3, swap, assumption,
-            have h4 : F.f x = (F.df e).l.head, by { convert (F.df e).hx },
-            have h5 := llist.nodup_mem_head (F.df e).simple, rw <-h4 at h5, contradiction }
+    lemma endpoint_tail {e : edge G} : F.f x ∈ llist.tail (F.df e).l <-> x = e.1.2
+        := by { split; intro h1, 
+            { have h2 : F.f x ∈ F.df e, by { apply llist.mem_head_tail.mpr, right, assumption },
+                have h3 := F.endpoint h2, cases h3, swap, assumption,
+                have h4 : F.f x = (F.df e).l.head, by { convert (F.df e).hx },
+                have h5 := llist.nodup_mem_head (F.df e).simple, rw <-h4 at h5, contradiction },
+            { subst h1, convert llist.mem_last_tail (F.nop e), simp } }
 
     def follow_llist : Π (l : llist G) (h : llist.is_path G.adj l), llist G'
         | (llist.P v)   _ := llist.P (F.f v)
         | (llist.L v l) h := llist.concat (F.df ⟨(_,_),h.1⟩) (follow_llist l h.2)
 
-    lemma follow_P {l h} (hp : llist.size l = 0) : follow_llist F l h = llist.P (F.f l.head)
-        := by { cases l, simp [follow_llist], rw llist.size at hp, contradiction}
-
-    @[simp] lemma follow_head {l} (h) : (follow_llist F l h).head = F.f l.head
+    @[simp] lemma follow_head {l h} : (follow_llist l h).head = F.f l.head
         := by { induction l with v v l hr; rw follow_llist, { refl },
-            { let e : edge G := ⟨(_,_),h.1⟩, replace hr := hr h.2,
-                rw llist.concat_head, simp, exact (F.df e).hx.symm,
-                simp [llist.compat], rw hr, exact (F.df e).hy } }
+            { let e : edge G := ⟨(_,_),h.1⟩,
+                rw llist.concat_head, exact (F.df e).hx.symm,
+                rw [llist.compat,hr], exact (F.df e).hy } }
 
-    @[simp] lemma follow_last {l} (h) : (follow_llist F l h).last = F.f l.last
+    @[simp] lemma follow_last {l h} : (follow_llist l h).last = F.f l.last
         := by { induction l with v v l hr; rw follow_llist, { refl },
-            { rw llist.concat_last, exact hr h.2 } }
+            { rw llist.concat_last, exact hr } }
 
-    lemma follow_path {l} (h) : llist.is_path G'.adj (follow_llist F l h)
+    lemma follow_path {l h} : llist.is_path G'.adj (follow_llist l h)
         := by { induction l with v v l hr; rw [follow_llist],
             { simp [llist.is_path] },
-            { apply (llist.concat_path G'.adj _).mpr ⟨(F.df _).adj, hr h.2⟩, simp } }
+            { apply (llist.concat_path G'.adj _).mpr ⟨(F.df _).adj, hr⟩, simp } }
 
     def follow (p : path G x y) : path G' (F.f x) (F.f y)
-        := ⟨⟨follow_llist F p.l p.adj, by simp, by simp⟩, follow_path F p.adj⟩
+        := ⟨⟨follow_llist p.l p.adj, by simp, by simp⟩, follow_path⟩
 
-    @[simp] lemma follow_nil : follow F (path.P x) = path.P (F.f x)
+    @[simp] lemma follow_nil : follow (path.P x) = path.P (F.f x)
         := by { simp [follow,path.P,llist'.P,follow_llist] }
 
     lemma follow_edges {z l} (h) (hz : 0 < llist.size l) :
-            z ∈ follow_llist F l h <-> ∃ e ∈ path.edges_aux l h, z ∈ F.df e
+            z ∈ follow_llist l h <-> ∃ e ∈ path.edges_aux h, z ∈ F.df e
         := by { induction l with v v l hr,
-            { rw llist.size at hz, cases hz },
-            { simp [llist.is_path] at h, replace hr := hr h.2, clear hz,
+            { cases hz },
+            { clear hz, rw [llist.is_path] at h, replace hr := hr h.2,
                 have compat : (F.df ⟨(_,_),h.1⟩).l.last = F.f l.head, by simp,
-                simp [follow_llist,path.edges_aux],
-                rw llist.mem_concat, swap, rw llist.compat, convert compat, rw follow_head, split,
+                rw [follow_llist,path.edges_aux,llist.mem_concat],
+                swap, rw llist.compat, convert compat, rw follow_head, split,
                 { intro h1, cases h1 with h1 h1,
                     { use ⟨(_,_),h.1⟩, simpa },
                     { cases l with w w l,
-                        { simp [follow_llist] at h1, use ⟨(_,_),h.1⟩, simp, convert llist.mem_last, simpa },
-                        { rcases (hr _).mp h1 with ⟨e,⟨he1,he2⟩⟩, use e, finish, rw llist.size, finish } } },
+                        { rw [follow_llist] at h1, use ⟨(_,_),h.1⟩, simp, convert llist.mem_last, simpa },
+                        { obtain ⟨e,⟨he1,he2⟩⟩ := (hr _).mp h1, use e, finish, rw llist.size, finish } } },
                 { rintros ⟨e,he1,he2⟩, cases he1 with he1 he1,
                     { subst he1, left, assumption },
                     { cases l with w w l,
                         { cases he1 },
                         { right, apply (hr _).mpr, use e, use he1, exact he2, rw llist.size, finish } } } } }
 
-    lemma follow_simple {l} (h) (hs : llist.nodup l) : (follow_llist F l h).nodup
+    lemma follow_simple {l} (h) (hs : llist.nodup l) : (follow_llist l h).nodup
         := by {
-            induction l with v v l hr; simp [follow_llist],
-            let e : edge G := ⟨(_,_),h.1⟩,
+            induction l with v v l hr, simp [follow_llist],
+            let dfe : spath G' (F.f v) (F.f l.head) := F.df ⟨(v,l.head),h.1⟩,
             replace hr := hr h.2 hs.2,
             have h1 := path.edges_simple h hs, cases h1 with _ _ h2 h1,
-            have h3 : llist.compat (F.df e).l (follow_llist F l h.2), by simp,
+            have h3 : llist.compat dfe.l (follow_llist F l h.2), by simp,
             have h4 := classical.em (llist.size l = 0), cases h4 with h4 h4,
-                { cases l, swap, cases h4, simp [follow_llist], rw llist.concat_nil,
-                exact (F.df _).simple, exact (F.df _).hy },
-            have hh4 : 0 < llist.size l := zero_lt_iff_ne_zero.mpr h4,
-            apply (llist.concat_nodup h3).mpr, refine ⟨_, hr, _⟩,
-            { exact (F.df e).simple },
-            rintros x ⟨h6,h7⟩, rcases (follow_edges F h.2 hh4).mp h7 with ⟨e',h8,h9⟩,
-            have h10 : edge.nsame e e', by { exact h2 e' h8 },
-            cases F.disjoint h6 h9 with h h, cases h10 h, cases h with u h11,
+                { cases l, swap, cases h4, rw [follow_llist,follow_llist,llist.concat_nil],
+                exact dfe.simple, exact dfe.hy },
+            replace h4 := zero_lt_iff_ne_zero.mpr h4,
+            apply (llist.concat_nodup h3).mpr, refine ⟨dfe.simple, hr, _⟩,
+            rintros x ⟨h6,h7⟩, obtain ⟨e',h8,h9⟩ := (follow_edges F h.2 h4).mp h7,
+            cases F.disjoint h6 h9 with h h, cases h2 e' h8 h, cases h with u h11,
             subst h11, rw follow_head, apply congr_arg,
-            have h12 := F.endpoint h6, simp [(∈),edge.mem] at h12, cases h12, swap, exact h12,
-            suffices : u ∈ l, by { cases hs.1 (h12 ▸ this) },
+            have h12 := F.endpoint h6, cases h12, swap, exact h12,
+            suffices : u ∈ l, by { rw h12 at this, cases hs.1 this },
             cases path.mem_edges_aux h8 with h13 h14,
             cases F.endpoint h9 with h15 h15; rw h15; assumption
         }
 
-    lemma follow_append {v l} (h) : follow_llist F (llist.append v l) h =
+    lemma follow_append {v l} (h) : follow_llist (llist.append v l) h =
             let hh := (llist.append_is_path G.adj).mp h in
-            llist.concat (follow_llist F l hh.2) (F.df ⟨(_,_),hh.1⟩).l
+            llist.concat (follow_llist l hh.2) (F.df ⟨(_,_),hh.1⟩).l
         := by { simp, induction l with w w l hr,
             { simp [llist.append,follow_llist], apply llist.concat_nil, exact (F.df _).hy },
             { cases h with h1 h2, replace hr := hr h2,
@@ -243,8 +230,8 @@ section embedding
                 have h3 : llist.head (llist.append v l) = llist.head l := llist.append_head,
                 congr; simp } }
 
-    lemma follow_rev {l} (h) : (follow_llist F l h).rev
-        = follow_llist F l.rev ((llist.rev_is_path G.adj G.sym).mpr h)
+    lemma follow_rev {l} (h) : (follow_llist l h).rev
+        = follow_llist l.rev ((llist.rev_is_path G.adj G.sym).mpr h)
         := by {
             induction l with v v l hr,
             { simp [follow_llist, llist.rev] },
@@ -258,20 +245,26 @@ section embedding
                 { rw llist.compat, convert (F.df _).hy, rw follow_head } } }
 
     @[simp] def sfollow (p : spath G x y) : spath G' (F.f x) (F.f y)
-        := ⟨follow F p.to_path, follow_simple F p.adj p.simple⟩
+        := ⟨follow p.to_path, follow_simple p.adj p.simple⟩
 
-    @[simp] lemma sfollow_rev (p : spath G x y) : sfollow F p.rev = (sfollow F p).rev
+    @[simp] lemma sfollow_rev (p : spath G x y) : sfollow p.rev = (sfollow p).rev
         := by { simp [sfollow,follow,spath.rev,path.rev], apply (follow_rev F _).symm }
+end end embedding
 
-    def comp (F : graph_embedding G G') (F' : graph_embedding G' G'') : (graph_embedding G G'') := {
+namespace embedding section
+    parameters {G G' G'' : graph} 
+
+    def comp (F : graph_embedding G G') (F' : graph_embedding G' G'') :
+                                        (graph_embedding G G'') := {
         f := F'.f ∘ F.f,
         df := λ e, sfollow F' (F.df e),
         --
         inj := injective_comp F'.inj F.inj,
-        -- 
+        --
         sym := by { intro e, rw F.sym e, apply sfollow_rev },
-        -- 
-        nop := by { intro e, have hz := F.nop e, rcases (F.df e) with ⟨⟨⟨l,hx,hy⟩,hp⟩,hs⟩, simp, intro hz,
+        --
+        nop := by { intro e, have hz := F.nop e, 
+            rcases (F.df e) with ⟨⟨⟨l,hx,hy⟩,hp⟩,hs⟩, simp, intro hz,
             cases l with v v l, cases hz, rw follow, simp, rw follow_llist, simp,
             have hz' := F'.nop ⟨(_,_),hp.1⟩, apply nat.lt_add_left, assumption },
         --
@@ -283,46 +276,38 @@ section embedding
         --
         disjoint := by {
             intros e1 e2 z h1 h2, simp [sfollow,follow] at h1 h2,
-            rw (follow_edges F' (F.df e1).adj (F.nop e1)) at h1, rcases h1 with ⟨e'1,h3,h4⟩,
-            rw (follow_edges F' (F.df e2).adj (F.nop e2)) at h2, rcases h2 with ⟨e'2,h5,h6⟩,
-            have h7 := F'.disjoint h4 h6, cases h7 with h7 h7,
-            {
+            rw follow_edges at h1, swap, apply F.nop, obtain ⟨e'1,h3,h4⟩ := h1,
+            rw follow_edges at h2, swap, apply F.nop, obtain ⟨e'2,h5,h6⟩ := h2,
+            cases F'.disjoint h4 h6 with h7 h7,
+            { left,
                 cases path.mem_edges_aux' h3 with h3l h3r,
                 cases path.mem_edges_aux' h5 with h5l h5r,
-                cases h7,
-                    { subst h7,
-                        have h10 := F.disjoint (llist.mem_init h3l) (llist.mem_init h5l),
-                        have h11 := F.disjoint (llist.mem_tail h3r) (llist.mem_tail h5r),
-                        cases h10, left, assumption, cases h11, left, assumption,
-                        cases h10 with x hx, cases h11 with y hy, simp [hx,hy] at *,
-                        replace h3l := endpoint_init F h3l,
-                        replace h5l := endpoint_init F h5l,
-                        replace h3r := endpoint_tail F h3r,
-                        replace h5r := endpoint_tail F h5r,
-                        left, left, ext; finish },
-                    { subst h7,
-                        simp [edge.flip] at h5l h5r,
-                        have h10 := F.disjoint (llist.mem_init h3l) (llist.mem_tail h5r),
-                        have h11 := F.disjoint (llist.mem_tail h3r) (llist.mem_init h5l),
-                        cases h10, left, assumption, cases h11, left, assumption,
-                        cases h10 with x hx, cases h11 with y hy, simp [hx,hy] at *,
-                        replace h3l := endpoint_init F h3l,
-                        replace h5l := endpoint_init F h5l,
-                        replace h3r := endpoint_tail F h3r,
-                        replace h5r := endpoint_tail F h5r,
-                        left, right, ext; finish }
+                cases h7; subst h7,
+                { have h10 := F.disjoint (llist.mem_init h3l) (llist.mem_init h5l),
+                    have h11 := F.disjoint (llist.mem_tail h3r) (llist.mem_tail h5r),
+                    cases h10, assumption, cases h11, assumption, left,
+                    obtain ⟨x,hx⟩ := h10, obtain ⟨y,hy⟩ := h11, simp only [hx,hy] at *,
+                    rw endpoint_init F at h3l h5l, rw endpoint_tail F at h3r h5r,
+                    ext; cc },
+                { simp [edge.flip] at h5l h5r,
+                    have h10 := F.disjoint (llist.mem_init h3l) (llist.mem_tail h5r),
+                    have h11 := F.disjoint (llist.mem_tail h3r) (llist.mem_init h5l),
+                    cases h10, assumption, cases h11, assumption, right,
+                    obtain ⟨x,hx⟩ := h10, obtain ⟨y,hy⟩ := h11, simp only [hx,hy] at *,
+                    rw endpoint_init F at h3l h5l, rw endpoint_tail F at h3r h5r,
+                    ext; cc }
             },
-            { cases h7 with x hx, subst hx,
+            { obtain ⟨x,hx⟩ := h7, subst hx,
                 have h8 : x ∈ F.df e1,
-                    by { cases path.mem_edges_aux h3, cases F'.endpoint h4; rw h; assumption },
+                by { cases path.mem_edges_aux h3, cases F'.endpoint h4; rw h; assumption },
                 have h9 : x ∈ F.df e2,
-                    by { cases path.mem_edges_aux h5, cases F'.endpoint h6; rw h; assumption },
+                by { cases path.mem_edges_aux h5, cases F'.endpoint h6; rw h; assumption },
                 cases (F.disjoint h8 h9),
                 { exact or.inl h },
-                { cases h with x1 h, right, use x1, rw h } }
+                { obtain ⟨y,h⟩ := h, right, use y, rw h } }
             }
     }
 
     theorem embed_trans : transitive embeds_into
         := by { rw transitive, intros G G' G'' F F', cases F, cases F', use comp F F' }
-end embedding
+end end embedding
