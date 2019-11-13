@@ -29,10 +29,7 @@ namespace edge section
     instance : has_mem G.V (edge G) := ⟨mem⟩
 
     @[extensionality] lemma eq {e e' : edge G} : e.1.1 = e'.1.1 -> e.1.2 = e'.1.2 -> e = e'
-        := by { cases e, cases e', simp at *, ext }
-
-    lemma mem.fst {e : edge G} : e.1.1 ∈ e
-        := by { simp [(∈),mem] }
+        := by { rw subtype.ext, ext }
 
     def flip  (e : edge G)    : edge G := ⟨⟨_,_⟩, G.sym e.2⟩
     def same  (e e' : edge G) : Prop   := e' = e ∨ e' = flip e
@@ -81,7 +78,7 @@ namespace path section
         := by { induction l with v v l hr; intros he,
             { cases he },
             { cases he with he he,
-                { subst he, simp[llist.init,llist.tail] },
+                { subst he, simp [llist.init,llist.tail] },
                 { replace hr := hr he, exact ⟨or.inr hr.1, or.inr hr.2⟩ } } }
 
     lemma mem_edges_aux {l} {h : llist.is_path G.adj l} {e : edge G} : e ∈ edges_aux h -> e.1.1 ∈ l ∧ e.1.2 ∈ l

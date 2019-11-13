@@ -39,7 +39,7 @@ namespace llist section
         := by { cases l, { convert h.symm }, { refl } }
 
     @[simp] lemma concat_last                      : last (concat l l')       = last  l'
-        := by { induction l, { rw concat }, { rw [concat,last], assumption } }
+        := by { induction l, { rw concat }, { rwa [concat,last] } }
 
     @[simp] lemma append_head                      : head (append v l)        = head l
         := by { cases l; refl }
