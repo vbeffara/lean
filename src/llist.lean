@@ -203,8 +203,14 @@ namespace llist section
         := by { cases l, { rw [mem_singleton,head,tail], convert (or_false _).symm },
             { rw [head,tail,list_head_tail,mem_list,mem_cons] } }
 
+    lemma         mem_init_inside'                 : x ∈ init (L v l)       <-> x = v ∨ x ∈ inside (L v l)
+        := by { rw [init,inside,list.mem_cons_iff] }
+
     lemma         mem_init_inside (h : 0 < size l) : x ∈ init l             <-> x = head l ∨ x ∈ inside l
         := by { rw [<-(list_head_init h),list.mem_cons_iff] }
+
+    lemma         mem_tail_inside'                 : x ∈ tail (L v l)       <-> x ∈ inside (L v l) ∨ x = last l
+        := by { rw [inside,<-mem_init_last,tail,mem_head_tail], trivial }
 
     lemma         mem_tail_inside (h : 0 < size l) : x ∈ tail l             <-> x ∈ inside l ∨ x = last l
         := by { rw [<-(list_tail_last h),list.mem_append_eq,list.mem_singleton] }
