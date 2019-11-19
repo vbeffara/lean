@@ -15,16 +15,15 @@ namespace graph section
         (iso : ∀ x y, G.adj x y <-> G'.adj (f x) (f y))
 end end graph
 
-structure edge (G : graph) := {x y : G} (h : G.adj x y)
+def isomorphic (G G' : graph) := inhabited (graph.iso G G')
+
+@[ext] structure edge (G : graph) := {x y : G} (h : G.adj x y)
 
 namespace edge section
     parameters {G : graph}
 
     def mem (v : G) (e : edge G) := v = e.x ∨ v = e.y
     instance : has_mem G.V (edge G) := ⟨mem⟩
-
-    @[extensionality] lemma eq {e e' : edge G} : e.x = e'.x -> e.y = e'.y -> e = e'
-        := by { cases e, cases e', simp, exact and.intro }
 
     def flip  (e : edge G)    : edge G := ⟨G.sym e.h⟩
     def same  (e e' : edge G) : Prop   := e' = e ∨ e' = flip e
@@ -311,28 +310,24 @@ namespace contraction section
 
     def adj (G : chunked) (x y) : Prop := ∃ x' y', x' ≈ x ∧ y' ≈ y ∧ G.adj x' y'
 
-    lemma adj_symm1 {G : chunked} {x y} : adj G x y -> adj G y x
+    lemma adj_symm1 {G : chunked} (x y) : adj G x y -> adj G y x
         := by { rintros ⟨x',y',h1,h2,h3⟩, exact ⟨y',x',h2,h1,G.sym h3⟩ }
 
     lemma adj_symm {G : chunked} {x y} : adj G x y = adj G y x
-        := by { rw [<-iff_iff_eq], refine ⟨adj_symm1, adj_symm1⟩ }
+        := by { rw [<-iff_iff_eq], exact ⟨adj_symm1 x y, adj_symm1 y x⟩ }
 
     lemma adj_lift1 {G : chunked} {a₁ a₂ b₁ b₂ : G.V} {h₁ : a₁ ≈ b₁} {h₂ : a₂ ≈ b₂} : adj G a₁ a₂ -> adj G b₁ b₂
         := by { rintros ⟨x',y',h1,h2,h3⟩, exact ⟨x', y', ⟨G.eqv.2.2 h1 h₁, G.eqv.2.2 h2 h₂, h3⟩⟩ }
 
     lemma adj_lift {G : chunked} : ∀ (a₁ a₂ b₁ b₂ : G.V), a₁ ≈ b₁ → a₂ ≈ b₂ → adj G a₁ a₂ = adj G b₁ b₂
-        := by { intros, rw [<-iff_iff_eq], split, 
-            apply adj_lift1, convert a, assumption, intro, apply adj_symm1, 
-            apply adj_lift1, exact G.eqv.2.1 a_1, exact G.eqv.2.1 a, apply adj_symm1, assumption }
+        := by { intros, apply iff_iff_eq.mp, split; 
+                apply adj_lift1; assumption <|> { symmetry, assumption } }
 
     def contract (G : chunked) : graph :=
     {
         V   := quotient (chunked.setoid G),
         adj := quotient.lift₂ (adj G) adj_lift,
-        sym := by {
-            intros xbar ybar, obtain ⟨x,hx⟩ := quot.exists_rep xbar, obtain ⟨y,hy⟩ := quot.exists_rep ybar, 
-            rw [<-hx,<-hy], exact adj_symm1
-        }
+        sym := λ x y, quotient.induction_on₂ x y adj_symm1
     }
 
     def is_contraction (G G' : graph) : Prop := ∃ C : chunked, C.to_graph = G' ∧ G = contract C
@@ -370,3 +365,5 @@ namespace contraction section
             obtain γ := h x y, use (proj_path γ)
         }
 end end contraction
+
+def is_minor (G G' : graph) : Prop := ∃ C : contraction.chunked, C.to_graph = G' ∧ embeds_into G (contraction.contract C)

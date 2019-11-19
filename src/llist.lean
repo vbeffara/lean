@@ -269,7 +269,7 @@ namespace llist' section open llist
     def mem (v : V) (l : llist' V x y) := v ∈ l.l
     instance has_mem : has_mem V (llist' V x y) := ⟨mem⟩
 
-    @[extensionality] lemma ext {l l' : llist' V x y} : l.l = l'.l -> l = l' 
+    @[ext] lemma ext {l l' : llist' V x y} : l.l = l'.l -> l = l' 
         := by { intro, cases l, cases l', congr, assumption }
 
     @[simp] lemma reduce {l hx hy} : (⟨l,hx,hy⟩ : llist' V x y).l = l := rfl
