@@ -35,6 +35,9 @@ namespace llist section
     @[simp] lemma last_P                           : last (P x)               = x
         := rfl
 
+    @[simp] lemma append_cons                      : append x (L v l)         = L v (append x l)
+        := rfl
+
     @[simp] lemma concat_head    (h : compat l l') : head (concat l l')       = head l
         := by { cases l, { rw compat at h, rw [concat,<-h], refl }, { refl } }
 
@@ -259,7 +262,7 @@ namespace llist section
                 { rw [init,list.mem_cons_iff], push_neg, exact ⟨a_1.symm,a.2.1⟩ } } }
 end end llist
 
-structure llist' (V : Type) (x y : V) := (l : llist V) (hx : x = l.head) (hy : l.last = y)
+@[ext] structure llist' (V : Type) (x y : V) := (l : llist V) (hx : l.head = x) (hy : l.last = y)
 instance llist'_to_llist {V : Type} {x y : V} : has_coe (llist' V x y) (llist V) := ⟨llist'.l⟩
 
 namespace llist' section open llist
@@ -269,9 +272,6 @@ namespace llist' section open llist
     def mem (v : V) (l : llist' V x y) := v ∈ l.l
     instance has_mem : has_mem V (llist' V x y) := ⟨mem⟩
 
-    @[ext] lemma ext {l l' : llist' V x y} : l.l = l'.l -> l = l' 
-        := by { intro, cases l, cases l', congr, assumption }
-
     @[simp] lemma reduce {l hx hy} : (⟨l,hx,hy⟩ : llist' V x y).l = l := rfl
 
     @[simp] lemma mem_simp {v l hx hy} : v ∈ (⟨l,hx,hy⟩ : llist' V x y) <-> v ∈ l
@@ -280,14 +280,11 @@ namespace llist' section open llist
     def P    (v : V)                    : llist' V v v := ⟨P v,     rfl, rfl⟩
     def cons (v : V) (l : llist' V x y) : llist' V v y := ⟨L v l.l, rfl, l.hy⟩
 
-    @[simp] lemma head   {l : llist' V x y}                     : l.l.head = x          := l.hx.symm
-    @[simp] lemma last   {l : llist' V x y}                     : l.l.last = y          := l.hy
-
     lemma compat {l : llist' V x y} {l' : llist' V y z} : llist.compat l.l l'.l 
-        := eq.trans l.hy l'.hx
+        := eq.trans l.hy l'.hx.symm
 
     def concat {x y z : V} (l : llist' V x y) (l' : llist' V y z) : llist' V x z
-        := ⟨llist.concat l.l l'.l, eq.trans l.hx (concat_head compat).symm, eq.trans concat_last l'.hy⟩
+        := ⟨llist.concat l.l l'.l, eq.trans (concat_head compat) l.hx, eq.trans concat_last l'.hy⟩
 
     @[simp] lemma concat_P {l : llist' V x y} : concat l (P y) = l
         := by { ext, exact llist.concat_nil l.hy }
