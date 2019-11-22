@@ -218,10 +218,12 @@ namespace embedding section
             llist.concat (follow_llist l h') (F.df ⟨h''⟩).l
         := by { induction l with w w l hr,
             { apply llist.concat_nil, exact (F.df _).hy },
-            { cases h with h1 h2,
-                simp only [follow_llist,llist.append,llist.concat_assoc], rw hr,
+            { revert h, rw [llist.append], intro h,
+                rw [follow_llist,follow_llist,hr,llist.concat_assoc], 
+                    swap, exact h'.2, swap, exact h'',
                 have h3 : llist.head (llist.append v l) = llist.head l := llist.append_head,
-                congr; simp } }
+                congr; apply llist.append_head
+            } }
 
     lemma follow_rev {l h h'} : (follow_llist l h).rev = follow_llist l.rev h'
         := by {
