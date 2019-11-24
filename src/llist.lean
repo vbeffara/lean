@@ -42,7 +42,7 @@ namespace llist section
         := by { cases l, { rw compat at h, rw [concat,<-h], refl }, { refl } }
 
     @[simp] lemma concat_last                      : last (concat l l')       = last  l'
-        := by { induction l, { rw concat }, { rwa [concat,last] } }
+        := by { induction l; rw concat, rwa [last] }
 
     @[simp] lemma append_head                      : head (append v l)        = head l
         := by { cases l; refl }
@@ -73,8 +73,8 @@ namespace llist section
 
     @[simp] lemma concat_path    (h : compat l l') : is_path (concat l l')  <-> is_path l ∧ is_path l'
         := by { induction l with v v l hr,
-            { rw [concat,is_path], tauto },
-            { replace hr := hr h, rw [concat,is_path,hr,is_path,concat_head], tauto, exact h } }
+            { tauto },
+            { rw [concat,is_path,hr h,is_path,concat_head], tauto, exact h } }
 
     @[simp] lemma mem_append                       : w ∈ append v l         <-> w = v ∨ w ∈ l
         := by { induction l, rw [append,mem_cons,mem_singleton,mem_singleton,or_comm],
@@ -263,7 +263,7 @@ namespace llist section
 end end llist
 
 @[ext] structure llist' (V : Type) (x y : V) := (l : llist V) (hx : l.head = x) (hy : l.last = y)
-instance llist'_to_llist {V : Type} {x y : V} : has_coe (llist' V x y) (llist V) := ⟨llist'.l⟩
+instance {V : Type} {x y : V} : has_coe (llist' V x y) (llist V) := ⟨llist'.l⟩
 
 namespace llist' section open llist
     parameters {V : Type} (adj : V -> V -> Prop)
@@ -284,7 +284,7 @@ namespace llist' section open llist
         := eq.trans l.hy l'.hx.symm
 
     def concat {x y z : V} (l : llist' V x y) (l' : llist' V y z) : llist' V x z
-        := ⟨llist.concat l.l l'.l, eq.trans (concat_head compat) l.hx, eq.trans concat_last l'.hy⟩
+        := ⟨llist.concat l l', eq.trans (concat_head compat) l.hx, eq.trans concat_last l'.hy⟩
 
     @[simp] lemma concat_P {l : llist' V x y} : concat l (P y) = l
         := by { ext, exact llist.concat_nil l.hy }
