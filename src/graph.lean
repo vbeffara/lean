@@ -1,11 +1,13 @@
 import tactic llist
 open function
 set_option trace.check true
-open classical
-local attribute [instance] prop_decidable
 
-structure graph := (V : Type) (adj : V -> V -> Prop) (sym : symmetric adj)
-instance graph_to_V : has_coe_to_sort graph := {S := _, coe := λ G, G.V}
+structure graph := 
+    (V : Type) 
+    (adj : V -> V -> Prop) 
+    (sym : symmetric adj)
+
+instance : has_coe_to_sort graph := {S := _, coe := λ G, G.V}
 
 namespace graph section
     structure hom  (G G' : graph) :=
@@ -30,9 +32,6 @@ namespace edge section
     def flip  (e : edge G)    : edge G := ⟨G.sym e.h⟩
     def same  (e e' : edge G) : Prop   := e' = e ∨ e' = flip e
     def nsame (e e' : edge G) : Prop   := ¬ same e e'
-
-    lemma simpx {x y h}: ({x:=x,y:=y,h:=h} : edge G).x = x := rfl
-    lemma simpy {x y h}: ({x:=x,y:=y,h:=h} : edge G).y = y := rfl
 end end edge
 
 structure path  (G : graph) (x y) extends llist' G x y := (adj : llist.is_path G.adj l)
@@ -56,7 +55,8 @@ namespace path section
             (llist.rev_is_path G.adj G.sym).mpr p.adj⟩
 
     def concat (p : path G x y) (p' : path G y z) : path G x z
-        := ⟨llist'.concat p.to_llist' p'.to_llist', (llist.concat_path G.adj llist'.compat).mpr ⟨p.adj,p'.adj⟩⟩
+        := ⟨llist'.concat p.to_llist' p'.to_llist', 
+            (llist.concat_path G.adj llist'.compat).mpr ⟨p.adj,p'.adj⟩⟩
 
     lemma linked_equiv : equivalence linked
         := by { refine ⟨_,_,_⟩,
@@ -136,15 +136,15 @@ namespace embedding section
             { have h2 : F.f x ∈ F.df e, by { apply llist.mem_init_last.mpr, left, assumption },
                 have h3 := F.endpoint h2, cases h3, assumption,
                 have h5 := llist.nodup_mem_last (F.df e).simple, 
-                rw (F.df e).hy at h5, rw h3 at h1, contradiction },
+                rw (F.df e).hy at h5, rw h3 at h1, cases h5 h1 },
             { subst h1, convert llist.mem_head_init (F.nop e), exact (F.df e).hx.symm } }
 
     lemma endpoint_tail {e : edge G} : F.f x ∈ llist.tail (F.df e).l <-> x = e.y
         := by { split; intro h1, 
             { have h2 : F.f x ∈ F.df e, by { apply llist.mem_head_tail.mpr, right, assumption },
                 have h3 := F.endpoint h2, cases h3, swap, assumption,
-                have h4 : F.f x = (F.df e).l.head, by { convert (F.df e).hx.symm },
-                have h5 := llist.nodup_mem_head (F.df e).simple, rw <-h4 at h5, contradiction },
+                have h5 := llist.nodup_mem_head (F.df e).simple, 
+                rw (F.df e).hx at h5, rw h3 at h1, cases h5 h1 },
             { subst h1, convert llist.mem_last_tail (F.nop e), exact (F.df e).hy.symm } }
 
     def follow_llist : Π (l : llist G) (h : llist.is_path G.adj l), llist G'
@@ -157,9 +157,8 @@ namespace embedding section
 
     @[simp] lemma follow_head {l h} : (follow_llist l h).head = F.f l.head
         := by { induction l with v v l hr; rw follow_llist, { refl },
-            { let e : edge G := ⟨h.1⟩,
-                rw llist.concat_head, exact (F.df e).hx,
-                rw [llist.compat,hr], exact (F.df e).hy } }
+            { rw [llist.concat_head], exact (F.df _).hx,
+                rw [llist.compat,hr], exact (F.df _).hy } }
 
     @[simp] lemma follow_last {l h} : (follow_llist l h).last = F.f l.last
         := by { induction l with v v l hr; rw follow_llist, { refl },
@@ -169,7 +168,7 @@ namespace embedding section
         := by { induction l with v v l hr; rw [follow_llist],
             { trivial },
             { apply (llist.concat_path G'.adj _).mpr ⟨(F.df _).adj, hr⟩, 
-                by { rw [llist.compat,follow_head,(F.df _).hy] } } }
+                rw [llist.compat,follow_head,(F.df _).hy] } }
 
     def follow (p : path G x y) : path G' (F.f x) (F.f y)
         := ⟨⟨follow_llist p.l p.adj, 
@@ -220,8 +219,7 @@ namespace embedding section
             { revert h, rw [llist.append], intro h,
                 rw [follow_llist,follow_llist,hr h'.2 h'',llist.concat_assoc], 
                 have h3 : llist.head (llist.append v l) = llist.head l := llist.append_head,
-                congr; exact h3
-            } }
+                congr; exact h3 } }
 
     lemma follow_rev {l} (h h') : (follow_llist l h).rev = follow_llist l.rev h'
         := by { induction l with v v l hr, refl,
@@ -262,25 +260,25 @@ namespace embedding section
         --
         disjoint := by {
             intros e1 e2 z h1 h2,
-            obtain ⟨e'1,h3,h4⟩ := (follow_edges' F' (F.nop e1)).mp h1,
-            obtain ⟨e'2,h5,h6⟩ := (follow_edges' F' (F.nop e2)).mp h2,
+            obtain ⟨e'1,h3,h4⟩ := (follow_edges' F' (F.nop e1)).mp h1, clear h1,
+            obtain ⟨e'2,h5,h6⟩ := (follow_edges' F' (F.nop e2)).mp h2, clear h2,
             cases F'.disjoint h4 h6 with h7 h7,
-            { left,
-                cases path.mem_edges_aux' h3 with h3l h3r,
-                cases path.mem_edges_aux' h5 with h5l h5r,
+            { left, clear h4 h6,
+                cases path.mem_edges_aux' h3 with h3l h3r, clear h3,
+                cases path.mem_edges_aux' h5 with h5l h5r, clear h5,
                 cases h7; subst h7,
                 { cases F.disjoint (llist.mem_init h3l) (llist.mem_init h5l) with h10 h10, assumption,
                     cases F.disjoint (llist.mem_tail h3r) (llist.mem_tail h5r) with h11 h11, assumption,
-                    obtain ⟨x,hx⟩ := h10, rw [hx,endpoint_init F] at h3l h5l, 
-                    obtain ⟨y,hy⟩ := h11, rw [hy,endpoint_tail F] at h3r h5r,
-                    left, ext, exact eq.trans h5l.symm h3l, exact eq.trans h5r.symm h3r },
-                { rw [edge.flip,edge.simpx] at h5l, rw [edge.flip,edge.simpy] at h5r,
+                    obtain ⟨x,hx⟩ := h10, rw [hx,endpoint_init F] at h3l h5l, clear hx,
+                    obtain ⟨y,hy⟩ := h11, rw [hy,endpoint_tail F] at h3r h5r, clear hy,
+                    left, ext; cc },
+                { rw [edge.flip] at h5l, rw [edge.flip] at h5r,
                     cases F.disjoint (llist.mem_init h3l) (llist.mem_tail h5r) with h10 h10, assumption,
                     cases F.disjoint (llist.mem_tail h3r) (llist.mem_init h5l) with h11 h11, assumption,
-                    obtain ⟨x,hx⟩ := h10, rw [hx] at h3l h5r,
-                    obtain ⟨y,hy⟩ := h11, rw [hy] at h5l h3r,
+                    obtain ⟨x,hx⟩ := h10, unfold edge.y at h5r, rw [hx] at h3l h5r, clear hx,
+                    obtain ⟨y,hy⟩ := h11, unfold edge.x at h5l, rw [hy] at h5l h3r, clear hy,
                     rw endpoint_init F at h3l h5l, rw endpoint_tail F at h3r h5r,
-                    right, ext, exact eq.trans h5l.symm h3r, exact eq.trans h5r.symm h3l }
+                    right, ext; cc }
             },
             { obtain ⟨x,hx⟩ := h7, subst hx,
                 replace h3 : x ∈ F.df e1, { cases path.mem_edges h3, cases F'.endpoint h4; rw h; assumption },
@@ -292,7 +290,7 @@ namespace embedding section
     }
 
     theorem embed_trans : transitive embeds_into
-        := by { rw transitive, intros G G' G'' F F', cases F, cases F', use comp F F' }
+        := by { intros G G' G'' F F', cases F, cases F', use comp F F' }
 end end embedding
 
 namespace contraction section
@@ -335,12 +333,12 @@ namespace contraction section
         := by { induction l, { refl }, { rwa [proj_llist,llist.last,llist.last] } }
 
     lemma proj_adj {G : chunked} {x y} : G.adj x y -> (contract G).adj ⟦x⟧ ⟦y⟧ 
-        := by { intro h, use x, use y, tauto }
+        := λ h, exists.intro x (exists.intro y ⟨quotient.eq.mp rfl,quotient.eq.mp rfl,h⟩)
 
     lemma proj_is_path {G : chunked} {l} : llist.is_path G.adj l -> llist.is_path (contract G).adj (proj_llist l)
         := by { induction l, 
             { intro, trivial },
-            { intro h, rw [proj_llist,llist.is_path,proj_head], refine ⟨proj_adj h.1, l_ih h.2⟩ } }
+            { intro h, rw [proj_llist,llist.is_path,proj_head], exact ⟨proj_adj h.1, l_ih h.2⟩ } }
 
     def proj_path {G : chunked} {x y} (p : path G.to_graph x y) : path (contract G) ⟦x⟧ ⟦y⟧
         := {
@@ -353,8 +351,8 @@ namespace contraction section
     lemma contract_connected {G : chunked} (h : connected G.to_graph) : connected (contract G)
         := by {
             intros xbar ybar,
-            obtain ⟨x,hx⟩ := quot.exists_rep xbar, obtain ⟨y,hy⟩ := quot.exists_rep ybar, rw [<-hx,<-hy],
-            obtain γ := h x y, use (proj_path γ)
+            obtain ⟨x,hx⟩ := quot.exists_rep xbar, obtain ⟨y,hy⟩ := quot.exists_rep ybar, 
+            subst hx, subst hy, obtain γ := h x y, use (proj_path γ)
         }
 end end contraction
 
@@ -395,4 +393,4 @@ end end examples
 def planar (G : graph) : Prop := is_minor G examples.Z2
 def colorable (n : nat) (G : graph) : Prop := nonempty (graph.hom G (examples.K' n))
 
-theorem four_color {G : graph} : planar G -> colorable 4 G := sorry
+-- theorem four_color {G : graph} : planar G -> colorable 4 G := sorry

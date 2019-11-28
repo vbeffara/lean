@@ -26,18 +26,6 @@ namespace llist section
 
     variables {x y v w : V} {l l' l'' : llist V}
 
-    @[simp] lemma head_P                           : head (P x)               = x
-        := rfl
-
-    @[simp] lemma head_cons                        : head (L v l)             = v
-        := rfl
-
-    @[simp] lemma last_P                           : last (P x)               = x
-        := rfl
-
-    @[simp] lemma append_cons                      : append x (L v l)         = L v (append x l)
-        := rfl
-
     @[simp] lemma concat_head    (h : compat l l') : head (concat l l')       = head l
         := by { cases l, { rw compat at h, rw [concat,<-h], refl }, { refl } }
 
@@ -52,9 +40,6 @@ namespace llist section
 
     @[simp] lemma rev_append                       : rev  (append v l)        = L v (rev l)
         := by { induction l, refl, rw [append,rev,l_ih], refl }
-
-    @[simp] lemma append_rev                       : rev (L v l)              = append v (rev l)
-        := rfl
 
     @[simp] lemma rev_head                         : head (rev l)             = last l
         := by { induction l, refl, rwa [rev,append_head,last] }
