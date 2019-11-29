@@ -10,7 +10,14 @@ structure digraph :=
 
 instance : has_coe_to_sort digraph := {S := _, coe := λ G, G.V}
 
+inductive linked' {G : digraph} : G -> G -> Prop
+    | refl {x}     : linked' x x
+    | step {x y z} : G.adj x y -> linked' y z -> linked' x z
+
 namespace digraph section
+    @[symm] lemma adj.symm {G : digraph} : ∀ {x y : G}, G.adj x y -> G.adj y x
+        := G.sym
+
     structure hom  (G G' : digraph) :=
         (f   : G -> G')
         (hom : ∀ x y, G.adj x y -> G'.adj (f x) (f y))
@@ -50,6 +57,9 @@ namespace path section
     def simple     (p : path G x y) : Prop := llist.nodup p.l
     def qsimple    (p : path G x y) : Prop := llist.qnodup p.l
     def size       (p : path G x y) : nat  := llist.size p.l
+
+    def from_edge {x y} (h : G.adj x y) : path G x y 
+        := ⟨⟨llist.L x (llist.P y), rfl, rfl⟩, ⟨h,trivial⟩⟩
 
     def rev (p : path G x y) : path G y x
         := ⟨⟨llist.rev p.l, by { rw [llist.rev_head,p.hy] }, by { rw [llist.rev_last,p.hx] }⟩, 
@@ -99,7 +109,40 @@ namespace path section
             { exact hr h.2 hs.2 } } }
 end end path
 
-def connected (G : digraph) : Prop := ∀ x y, @path.linked G x y
+namespace linked' section
+    parameters {G : digraph}
+    variables {x y z : G}
+
+    lemma linked_iff_linked' : path.linked x y <-> linked' x y
+        := by { split,
+            { intro h, rcases h with ⟨⟨l,hx,hy⟩,hp⟩, revert x, induction l with v v l h; intros,
+                { subst hx, subst hy, exact linked'.refl },
+                { subst hx, subst hy, apply linked'.step (hp.1) (h rfl rfl hp.2) } },
+            { intro h, induction h with u u v w h1 h2 h3, refl, 
+                cases h3 with p, use path.concat (path.from_edge h1) p } }
+
+    @[refl] lemma reflexive : linked' x x := linked'.refl
+
+    lemma edge : G.adj x y -> linked' x y
+        := λ h, linked'.step h linked'.refl
+
+    lemma append : linked' x y -> G.adj y z -> linked' x z
+        := by { intros h h', induction h with u u v w h1 h2 h3, exact edge h',
+            exact linked'.step h1 (h3 h') }
+
+    @[symm] lemma symm : linked' x y -> linked' y x
+        := by { intro h, induction h with u u v w h1 h2 h3, refl, 
+            exact append h3 h1.symm }
+
+    @[trans] lemma trans : linked' x y -> linked' y z -> linked' x z
+        := by { intros hxy, induction hxy with u u v w h1 h2 hr, { intro h, exact h },
+            intro h, refine linked'.step h1 (hr h) }
+
+    lemma linked_equiv : equivalence (@linked' G)
+        := by { exact ⟨@reflexive G, @symm G, @trans G⟩ }
+end end linked'
+
+def connected (G : digraph) : Prop := ∀ x y : G, linked' x y
 
 @[ext] structure  spath (G : digraph) (x y) extends path G x y := ( simple : path.simple  to_path)
 
@@ -304,7 +347,7 @@ namespace contraction section
     structure chunked extends digraph :=
         (rel : V -> V -> Prop)
         (eqv : equivalence rel)
-        (cmp : ∀ x y, rel x y -> path.linked x y)
+        (cmp : ∀ x y, rel x y -> linked' x y)
 
     instance {G : chunked} : setoid G.V := ⟨G.rel,G.eqv⟩
 
@@ -357,7 +400,9 @@ namespace contraction section
         := by {
             intros xbar ybar,
             obtain ⟨x,hx⟩ := quot.exists_rep xbar, obtain ⟨y,hy⟩ := quot.exists_rep ybar, 
-            subst hx, subst hy, obtain γ := h x y, use (proj_path γ)
+            apply linked'.linked_iff_linked'.mp, 
+            subst hx, subst hy, have h' := h x y, obtain γ := linked'.linked_iff_linked'.mpr h',
+                use (proj_path γ)
         }
 end end contraction
 
@@ -397,6 +442,7 @@ end end examples
 
 namespace cayley section
     parameters {G : Type} [group G] (S : set G)
+    variables {a x y z : G}
 
     def adj (x y : G) := ∃ s ∈ S, y = x * s ∨ x = y * s
 
@@ -426,23 +472,28 @@ namespace cayley section
     lemma shift {x y a : G} : @path.linked span x y -> @path.linked span (a*x : G) (a*y : G)
         := by { intro h, cases h, use shift_path S a h }
 
+    lemma shift' : @linked' span x y -> @linked' span (a*x : G) (a*y : G)
+        := by { intro h, induction h with u u v w h1 h2 hr, refl,
+            refine linked'.step _ hr, apply shift_adj, assumption }
+
     lemma inv {x : G} : @path.linked span (1:G) x -> @path.linked span (1:G) (x⁻¹:G)
         := by { intro h, symmetry, rw [<-(mul_left_inv x)], convert shift S h, rw mul_one }
 
-    lemma linked {x} : x ∈ group.closure S -> @path.linked span (1:G) x
+    lemma inv' : @linked' span (1:G) x -> @linked' span (1:G) (x⁻¹:G)
+        := by { intro h, symmetry, rw [<-(mul_left_inv x)], convert shift' S h, rw mul_one }
+
+    lemma linked'_if : x ∈ group.closure S -> @linked' span (1:G) x
         := by { intro h, induction h with s h y hs hl y z hsx hsy hlx hly,
-            { use ⟨⟨llist.L (1:G) (llist.P s), rfl, rfl⟩,
-                    ⟨s,h,or.inl (by { rw one_mul, refl })⟩, trivial⟩ },
+            { apply linked'.edge, use [s,h], left, rw one_mul },
             { refl },
-            { apply inv, assumption },
-            { transitivity y, assumption, convert shift S hly, rw mul_one } }
+            { apply inv', assumption },
+            { transitivity y, assumption, convert shift' S hly, rw mul_one } }
             
     lemma cayley_connected (h : group.closure S = @set.univ G) : connected (span)
         := by {
-            suffices : ∀ x, @path.linked (span S) (1:G) x,
-                { intros x y, exact path.linked_trans (this x).symm (this y) },
-            intro, apply linked, rw h, trivial
-        }
+            suffices : ∀ x, @linked' (span S) (1:G) x,
+                { intros x y, exact linked'.trans (this x).symm (this y) },
+            intro, apply linked'_if, rw h, trivial }
 end end cayley
 
 def planar (G : digraph) : Prop := is_minor G examples.Z2
