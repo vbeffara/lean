@@ -408,43 +408,38 @@ namespace cayley section
     @[symm] lemma adj_symm {x y} : adj x y -> adj y x
         := by { intro h, obtain ⟨s,h,h'⟩ := h, use ⟨s,h,h'.symm⟩ }
 
-    def subgraph : digraph := { V := G, adj := adj, sym := @adj_symm }
+    def span : digraph := { V := G, adj := adj, sym := @adj_symm }
 
-    def shift_llist (a : G) (l : llist G) := llist.map (λ x, a * x) l
+    def shift_llist (a : G) := llist.map (λ x, a * x)
 
-    def shift_is_path {a : G} {l : llist G} {h : llist.is_path adj l} : llist.is_path adj (shift_llist a l)
-        := by { induction l with v v l hr, trivial, split, 
+    lemma shift_is_path {a : G} {l : llist G} : llist.is_path adj l -> llist.is_path adj (shift_llist a l)
+        := by { intro h, induction l with v v l hr, trivial, split, 
             { convert shift_adj S h.1, rw [llist.head_map] },
-            { apply hr, exact h.2 } }
+            { exact hr h.2 } }
 
-    def shift_path {x y} (a : G) (p : path subgraph x y) : path subgraph (a*x : G) (a*y : G)
+    def shift_path {x y} (a : G) (p : path span x y) : path span (a*x : G) (a*y : G)
         := { l := shift_llist a p.l,
-            hx := by { convert llist.head_map, rw p.hx },
-            hy := by { convert llist.last_map, rw p.hy },
-            adj := by { apply shift_is_path, exact p.adj } }
+            hx := by { rw [shift_llist,llist.head_map,p.hx] },
+            hy := by { rw [shift_llist,llist.last_map,p.hy] },
+            adj := shift_is_path p.adj }
 
-    lemma shift (x y a : G) : @path.linked subgraph x y -> @path.linked subgraph (a*x : G) (a*y : G)
+    lemma shift {x y a : G} : @path.linked span x y -> @path.linked span (a*x : G) (a*y : G)
         := by { intro h, cases h, use shift_path S a h }
 
-    lemma inv {x : G} : @path.linked subgraph (1:G) x -> @path.linked subgraph (1:G) (x⁻¹:G)
-        := by { intro h, symmetry, convert shift S (1:G) x x⁻¹ h, 
-            rw mul_one, rw mul_left_inv }
+    lemma inv {x : G} : @path.linked span (1:G) x -> @path.linked span (1:G) (x⁻¹:G)
+        := by { intro h, symmetry, rw [<-(mul_left_inv x)], convert shift S h, rw mul_one }
 
-    lemma linked {x} : x ∈ group.closure S -> @path.linked subgraph (1:G) x
-        := by { intro h, induction h with s h s,
-            {   let l : llist (subgraph S) := llist.L (1:G) (llist.P s),
-                let l' : llist' (subgraph S) (1:G) s := ⟨l,rfl,rfl⟩,
-                let p : path (subgraph S) (1:G) s := ⟨l', 
-                    by { split, use s, use h, left, unfold llist.head, rw one_mul, trivial }⟩,
-                use p },
+    lemma linked {x} : x ∈ group.closure S -> @path.linked span (1:G) x
+        := by { intro h, induction h with s h y hs hl y z hsx hsy hlx hly,
+            { use ⟨⟨llist.L (1:G) (llist.P s), rfl, rfl⟩,
+                    ⟨s,h,or.inl (by { rw one_mul, refl })⟩, trivial⟩ },
             { refl },
             { apply inv, assumption },
-            { transitivity h_a, assumption, convert shift S _ _ _ h_ih_a_1, rw mul_one } }
+            { transitivity y, assumption, convert shift S hly, rw mul_one } }
             
-
-    lemma cayley_connected (h : group.closure S = @set.univ G) : connected (subgraph)
+    lemma cayley_connected (h : group.closure S = @set.univ G) : connected (span)
         := by {
-            suffices : ∀ x, @path.linked (subgraph S) (1:G) x,
+            suffices : ∀ x, @path.linked (span S) (1:G) x,
                 { intros x y, exact path.linked_trans (this x).symm (this y) },
             intro, apply linked, rw h, trivial
         }
