@@ -3,23 +3,24 @@ import tactic
 inductive llist (V : Type) : Type | P : V -> llist | L : V -> llist -> llist
 
 namespace llist section
-    parameters {V : Type} (adj : V -> V -> Prop)
+    parameters {V W : Type} (adj : V -> V -> Prop)
 
     def mem : V -> llist V -> Prop | x (P v) := x = v | x (L v l) := x = v ∨ mem x l
     instance has_mem_llist : has_mem V (llist V) := ⟨mem⟩
 
-    def to_list :            llist V -> list V  |   (P v)    := [v]       |   (L v l)    := v :: to_list l
-    def size    :            llist V -> nat     |   (P _)    := 0         |   (L v l)    := (size l) + 1
-    def head    :            llist V -> V       |   (P v)    := v         |   (L v l)    := v
-    def tail    :            llist V -> list V  |   (P v)    := []        |   (L v l)    := l.head :: tail l
-    def init    :            llist V -> list V  |   (P v)    := []        |   (L v l)    := v :: init l
-    def last    :            llist V -> V       |   (P v)    := v         |   (L v l)    := last l
-    def inside  :            llist V -> list V  |   (P v)    := []        |   (L v l)    := init l
-    def is_path :            llist V -> Prop    |   (P v)    := true      |   (L v l)    := adj v l.head ∧ is_path l
-    def append  :       V -> llist V -> llist V | x (P v)    := L v (P x) | x (L v l)    := L v (append x l)
-    def rev     :            llist V -> llist V |   (P v)    := (P v)     |   (L v l)    := append v (rev l)
-    def nodup   :            llist V -> Prop    |   (P v)    := true      |   (L v l)    := v ∉ l ∧ nodup l
-    def concat  : llist V -> llist V -> llist V |   (P _) l' := l'        |   (L v l) l' := L v (concat l l')
+    def to_list :             llist V -> list V  |   (P v)    := [v]       |   (L v l)    := v :: to_list l
+    def size    :             llist V -> nat     |   (P _)    := 0         |   (L v l)    := (size l) + 1
+    def head    :             llist V -> V       |   (P v)    := v         |   (L v l)    := v
+    def tail    :             llist V -> list V  |   (P v)    := []        |   (L v l)    := l.head :: tail l
+    def init    :             llist V -> list V  |   (P v)    := []        |   (L v l)    := v :: init l
+    def last    :             llist V -> V       |   (P v)    := v         |   (L v l)    := last l
+    def inside  :             llist V -> list V  |   (P v)    := []        |   (L v l)    := init l
+    def is_path :             llist V -> Prop    |   (P v)    := true      |   (L v l)    := adj v l.head ∧ is_path l
+    def append  :        V -> llist V -> llist V | x (P v)    := L v (P x) | x (L v l)    := L v (append x l)
+    def rev     :             llist V -> llist V |   (P v)    := (P v)     |   (L v l)    := append v (rev l)
+    def nodup   :             llist V -> Prop    |   (P v)    := true      |   (L v l)    := v ∉ l ∧ nodup l
+    def concat  :  llist V -> llist V -> llist V |   (P _) l' := l'        |   (L v l) l' := L v (concat l l')
+    def map     : (V -> W) -> llist V -> llist W | f (P v)    := P (f v)   | f (L v l)    := L (f v) (map f l)
 
     @[simp] def compat (l₁ l₂ : llist V) := last l₁ = head l₂
     def qnodup (l : llist V) := head l ∉ inside l ∧ last l ∉ inside l ∧ list.nodup (inside l)
@@ -245,6 +246,16 @@ namespace llist section
             { rw [qnodup,head,inside], intros, apply nodup_of_init, 
                 { rw [init,list.nodup_cons], exact ⟨a.1,a.2.2⟩ },
                 { rw [init,list.mem_cons_iff], push_neg, exact ⟨a_1.symm,a.2.1⟩ } } }
+end end llist
+
+namespace llist section
+    parameters {V W : Type}
+
+    lemma head_map {f : V -> W} {l : llist V} : head (map f l) = f (head l)
+        := by { cases l, refl, refl }
+
+    lemma last_map {f : V -> W} {l : llist V} : last (map f l) = f (last l)
+        := by { induction l, refl, rwa [map,last,last] }
 end end llist
 
 @[ext] structure llist' (V : Type) (x y : V) := (l : llist V) (hx : l.head = x) (hy : l.last = y)

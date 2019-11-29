@@ -1,30 +1,31 @@
 import tactic llist
+import group_theory.subgroup
 open function
 set_option trace.check true
 
-structure graph := 
+structure digraph := 
     (V : Type) 
     (adj : V -> V -> Prop) 
     (sym : symmetric adj)
 
-instance : has_coe_to_sort graph := {S := _, coe := λ G, G.V}
+instance : has_coe_to_sort digraph := {S := _, coe := λ G, G.V}
 
-namespace graph section
-    structure hom  (G G' : graph) :=
+namespace digraph section
+    structure hom  (G G' : digraph) :=
         (f   : G -> G')
         (hom : ∀ x y, G.adj x y -> G'.adj (f x) (f y))
 
-    structure iso (G G' : graph) extends hom G G' :=
+    structure iso (G G' : digraph) extends hom G G' :=
         (bij : bijective f)
         (iso : ∀ x y, G.adj x y <-> G'.adj (f x) (f y))
-end end graph
+end end digraph
 
-def isomorphic (G G' : graph) := inhabited (graph.iso G G')
+def isomorphic (G G' : digraph) := inhabited (digraph.iso G G')
 
-@[ext] structure edge (G : graph) := {x y : G} (h : G.adj x y)
+@[ext] structure edge (G : digraph) := {x y : G} (h : G.adj x y)
 
 namespace edge section
-    parameters {G : graph}
+    parameters {G : digraph}
 
     def mem (v : G) (e : edge G) := v = e.x ∨ v = e.y
     instance : has_mem G.V (edge G) := ⟨mem⟩
@@ -34,10 +35,10 @@ namespace edge section
     def nsame (e e' : edge G) : Prop   := ¬ same e e'
 end end edge
 
-structure path  (G : graph) (x y) extends llist' G x y := (adj : llist.is_path G.adj l)
+structure path  (G : digraph) (x y) extends llist' G x y := (adj : llist.is_path G.adj l)
 
 namespace path section
-    parameters {G : graph}
+    parameters {G : digraph}
     variables {x y z : G}
 
     instance : has_coe (path G x y) (llist' G x y) := ⟨path.to_llist'⟩
@@ -58,11 +59,17 @@ namespace path section
         := ⟨llist'.concat p.to_llist' p'.to_llist', 
             (llist.concat_path G.adj llist'.compat).mpr ⟨p.adj,p'.adj⟩⟩
 
+    @[refl] lemma linked_refl {x : G} : linked x x
+        := by { use ⟨⟨llist.P x, rfl, rfl⟩, trivial⟩ }
+
+    @[symm] lemma linked.symm {x y : G} : linked x y -> linked y x
+        := by { intro h, cases h, use h.rev }
+
+    @[trans] lemma linked_trans {x y z : G} : linked x y -> linked y z -> linked x z
+        := by { intros h1 h2, cases h1, cases h2, use concat h1 h2 }
+
     lemma linked_equiv : equivalence linked
-        := by { refine ⟨_,_,_⟩,
-            { intro x, use ⟨⟨llist.P x, rfl, rfl⟩, trivial⟩ },
-            { intros x y h, cases h, use h.rev },
-            { intros x y z p1 p2, cases p1, cases p2, use concat p1 p2 } }
+        := by { exact ⟨@linked_refl _, @linked.symm _, @linked_trans _⟩ }
 
     def edges_aux : Π (l : llist G) (h : llist.is_path G.adj l), list (edge G)
         | (llist.P v)   _ := []
@@ -92,12 +99,12 @@ namespace path section
             { exact hr h.2 hs.2 } } }
 end end path
 
-def connected (G : graph) : Prop := ∀ x y, @path.linked G x y
+def connected (G : digraph) : Prop := ∀ x y, @path.linked G x y
 
-@[ext] structure  spath (G : graph) (x y) extends path G x y := ( simple : path.simple  to_path)
+@[ext] structure  spath (G : digraph) (x y) extends path G x y := ( simple : path.simple  to_path)
 
 namespace spath section
-    parameters {G : graph}
+    parameters {G : digraph}
     variables {x y z : G}
 
     def mem (z) (p : spath G x y) := z ∈ to_path p
@@ -114,7 +121,7 @@ namespace spath section
         := path.edges_simple _ p.simple
 end end spath
 
-structure graph_embedding (G G' : graph) :=
+structure graph_embedding (G G' : digraph) :=
     (f        : G -> G')
     (df       : Π e : edge G, spath G' (f e.x) (f e.y))
     --
@@ -125,10 +132,10 @@ structure graph_embedding (G G' : graph) :=
     (endpoint : ∀ {e x},    f x ∈ df e              -> x ∈ e)
     (disjoint : ∀ {e e' z},   z ∈ df e -> z ∈ df e' -> edge.same e e' ∨ ∃ x, z = f x)
 
-def embeds_into (G G' : graph) := nonempty (graph_embedding G G')
+def embeds_into (G G' : digraph) := nonempty (graph_embedding G G')
 
 namespace embedding section
-    parameters {G G' G'' : graph} (F : graph_embedding G G')
+    parameters {G G' G'' : digraph} (F : graph_embedding G G')
     variables {x y z : G} 
 
     lemma endpoint_init {e : edge G} : F.f x ∈ llist.init (F.df e).l <-> x = e.x
@@ -240,7 +247,7 @@ namespace embedding section
 end end embedding
 
 namespace embedding section
-    parameters {G G' G'' : graph} 
+    parameters {G G' G'' : digraph} 
 
     def comp (F : graph_embedding G G') (F' : graph_embedding G' G'') : (graph_embedding G G'') := {
         f := F'.f ∘ F.f,
@@ -294,7 +301,7 @@ namespace embedding section
 end end embedding
 
 namespace contraction section
-    structure chunked extends graph :=
+    structure chunked extends digraph :=
         (rel : V -> V -> Prop)
         (eqv : equivalence rel)
         (cmp : ∀ x y, rel x y -> path.linked x y)
@@ -313,24 +320,22 @@ namespace contraction section
         := by { intros, apply iff_iff_eq.mp, split; 
                 apply adj_lift1; assumption <|> { symmetry, assumption } }
 
-    def contract (G : chunked) : graph :=
+    def contract (G : chunked) : digraph :=
     {
         V   := _,
         adj := quotient.lift₂ (adj G) adj_lift,
         sym := λ x y, quotient.induction_on₂ x y adj_symm
     }
 
-    def is_contraction (G G' : graph) : Prop := ∃ C : chunked, C.to_graph = G' ∧ G = contract C
+    def is_contraction (G G' : digraph) : Prop := ∃ C : chunked, C.to_digraph = G' ∧ G = contract C
 
-    def proj_llist {G : chunked} : llist G.to_graph -> llist (contract G)
-        | (llist.P v)   := llist.P ⟦v⟧
-        | (llist.L v l) := llist.L ⟦v⟧ (proj_llist l)
+    def proj_llist {G : chunked} : llist G.to_digraph -> llist (contract G) := llist.map (λ x, ⟦x⟧)
 
-    lemma proj_head {G : chunked} {l : llist G.to_graph} : (proj_llist l).head = ⟦l.head⟧ 
-        := by { cases l; refl }
+    lemma proj_head {G : chunked} {l : llist G.to_digraph} : (proj_llist l).head = ⟦l.head⟧ 
+        := llist.head_map
 
-    lemma proj_last {G : chunked} {l : llist G.to_graph} : (proj_llist l).last = ⟦l.last⟧
-        := by { induction l, { refl }, { rwa [proj_llist,llist.last,llist.last] } }
+    lemma proj_last {G : chunked} {l : llist G.to_digraph} : (proj_llist l).last = ⟦l.last⟧
+        := llist.last_map
 
     lemma proj_adj {G : chunked} {x y} : G.adj x y -> (contract G).adj ⟦x⟧ ⟦y⟧ 
         := λ h, exists.intro x (exists.intro y ⟨quotient.eq.mp rfl,quotient.eq.mp rfl,h⟩)
@@ -338,9 +343,9 @@ namespace contraction section
     lemma proj_is_path {G : chunked} {l} : llist.is_path G.adj l -> llist.is_path (contract G).adj (proj_llist l)
         := by { induction l, 
             { intro, trivial },
-            { intro h, rw [proj_llist,llist.is_path,proj_head], exact ⟨proj_adj h.1, l_ih h.2⟩ } }
+            { intro h, rw [proj_llist,llist.map,llist.is_path,llist.head_map], exact ⟨proj_adj h.1, l_ih h.2⟩ } }
 
-    def proj_path {G : chunked} {x y} (p : path G.to_graph x y) : path (contract G) ⟦x⟧ ⟦y⟧
+    def proj_path {G : chunked} {x y} (p : path G.to_digraph x y) : path (contract G) ⟦x⟧ ⟦y⟧
         := {
             l := proj_llist p.l,
             hx := by { rw [proj_head,p.hx] },
@@ -348,7 +353,7 @@ namespace contraction section
             adj := proj_is_path p.adj
         }
 
-    lemma contract_connected {G : chunked} (h : connected G.to_graph) : connected (contract G)
+    lemma contract_connected {G : chunked} (h : connected G.to_digraph) : connected (contract G)
         := by {
             intros xbar ybar,
             obtain ⟨x,hx⟩ := quot.exists_rep xbar, obtain ⟨y,hy⟩ := quot.exists_rep ybar, 
@@ -356,10 +361,10 @@ namespace contraction section
         }
 end end contraction
 
-def is_minor (G G' : graph) : Prop := ∃ C : contraction.chunked, C.to_graph = G' ∧ embeds_into G (contraction.contract C)
+def is_minor (G G' : digraph) : Prop := ∃ C : contraction.chunked, C.to_digraph = G' ∧ embeds_into G (contraction.contract C)
 
 namespace examples section
-    def prod (G₁ G₂ : graph) : graph := {
+    def prod (G₁ G₂ : digraph) : digraph := {
         V   := G₁ × G₂,
         adj := λ x y, (x.1 = y.1 ∧ G₂.adj x.2 y.2) ∨ (G₁.adj x.1 y.1 ∧ x.2 = y.2),
         sym := by { intros x y h, cases h,
@@ -367,7 +372,7 @@ namespace examples section
             { right, exact ⟨G₁.sym h.1, h.2.symm⟩ } }
     }
 
-    def Z : graph := {
+    def Z : digraph := {
         V := ℤ,
         adj := λ x y, y = x+1 ∨ x = y+1,
         sym := by { tauto }
@@ -375,22 +380,77 @@ namespace examples section
 
     def Z2 := prod Z Z
 
-    def K (n : nat) : graph := {
+    def K (n : nat) : digraph := {
         V := fin n,
         adj := λ _ _, true,
         sym := by { tauto }
     }
 
-    def K' (n : nat) : graph := {
+    def K' (n : nat) : digraph := {
         V := fin n,
         adj := λ x y, x ≠ y,
         sym := by { tauto }
     }
 
-    def planar (G : graph) := is_minor G Z2
+    def planar (G : digraph) := is_minor G Z2
 end end examples
 
-def planar (G : graph) : Prop := is_minor G examples.Z2
-def colorable (n : nat) (G : graph) : Prop := nonempty (graph.hom G (examples.K' n))
+namespace cayley section
+    parameters {G : Type} [group G] (S : set G)
 
--- theorem four_color {G : graph} : planar G -> colorable 4 G := sorry
+    def adj (x y : G) := ∃ s ∈ S, y = x * s ∨ x = y * s
+
+    lemma shift_adj {a x y : G} : adj x y -> adj (a*x) (a*y) 
+        := by { rintro ⟨s,h1,h2⟩, cases h2; use [s,h1],
+            { left, rw [h2,mul_assoc] },
+            { right, rw [h2,mul_assoc] } }
+
+    @[symm] lemma adj_symm {x y} : adj x y -> adj y x
+        := by { intro h, obtain ⟨s,h,h'⟩ := h, use ⟨s,h,h'.symm⟩ }
+
+    def subgraph : digraph := { V := G, adj := adj, sym := @adj_symm }
+
+    def shift_llist (a : G) (l : llist G) := llist.map (λ x, a * x) l
+
+    def shift_is_path {a : G} {l : llist G} {h : llist.is_path adj l} : llist.is_path adj (shift_llist a l)
+        := by { induction l with v v l hr, trivial, split, 
+            { convert shift_adj S h.1, rw [llist.head_map] },
+            { apply hr, exact h.2 } }
+
+    def shift_path {x y} (a : G) (p : path subgraph x y) : path subgraph (a*x : G) (a*y : G)
+        := { l := shift_llist a p.l,
+            hx := by { convert llist.head_map, rw p.hx },
+            hy := by { convert llist.last_map, rw p.hy },
+            adj := by { apply shift_is_path, exact p.adj } }
+
+    lemma shift (x y a : G) : @path.linked subgraph x y -> @path.linked subgraph (a*x : G) (a*y : G)
+        := by { intro h, cases h, use shift_path S a h }
+
+    lemma inv {x : G} : @path.linked subgraph (1:G) x -> @path.linked subgraph (1:G) (x⁻¹:G)
+        := by { intro h, symmetry, convert shift S (1:G) x x⁻¹ h, 
+            rw mul_one, rw mul_left_inv }
+
+    lemma linked {x} : x ∈ group.closure S -> @path.linked subgraph (1:G) x
+        := by { intro h, induction h with s h s,
+            {   let l : llist (subgraph S) := llist.L (1:G) (llist.P s),
+                let l' : llist' (subgraph S) (1:G) s := ⟨l,rfl,rfl⟩,
+                let p : path (subgraph S) (1:G) s := ⟨l', 
+                    by { split, use s, use h, left, unfold llist.head, rw one_mul, trivial }⟩,
+                use p },
+            { refl },
+            { apply inv, assumption },
+            { transitivity h_a, assumption, convert shift S _ _ _ h_ih_a_1, rw mul_one } }
+            
+
+    lemma cayley_connected (h : group.closure S = @set.univ G) : connected (subgraph)
+        := by {
+            suffices : ∀ x, @path.linked (subgraph S) (1:G) x,
+                { intros x y, exact path.linked_trans (this x).symm (this y) },
+            intro, apply linked, rw h, trivial
+        }
+end end cayley
+
+def planar (G : digraph) : Prop := is_minor G examples.Z2
+def colorable (n : nat) (G : digraph) : Prop := nonempty (digraph.hom G (examples.K' n))
+
+-- theorem four_color {G : digraph} : planar G -> colorable 4 G := sorry
