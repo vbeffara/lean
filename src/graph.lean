@@ -1,5 +1,4 @@
-import tactic llist
-import group_theory.subgroup
+import tactic llist group_theory.subgroup logic.relation
 open function
 set_option trace.check true
 
@@ -9,10 +8,6 @@ structure digraph :=
     (sym : symmetric adj)
 
 instance : has_coe_to_sort digraph := {S := _, coe := λ G, G.V}
-
-inductive linked (G : digraph) : G -> G -> Prop
-    | refl {x}     : linked x x
-    | step {x y z} : G.adj x y -> linked y z -> linked x z
 
 namespace digraph section
     @[symm] lemma adj.symm {G : digraph} : ∀ {x y : G}, G.adj x y -> G.adj y x
@@ -96,10 +91,14 @@ namespace path section
             { exact hr h.2 hs.2 } } }
 end end path
 
+inductive linked (G : digraph) : G -> G -> Prop
+    | refl {x}     : linked x x
+    | step {x y z} : G.adj x y -> linked y z -> linked x z
+
 namespace linked section
     variables {G : digraph} {x y z : G}
 
-    @[refl] lemma reflexive : linked G x x := linked.refl G
+    attribute [refl] linked.refl
 
     lemma edge : G.adj x y -> linked G x y
         := λ h, linked.step h (linked.refl G)
@@ -117,10 +116,40 @@ namespace linked section
             intro h, refine linked.step h1 (hr h) }
 
     lemma linked_equiv : equivalence (linked G)
-        := by { exact ⟨@reflexive G, @symm G, @trans G⟩ }
+        := by { exact ⟨@linked.refl G, @symm G, @trans G⟩ }
 end end linked
 
-def connected (G : digraph) := ∀ x y, linked G x y
+def linked2 (G : digraph) := relation.refl_trans_gen G.adj
+
+namespace linked2 section
+    variables {G : digraph} {x y z : G}
+    open relation.refl_trans_gen
+
+    lemma edge : G.adj x y -> linked2 G x y
+        := single
+
+    lemma cons : G.adj x y -> linked2 G y z -> linked2 G x z
+        := head
+
+    @[refl] lemma refl : linked2 G x x
+        := refl
+
+    @[symm] lemma symm : linked2 G x y -> linked2 G y x
+        := by { intro h, induction h with b c hxb hbc hbx, refl, exact cons hbc.symm hbx }
+
+    @[trans] lemma trans : linked2 G x y -> linked2 G y z -> linked2 G x z
+        := trans
+
+    lemma linked_equiv : equivalence (linked2 G)
+        := by { exact ⟨@refl G, @symm G, @trans G⟩ }
+
+    lemma linked_iff_linked2 : linked G x y <-> linked2 G x y
+        := by { split; intro h,
+            { induction h with x x y z hxy hyz hyz2, refl, exact cons hxy hyz2 },
+            { induction h with b c hxb hbc hxb, refl, exact linked.append hxb hbc } }
+end end linked2
+
+def connected (G : digraph) := ∀ x y, linked2 G x y
 
 @[ext] structure  spath (G : digraph) (x y) extends path G x y := ( simple : path.simple  to_path)
 
@@ -325,7 +354,7 @@ namespace contraction section
     structure chunked extends digraph :=
         (rel : V -> V -> Prop)
         (eqv : equivalence rel)
-        (cmp : ∀ x y, rel x y -> linked _ x y)
+        (cmp : ∀ x y, rel x y -> linked2 _ x y)
 
     instance {G : chunked} : setoid G.V := ⟨G.rel,G.eqv⟩
 
@@ -378,8 +407,8 @@ namespace contraction section
         := by {
             intro xbar, obtain ⟨x,hx⟩ := quot.exists_rep xbar, subst hx, 
             intro ybar, obtain ⟨y,hy⟩ := quot.exists_rep ybar, subst hy, 
-            have h' := h x y, induction h' with u u v w h1 h2 hr, refl,
-            exact linked.trans (linked.edge (proj_adj h1)) hr }
+            have h' := h x y, induction h', refl,
+            exact relation.refl_trans_gen.tail h'_ih (proj_adj h'_a_1) }
 end end contraction
 
 def is_minor (G G' : digraph) : Prop := ∃ C : contraction.chunked, C.to_digraph = G' ∧ embeds_into G (contraction.contract C)
@@ -461,9 +490,9 @@ namespace cayley section
             
     lemma cayley_connected (h : group.closure S = set.univ) : connected (span)
         := by {
-            suffices : ∀ x, linked (span S) (1:G) x,
-                { intros x y, exact linked.trans (this x).symm (this y) },
-            intro, apply linked_mp, rw h, trivial }
+            suffices : ∀ x, linked2 (span S) (1:G) x,
+                { intros x y, exact linked2.trans (this x).symm (this y) },
+            intro, apply linked2.linked_iff_linked2.mp, apply linked_mp, rw h, trivial }
 end end cayley
 
 def planar (G : digraph) : Prop := is_minor G examples.Z2
