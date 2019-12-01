@@ -52,6 +52,9 @@ namespace path section
     def qsimple    (p : path G x y) : Prop := llist.qnodup p.l
     def size       (p : path G x y) : nat  := llist.size p.l
 
+    def point (v : G) : path G v v
+        := ⟨⟨llist.P v, rfl, rfl⟩, trivial⟩
+
     def from_edge {x y} (h : G.adj x y) : path G x y 
         := ⟨⟨llist.L x (llist.P y), rfl, rfl⟩, ⟨h,trivial⟩⟩
 
@@ -113,6 +116,19 @@ namespace linked section
 
     lemma linked_equiv : equivalence (linked G)
         := by { exact ⟨@refl G, @symm G, @trans G⟩ }
+
+    lemma to_path : linked G x y -> nonempty (path G x y)
+        := by { intro h, induction h with b c hxb hbc hr, use path.point x,
+            cases hr, use path.concat hr (path.from_edge hbc) }
+
+    lemma from_path : nonempty (path G x y) -> linked G x y
+        := by { intro h, rcases h with ⟨⟨l,hx,hy⟩,hp⟩, revert x y, induction l with v v l hr,
+            { intros, subst hx, subst hy, refl },
+            { intros, cases hp with hp1 hp2, replace hr := hr rfl rfl hp2,
+                convert cons hp1 hr, subst hx, refl, subst hy, refl } }
+
+    lemma iff_path : linked G x y <-> nonempty (path G x y)
+        := ⟨to_path,from_path⟩
 end end linked
 
 def connected (G : digraph) := ∀ x y, linked G x y
@@ -413,48 +429,53 @@ end end examples
 
 namespace cayley section
     parameters {G : Type} [group G] (S : set G)
-    variables {a x y z : G}
+    variables (a : G) {x y z : G}
 
-    def adj (x y : G) := ∃ s ∈ S, y = x * s ∨ x = y * s
+    def adj (x y : G) := x⁻¹ * y ∈ S ∨ y⁻¹ * x ∈ S
 
     lemma shift_adj {a x y : G} : adj x y -> adj (a*x) (a*y) 
-        := by { rintro ⟨s,h1,h2⟩, cases h2; use [s,h1],
-            { left, rw [h2,mul_assoc] },
-            { right, rw [h2,mul_assoc] } }
+        := by { rw [adj,adj], intro h, convert h using 2; rw [<-mul_assoc]; simp }
 
     @[symm] lemma adj_symm {x y} : adj x y -> adj y x
-        := by { intro h, obtain ⟨s,h,h'⟩ := h, use ⟨s,h,h'.symm⟩ }
+        := or.symm
 
     def span : digraph := { V := G, adj := adj, sym := @adj_symm }
 
-    def shift_llist (a : G) := llist.map (λ x, a * x)
+    def shift_llist := llist.map (λ x, a * x)
 
-    lemma shift_is_path {a : G} {l : llist G} : llist.is_path adj l -> llist.is_path adj (shift_llist a l)
-        := by { intro h, induction l with v v l hr, trivial, split, 
-            { convert shift_adj S h.1, rw [llist.head_map] },
-            { exact hr h.2 } }
+    lemma shift_is_path {l : llist G} : llist.is_path adj l -> llist.is_path adj (shift_llist a l)
+        := by { intro h, induction l with v v l hr, trivial,
+            refine ⟨_, hr h.2⟩, rw [llist.head_map], exact shift_adj S h.1 }
 
-    def shift_path {x y} (a : G) (p : path span x y) : path span (a*x : G) (a*y : G)
+    def shift_path (p : path span x y) : path span (a*x : G) (a*y : G)
         := { l := shift_llist a p.l,
             hx := by { rw [shift_llist,llist.head_map,p.hx] },
             hy := by { rw [shift_llist,llist.last_map,p.hy] },
-            adj := shift_is_path p.adj }
+            adj := shift_is_path _ p.adj }
 
-    lemma shift2 : linked span x y -> linked span (a*x : G) (a*y : G)
+    lemma shift : linked span x y -> linked span (a*x : G) (a*y : G)
         := by { intro h, induction h with b c hxb hbc hr, refl,
             exact tail hr (shift_adj S hbc) }
 
-    lemma inv2 : linked span (1:G) x -> linked span (1:G) (x⁻¹:G)
-        := by { intro h, symmetry, rw [<-(mul_left_inv x)], convert shift2 S h, rw mul_one }
+    lemma inv : linked span (1:G) x -> linked span (1:G) (x⁻¹:G)
+        := by { intro h, symmetry, convert shift S x⁻¹ h, rw mul_one, rw mul_left_inv }
 
     lemma linked_mp : x ∈ group.closure S -> linked span (1:G) x
-        := by { intro h, induction h with s h y hs hl y z hsx hsy hlx hly,
-            { apply linked.edge, use [s,h], left, rw one_mul },
+        := by { intro h, induction h with s h y hs h1y y z hy hz h1y h1z,
+            { apply linked.edge, left, rwa [one_inv,one_mul] },
             { refl },
-            { apply inv2, assumption },
-            { transitivity y, assumption, convert shift2 S hly, rw mul_one } }
+            { exact inv S h1y },
+            { have := shift S y h1z, rw mul_one at this, exact linked.trans h1y this } }
             
-    lemma cayley_connected (h : group.closure S = set.univ) : connected (span)
+    lemma linked_mpr : linked span (1:G) x -> x ∈ group.closure S
+        := by { intro h, induction h with b c h1b hbc hr, exact group.in_closure.one S,
+            suffices : (b⁻¹:G) * c ∈ group.closure S,
+                { convert group.in_closure.mul hr this, rw [mul_inv_cancel_left] },
+            cases hbc; replace hbc := group.in_closure.basic hbc,
+                { exact hbc },
+                { convert group.in_closure.inv hbc, rw [mul_inv_rev,inv_inv] } }
+
+    lemma cayley_connected (h : group.closure S = set.univ) : connected span
         := by {
             suffices : ∀ x, linked (span S) (1:G) x,
                 { intros x y, transitivity (1:G), symmetry, apply this, apply this },

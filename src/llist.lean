@@ -252,7 +252,7 @@ namespace llist section
     parameters {V W : Type}
 
     lemma head_map {f : V -> W} {l : llist V} : head (map f l) = f (head l)
-        := by { cases l, refl, refl }
+        := by { cases l; refl }
 
     lemma last_map {f : V -> W} {l : llist V} : last (map f l) = f (last l)
         := by { induction l, refl, rwa [map,last,last] }
