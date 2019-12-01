@@ -1,5 +1,5 @@
 import tactic llist group_theory.subgroup logic.relation
-open function
+open function relation.refl_trans_gen
 set_option trace.check true
 
 structure digraph := 
@@ -91,65 +91,31 @@ namespace path section
             { exact hr h.2 hs.2 } } }
 end end path
 
-inductive linked (G : digraph) : G -> G -> Prop
-    | refl {x}     : linked x x
-    | step {x y z} : G.adj x y -> linked y z -> linked x z
+def linked (G : digraph) := relation.refl_trans_gen G.adj
 
 namespace linked section
     variables {G : digraph} {x y z : G}
 
-    attribute [refl] linked.refl
-
     lemma edge : G.adj x y -> linked G x y
-        := λ h, linked.step h (linked.refl G)
-
-    lemma append : linked G x y -> G.adj y z -> linked G x z
-        := by { intros h h', induction h with u u v w h1 h2 h3, exact edge h',
-            exact linked.step h1 (h3 h') }
-
-    @[symm] lemma symm : linked G x y -> linked G y x
-        := by { intro h, induction h with u u v w h1 h2 h3, refl, 
-            exact append h3 h1.symm }
-
-    @[trans] lemma trans : linked G x y -> linked G y z -> linked G x z
-        := by { intros hxy, induction hxy with u u v w h1 h2 hr, { intro h, exact h },
-            intro h, refine linked.step h1 (hr h) }
-
-    lemma linked_equiv : equivalence (linked G)
-        := by { exact ⟨@linked.refl G, @symm G, @trans G⟩ }
-end end linked
-
-def linked2 (G : digraph) := relation.refl_trans_gen G.adj
-
-namespace linked2 section
-    variables {G : digraph} {x y z : G}
-    open relation.refl_trans_gen
-
-    lemma edge : G.adj x y -> linked2 G x y
         := single
 
-    lemma cons : G.adj x y -> linked2 G y z -> linked2 G x z
+    lemma cons : G.adj x y -> linked G y z -> linked G x z
         := head
 
-    @[refl] lemma refl : linked2 G x x
+    @[refl] lemma refl : linked G x x
         := refl
 
-    @[symm] lemma symm : linked2 G x y -> linked2 G y x
+    @[symm] lemma symm : linked G x y -> linked G y x
         := by { intro h, induction h with b c hxb hbc hbx, refl, exact cons hbc.symm hbx }
 
-    @[trans] lemma trans : linked2 G x y -> linked2 G y z -> linked2 G x z
+    @[trans] lemma trans : linked G x y -> linked G y z -> linked G x z
         := trans
 
-    lemma linked_equiv : equivalence (linked2 G)
+    lemma linked_equiv : equivalence (linked G)
         := by { exact ⟨@refl G, @symm G, @trans G⟩ }
+end end linked
 
-    lemma linked_iff_linked2 : linked G x y <-> linked2 G x y
-        := by { split; intro h,
-            { induction h with x x y z hxy hyz hyz2, refl, exact cons hxy hyz2 },
-            { induction h with b c hxb hbc hxb, refl, exact linked.append hxb hbc } }
-end end linked2
-
-def connected (G : digraph) := ∀ x y, linked2 G x y
+def connected (G : digraph) := ∀ x y, linked G x y
 
 @[ext] structure  spath (G : digraph) (x y) extends path G x y := ( simple : path.simple  to_path)
 
@@ -354,7 +320,7 @@ namespace contraction section
     structure chunked extends digraph :=
         (rel : V -> V -> Prop)
         (eqv : equivalence rel)
-        (cmp : ∀ x y, rel x y -> linked2 _ x y)
+        (cmp : ∀ x y, rel x y -> linked _ x y)
 
     instance {G : chunked} : setoid G.V := ⟨G.rel,G.eqv⟩
 
@@ -408,7 +374,7 @@ namespace contraction section
             intro xbar, obtain ⟨x,hx⟩ := quot.exists_rep xbar, subst hx, 
             intro ybar, obtain ⟨y,hy⟩ := quot.exists_rep ybar, subst hy, 
             have h' := h x y, induction h', refl,
-            exact relation.refl_trans_gen.tail h'_ih (proj_adj h'_a_1) }
+            exact tail h'_ih (proj_adj h'_a_1) }
 end end contraction
 
 def is_minor (G G' : digraph) : Prop := ∃ C : contraction.chunked, C.to_digraph = G' ∧ embeds_into G (contraction.contract C)
@@ -474,25 +440,25 @@ namespace cayley section
             hy := by { rw [shift_llist,llist.last_map,p.hy] },
             adj := shift_is_path p.adj }
 
-    lemma shift : linked span x y -> linked span (a*x : G) (a*y : G)
-        := by { intro h, induction h with u u v w h1 h2 hr, refl,
-            refine linked.step _ hr, apply shift_adj, assumption }
+    lemma shift2 : linked span x y -> linked span (a*x : G) (a*y : G)
+        := by { intro h, induction h with b c hxb hbc hr, refl,
+            exact tail hr (shift_adj S hbc) }
 
-    lemma inv : linked span (1:G) x -> linked span (1:G) (x⁻¹:G)
-        := by { intro h, symmetry, rw [<-(mul_left_inv x)], convert shift S h, rw mul_one }
+    lemma inv2 : linked span (1:G) x -> linked span (1:G) (x⁻¹:G)
+        := by { intro h, symmetry, rw [<-(mul_left_inv x)], convert shift2 S h, rw mul_one }
 
     lemma linked_mp : x ∈ group.closure S -> linked span (1:G) x
         := by { intro h, induction h with s h y hs hl y z hsx hsy hlx hly,
             { apply linked.edge, use [s,h], left, rw one_mul },
             { refl },
-            { apply inv, assumption },
-            { transitivity y, assumption, convert shift S hly, rw mul_one } }
+            { apply inv2, assumption },
+            { transitivity y, assumption, convert shift2 S hly, rw mul_one } }
             
     lemma cayley_connected (h : group.closure S = set.univ) : connected (span)
         := by {
-            suffices : ∀ x, linked2 (span S) (1:G) x,
-                { intros x y, exact linked2.trans (this x).symm (this y) },
-            intro, apply linked2.linked_iff_linked2.mp, apply linked_mp, rw h, trivial }
+            suffices : ∀ x, linked (span S) (1:G) x,
+                { intros x y, transitivity (1:G), symmetry, apply this, apply this },
+            intro, apply linked_mp, rw h, trivial }
 end end cayley
 
 def planar (G : digraph) : Prop := is_minor G examples.Z2
