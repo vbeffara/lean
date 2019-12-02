@@ -23,7 +23,6 @@ namespace llist section
     def map     : (V -> W) -> llist V -> llist W | f (P v)    := P (f v)   | f (L v l)    := L (f v) (map f l)
 
     @[simp] def compat (l₁ l₂ : llist V) := last l₁ = head l₂
-    def qnodup (l : llist V) := head l ∉ inside l ∧ last l ∉ inside l ∧ list.nodup (inside l)
 
     variables {x y v w : V} {l l' l'' : llist V}
 
@@ -124,10 +123,6 @@ namespace llist section
 
     @[simp] lemma rev_inside                       : inside (rev l)           = list.reverse (inside l)
         := by { cases l, refl, rw [rev,inside_append,tail_rev,inside] }
-
-    @[simp] lemma rev_qnodup                       : qnodup (rev l)         <-> qnodup l
-        := by { rw [qnodup,qnodup,rev_inside,list.nodup_reverse,rev_head,list.mem_reverse],
-                rw [rev_last,list.mem_reverse], tauto }
 
     @[simp] lemma rev_is_path  (h : symmetric adj) : is_path (rev l)        <-> is_path l
         := by { induction l, rw [rev], rw [rev,append_is_path,rev_last,is_path,l_ih], rw symmetric at h, 
@@ -230,22 +225,11 @@ namespace llist section
             { rw [init,list.nodup,list.pairwise_cons], refine ⟨_,l_ih h.2⟩, 
                 intros a h1 h2, replace h := h.1, rw h2 at h, exact h (mem_init h1) } }
 
-    lemma         nodup_qnodup       (h : nodup l) : qnodup l
-        := by { induction l, 
-            { exact ⟨not_false,not_false,list.pairwise.nil⟩ },
-            { refine ⟨_,nodup_mem_last h.2, nodup_init h.2⟩, intro h1, exact h.1 (mem_init h1) } }
-
     lemma         nodup_of_init : list.nodup (init l) -> last l ∉ init l -> nodup l
         := by { induction l, { intros, trivial },
             { rw [init,last,nodup,list.nodup_cons,list.mem_cons_iff], push_neg, 
                 rintros ⟨h1,h2⟩ ⟨h3,h4⟩, refine ⟨_,l_ih h2 h4⟩,
                 rw mem_init_last, push_neg, exact ⟨h1,h3.symm⟩ } }
-
-    lemma         qnodup_ne_nodup : qnodup l -> head l ≠ last l -> nodup l
-        := by { cases l, { intros, trivial },
-            { rw [qnodup,head,inside], intros, apply nodup_of_init, 
-                { rw [init,list.nodup_cons], exact ⟨a.1,a.2.2⟩ },
-                { rw [init,list.mem_cons_iff], push_neg, exact ⟨a_1.symm,a.2.1⟩ } } }
 end end llist
 
 namespace llist section

@@ -49,7 +49,6 @@ namespace path section
     instance : has_mem G (path G x y) := ⟨mem⟩
 
     def simple     (p : path G x y) : Prop := llist.nodup p.l
-    def qsimple    (p : path G x y) : Prop := llist.qnodup p.l
     def size       (p : path G x y) : nat  := llist.size p.l
 
     def point (v : G) : path G v v
