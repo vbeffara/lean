@@ -2,11 +2,42 @@ import tactic
 
 inductive llist (V : Type) : Type | P : V -> llist | L : V -> llist -> llist
 
+@[ext] structure llist2 (V : Type) := (head : V) (tail : list V)
+
 namespace llist section
     parameters {V W : Type} (adj : V -> V -> Prop)
 
     def mem : V -> llist V -> Prop | x (P v) := x = v | x (L v l) := x = v ∨ mem x l
     instance has_mem_llist : has_mem V (llist V) := ⟨mem⟩
+
+    def mem2 (x : V) (l : llist2 V) : Prop := x = l.head ∨ x ∈ l.tail
+    instance has_mem_llist2 : has_mem V (llist2 V) := ⟨mem2⟩
+
+    def to_list2 (l : llist2 V) : list V := l.head :: l.tail
+    
+    def from_list2 : Π (l : list V), l ≠ [] -> llist2 V
+        | [] h := absurd rfl h
+        | (x::l) _ := ⟨x,l⟩
+
+    lemma ne_nil {l : llist2 V} : to_list2 l ≠ []
+        := by { trivial }
+
+    def size2             (l : llist2 V)                 : nat      := sizeof l.tail
+    def init2             (l : llist2 V)                 : list V   := list.init (to_list2 l)
+    def last2             (l : llist2 V)                 : V        := list.last (to_list2 l) ne_nil
+    def append2   (v : V) (l : llist2 V)                 : llist2 V := ⟨l.head, l.tail ++ [v]⟩
+    def nodup2            (l : llist2 V)                 : Prop     := list.nodup (to_list2 l)
+    def concat2           (l : llist2 V) (l' : llist2 V) : llist2 V := ⟨l.head, l.tail ++ l'.tail⟩
+    def map2 (f : V -> W) (l : llist2 V)                 : llist2 W := ⟨f l.head, list.map f l.tail⟩
+
+    def rev2 (l : llist2 V) : llist2 V := from_list2 (list.reverse (to_list2 l)) (ne_nil ∘ list.reverse_eq_nil.mp)
+
+    def inside2  : llist2 V -> list V | ⟨x,[]⟩ := []   | ⟨x,y::l⟩ := list.init (y::l)
+
+    inductive is_path2 : llist2 V -> Prop
+        | void {x}     : is_path2 ⟨x,[]⟩
+        | cons {x y l} : adj x y -> is_path2 ⟨y,l⟩ -> is_path2 ⟨x,y::l⟩
+
 
     def to_list :             llist V -> list V  |   (P v)    := [v]       |   (L v l)    := v :: to_list l
     def size    :             llist V -> nat     |   (P _)    := 0         |   (L v l)    := (size l) + 1
@@ -21,7 +52,7 @@ namespace llist section
     def nodup   :             llist V -> Prop    |   (P v)    := true      |   (L v l)    := v ∉ l ∧ nodup l
     def concat  :  llist V -> llist V -> llist V |   (P _) l' := l'        |   (L v l) l' := L v (concat l l')
     def map     : (V -> W) -> llist V -> llist W | f (P v)    := P (f v)   | f (L v l)    := L (f v) (map f l)
-
+    
     @[simp] def compat (l₁ l₂ : llist V) := last l₁ = head l₂
 
     variables {x y v w : V} {l l' l'' : llist V}
