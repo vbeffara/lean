@@ -55,7 +55,7 @@ namespace linked section
     @[trans] lemma trans : linked G x y -> linked G y z -> linked G x z
         := trans
 
-    lemma linked_equiv : equivalence (linked G)
+    lemma equiv : equivalence (linked G)
         := ⟨@refl G, @symm G, @trans G⟩
 end end linked
 

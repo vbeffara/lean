@@ -12,7 +12,7 @@ namespace examples section
     def Z : Graph := {
         V := ℤ,
         adj := λ x y, y = x+1 ∨ x = y+1,
-        sym := by { tauto }
+        sym := λ _ _, or.symm
     }
 
     def Z2 := prod Z Z
@@ -20,13 +20,13 @@ namespace examples section
     def K (n : nat) : Graph := {
         V := fin n,
         adj := λ _ _, true,
-        sym := by { tauto }
+        sym := λ _ _ _, trivial
     }
 
     def K' (n : nat) : Graph := {
         V := fin n,
         adj := λ x y, x ≠ y,
-        sym := by { tauto }
+        sym := λ x y h1 h2, h1 h2.symm
     }
 end end examples
 
