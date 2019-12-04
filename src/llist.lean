@@ -247,15 +247,13 @@ end end llist
 namespace llist2 section
     parameters {V W : Type} (adj : V -> V -> Prop)
 
-    lemma cases_on' {C : llist2 V -> Prop} (l : llist2 V)
+    lemma cases_on' {C : llist2 V → Prop} (l : llist2 V)
                 (h0 : ∀ {x}, C ⟨x,[]⟩) (h1 : ∀ {x y ys}, C ⟨x,y::ys⟩) : C l 
-        := by { cases l with x l, cases l, exact h0, exact h1 }
+        := cases_on l (λ x l, list.cases_on l h0 (λ _ _, h1))
 
-    lemma induction_on {C : llist2 V → Prop} (l : llist2 V)
-                (H0 : ∀ {x}, C ⟨x,[]⟩) (H1 : ∀ {x y ys} (hr : C ⟨y,ys⟩), C ⟨x,y::ys⟩) : C l 
-        := by { cases l with x l, induction l with y l hr generalizing x,
-            { exact H0 },
-            { exact H1 (hr y) } }
+    lemma induction_on {C : llist2 V → Prop} (l : llist2 V) 
+                (h0 : ∀ x, C ⟨x,[]⟩) (h1 : ∀ {x y ys} (hr : C ⟨y,ys⟩), C ⟨x,y::ys⟩) : C l 
+        := cases_on l (λ x l, list.rec h0 (λ y l hr x, h1 (hr y)) l x)
 
     def mem (x : V) (l : llist2 V) : Prop := x = l.head ∨ x ∈ l.tail
     instance : has_mem V (llist2 V) := ⟨mem⟩
