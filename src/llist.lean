@@ -433,31 +433,28 @@ namespace llist2 section
                     { intro h5, have h6 := h4 v ⟨(or.inl rfl),h5⟩, subst h6, rw <-h at h1, exact (h1 mem_last) },
                     { rintros x ⟨h5,h6⟩, exact h4 x ⟨(or.inr h5),h6⟩ } } } }
 
-    lemma         mem_init        (h : x ∈ init l) : x ∈ l
-        := by { induction l, cases h, cases h, exact or.inl h, exact or.inr (l_ih h) }
+    lemma mem_init (h : x ∈ init l) : x ∈ l
+        := by { revert h, apply induction_on l; intros; cases h, exact or.inl h, exact or.inr (hr h) }
 
-    lemma         mem_head_init'                   : v ∈ init (L v l)
-        := by { rw [init], left, refl }
+    -- lemma mem_head_init' : v ∈ init (cons v l)
+    --     := or.inl rfl
 
-    lemma         mem_head_init   (h : 0 < size l) : head l ∈ init l
-        := by { cases l, cases h, exact mem_head_init' }
+    lemma mem_head_init (h : l.tail ≠ []) : head l ∈ init l
+        := by { revert h, apply cases_on' l; intros, simp at h, contradiction, left, refl }
 
-    lemma         mem_last_tail   (h : 0 < size l) : last l ∈ tail l
-        := by { cases l, cases h, clear h, rw [last,tail], induction l_a_1,
-            { left, refl }, { rw [last,head,tail], right, assumption } }
+    lemma mem_last_tail (h : l.tail ≠ []) : last l ∈ tail l
+        := by { revert h, apply induction_on l; intros, simp at h, contradiction,
+            cases ys, { left, refl }, { right, rw [last], apply hr, trivial } }
 
-    lemma         mem_tail        (h : x ∈ tail l) : x ∈ l
-        := by { cases l, cases h, rw [tail,list_head_tail,mem_list] at h, right, assumption }
+    lemma mem_tail : x ∈ tail l -> x ∈ l
+        := or.inr
 
-    lemma         mem_init_last                    : x ∈ l                  <-> x ∈ init l ∨ x = last l
-        := by { split,
-            { intro, induction l, { right, assumption }, { cases a, { left, left, exact a },
-                cases l_ih a, { left, right, assumption }, { right, rwa last } } },
-            { intro, cases a, exact mem_init a, convert mem_last } }
+    lemma mem_init_last : x ∈ l <-> x ∈ init l ∨ x = last l
+        := by { apply induction_on l; intros, simp [init,last], 
+            rw [init,list.mem_cons_iff,last,or.assoc,<-hr], trivial }
 
-    lemma         mem_head_tail                    : x ∈ l                  <-> x = head l ∨ x ∈ tail l
-        := by { cases l, { rw [mem_singleton,head,tail], convert (or_false _).symm },
-            { rw [head,tail,list_head_tail,mem_list,mem_cons] } }
+    lemma mem_head_tail : x ∈ l <-> x = head l ∨ x ∈ tail l
+        := iff.refl _
 
     lemma         mem_init_inside'                 : x ∈ init (L v l)       <-> x = v ∨ x ∈ inside (L v l)
         := by { rw [init,inside,list.mem_cons_iff] }
