@@ -303,7 +303,7 @@ namespace llist2 section
     lemma last_of_ne_nil' {h : ys ≠ []} : last ⟨x,xs++ys⟩ = list.last ys h
         := by { induction xs generalizing x,
             { cases ys, contradiction, simp [last], exact last_is_last },
-            { simp [last], exact xs_ih } }
+            { exact xs_ih } }
 
     @[simp] lemma last_concat (h : compat l l') : last (concat l l') = last  l'
         := by { cases l' with x' l', cases l' with y' l',
@@ -515,6 +515,9 @@ namespace llist2 section
 
     lemma last_map {f : V -> W} {l : llist2 V} : last (map f l) = f (last l)
         := by { apply induction_on l; intros, refl, simp [map,last], exact hr }
+
+    lemma last_cons : last (cons v l) = last l
+        := by { apply induction_on l; intros, refl, rw [last,<-hr], simp [cons,last] }
 end end llist2
 
 @[ext] structure llist' (V : Type) (x y : V) := (l : llist V) (hx : l.head = x) (hy : l.last = y)
@@ -544,3 +547,34 @@ namespace llist' section open llist
     @[simp] lemma concat_P {l : llist' V x y} : concat l (P y) = l
         := by { ext, exact llist.concat_nil l.hy }
 end end llist'
+
+structure llist2' (V : Type) (x y : V) := (l : llist2 V) (hx : l.head = x) (hy : l.last = y)
+instance {V : Type} {x y : V} : has_coe (llist2' V x y) (llist2 V) := ⟨llist2'.l⟩
+
+namespace llist2' section open llist2
+    parameters {V : Type} (adj : V -> V -> Prop)
+    variables {x y z : V}
+
+    def mem (v : V) (l : llist2' V x y) := v ∈ l.l
+    instance has_mem : has_mem V (llist2' V x y) := ⟨mem⟩
+
+    @[ext] lemma ext {l l' : llist2' V x y} : l.l = l'.l -> l = l'
+        := by { cases l, cases l', simp }
+
+    @[simp] lemma reduce {l hx hy} : (⟨l,hx,hy⟩ : llist2' V x y).l = l := rfl
+
+    @[simp] lemma mem_simp {v l hx hy} : v ∈ (⟨l,hx,hy⟩ : llist2' V x y) <-> v ∈ l
+        := by { trivial }
+
+    def P    (v : V)                     : llist2' V v v := ⟨⟨v,[]⟩, rfl, rfl⟩
+    def cons (v : V) (l : llist2' V x y) : llist2' V v y := ⟨cons v l.l, rfl, by { rw last_cons, exact l.hy } ⟩
+
+    lemma compat {l : llist2' V x y} {l' : llist2' V y z} : llist2.compat l.l l'.l 
+        := eq.trans l.hy l'.hx.symm
+
+    def concat {x y z : V} (l : llist2' V x y) (l' : llist2' V y z) : llist2' V x z
+        := ⟨llist2.concat l l', eq.trans head_concat l.hx, eq.trans (last_concat compat) l'.hy⟩
+
+    @[simp] lemma concat_P {l : llist2' V x y} : concat l (P y) = l
+        := by { apply ext, exact concat_nil l.hy }
+end end llist2'
