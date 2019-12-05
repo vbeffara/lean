@@ -418,23 +418,31 @@ namespace llist2 section
     @[simp] lemma concat_nil (h : last l = w) : concat l ⟨w,[]⟩ = l
         := by { revert h, apply cases_on' l; intros, refl, simp [concat] }
 
+    @[simp] lemma concat_nil' (h : w = head l) : concat ⟨w,[]⟩ l = l
+        := by { subst h, rw concat, simp }
+
     @[simp] lemma concat_size : sizeof (concat l l') = sizeof l + sizeof l'
         := by { simp [concat,sizeof,has_sizeof.sizeof] }
 
     lemma concat_assoc : concat (concat l l') l'' = concat l (concat l' l'')
         := by { simp [concat] }
 
-    lemma concat_nodup (h : compat l l') : nodup (concat l l') <-> nodup l ∧ nodup l' ∧ (∀ x, x ∈ l ∧ x ∈ l' -> x = head l')
-        := by { induction l with v v l hr; rw [concat,nodup],
-            { split, { intro, refine ⟨trivial,a,_⟩, intros x h1, rw mem_singleton at h1, rwa h1.1 }, tauto },
-            { rw [nodup,hr h], rw [compat,last] at h, split,
-                { rintros ⟨h1,h2,h3,h4⟩, rw mem_concat h at h1, push_neg at h1, refine ⟨⟨h1.1,h2⟩,h3,_⟩,
-                    rintros x ⟨h6,h7⟩, cases h6,
-                    { subst h6, cases h1.2 h7 },
-                    { exact h4 x ⟨h6,h7⟩ } },
-                { rintros ⟨⟨h1,h2⟩,h3,h4⟩, rw mem_concat h, push_neg, refine ⟨⟨h1,_⟩,h2,h3,_⟩,
-                    { intro h5, have h6 := h4 v ⟨(or.inl rfl),h5⟩, subst h6, rw <-h at h1, exact (h1 mem_last) },
-                    { rintros x ⟨h5,h6⟩, exact h4 x ⟨(or.inr h5),h6⟩ } } } }
+    lemma concat_nodup (h : compat l l') : nodup (concat l l')
+                <-> nodup l ∧ nodup l' ∧ (∀ v, v ∈ l ∧ v ∈ l' -> v = head l')
+        := by { revert h, apply induction_on l; intros,
+            { rw [compat,last] at h, subst h, rw [concat_nil' rfl], simp [nodup] },
+            { simp [concat] at *, rw [nodup, hr h, nodup], clear hr, simp, push_neg, split,
+                { rintros ⟨⟨h1,h2,h3⟩,h4,h5,h6,h7⟩, refine ⟨⟨⟨h1,h2⟩,h4⟩,h5,_⟩, 
+                    intros v h8 h9, cases h9, assumption,
+                    cases h8, subst h8, contradiction,
+                    cases h8, subst h8, exact h6 (or.inr h9),
+                    exact h7 v h8 (or.inr h9) },
+                { rintros ⟨⟨⟨h1,h2⟩,h3⟩,h4,h5⟩, refine ⟨⟨h1,h2,_⟩,h3,h4,_,_⟩,
+                    { intro h7, have h6 := h5 x (or.inl rfl) (or.inr h7), subst h6,
+                        revert h4 h7, apply cases_on' l'; intros, cases h7, 
+                        rw nodup at h4, apply h4.1, simp at h7, exact h7 },
+                    { exact h5 y (or.inr (or.inl rfl)) },
+                    { intros x, exact h5 x ∘ or.inr ∘ or.inr } } } }
 
     lemma mem_init (h : x ∈ init l) : x ∈ l
         := by { revert h, apply induction_on l; intros; cases h, exact or.inl h, exact or.inr (hr h) }
