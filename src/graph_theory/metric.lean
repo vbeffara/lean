@@ -5,7 +5,7 @@ namespace dist section
     class connected_graph (G : Graph) := (conn : connected G)
 
     parameters {G : Graph} [connected_graph G]
-    variables {x y : G}
+    variables {x y z : G}
 
     def dists   (x y : G) := set.range (sizeof : path G x y -> ℕ)
 
@@ -35,31 +35,28 @@ namespace dist section
             { intro h, obtain p := @l6 _ _ x y, use p, rw h_1, exact h },
             { intro h, obtain p := h, transitivity (sizeof p), exact l4 p, exact h_h } }
 
-    lemma dist_self_0 {x : G} : 0 ∈ dists x x
-        := exists.intro (path.point x) rfl
+    lemma dist_self : dist x x = 0
+        := by { unfold dist, norm_cast, exact le_zero_iff_eq.mp (l4 (path.point x)) }
+
+    lemma eq_of_dist_eq_zero : dist x y = 0 → x = y
+        := by { unfold dist, norm_cast, intro h2, obtain p := l6 x y, rw h2 at h,
+            rcases p with ⟨⟨l,hx,hy⟩,hp⟩, cases l, rw [<-hx,<-hy], refl, cases h }
+
+    lemma dist_comm : dist x y = dist y x
+        := by { unfold dist, norm_cast,
+            have : ∀ x y : G, graph_dist x y <= graph_dist y x,
+                { intros x y, obtain p := l6 y x, rw [<-h,<-path.sizeof_rev], exact l4 p.rev },
+            exact le_antisymm (this x y) (this y x) }
+
+    lemma dist_triangle : dist x z ≤ dist x y + dist y z 
+        := by { unfold dist, norm_cast, obtain pxy := l6 x y, obtain pyz := l6 y z, 
+            have h1 : sizeof (path.concat pxy pyz) = sizeof pxy + sizeof pyz := llist.concat_size,
+            rw [<-h,<-h_1,<-h1], apply l4 }
 
     noncomputable instance : metric_space G
-        :={ dist := λ x y, graph_dist x y,
-            -- 
-            dist_self := by { intro x, let p := path.point x, 
-                have h1 : graph_dist x x <= sizeof p := l4 p,
-                have h4 : graph_dist x x = 0 := le_zero_iff_eq.mp h1,
-                unfold dist, rw h4, refl },
-            --
-            eq_of_dist_eq_zero := by { intros x y h1, 
-                have h2 : graph_dist x y = 0, { unfold dist at h1, finish },
-                obtain p := l6 x y, rw h2 at h,
-                rcases p with ⟨⟨l,hx,hy⟩,hp⟩, cases l, simp [llist.head,llist.last] at hx hy, cc, cases h },
-            --
-            dist_comm := by { suffices : ∀ x y : G, dist x y <= dist y x,
-                    { intros, have h1 := this x y, have h2 := this y x, exact le_antisymm h1 h2 },
-                intros, unfold dist, obtain p := l6 y x, rw <-h, let p' := p.rev, 
-                have h1 := l4 p', rw <-path.sizeof_rev, finish },
-            --
-            dist_triangle := by { intros, obtain pxy := l6 x y, obtain pyz := l6 y z, 
-                let p := path.concat pxy pyz,
-                have h1 : sizeof p = sizeof pxy + sizeof pyz := llist.concat_size,
-                have h2 : graph_dist x z <= graph_dist x y + graph_dist y z, 
-                    { rw [<-h,<-h_1,<-h1], apply l4 },
-                unfold dist, norm_cast, exact h2 } }
+        :={ dist               := λ x y, graph_dist x y,
+            dist_self          := λ x, dist_self,
+            eq_of_dist_eq_zero := λ x y, eq_of_dist_eq_zero,
+            dist_comm          := λ x y, dist_comm,
+            dist_triangle      := λ x y z, dist_triangle }
 end end dist
