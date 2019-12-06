@@ -232,6 +232,12 @@ namespace llist section
             { rw [init,last,nodup,list.nodup_cons,list.mem_cons_iff], push_neg, 
                 rintros ⟨h1,h2⟩ ⟨h3,h4⟩, refine ⟨_,l_ih h2 h4⟩,
                 rw mem_init_last, push_neg, exact ⟨h1,h3.symm⟩ } }
+
+    lemma size_append : size (append v l) = size l + 1
+        := by { induction l, refl, rw [append,size,l_ih,size] }
+
+    lemma size_rev : size l.rev = size l
+        := by { induction l, refl, rw [rev,size_append,l_ih,size], }
 end end llist
 
 namespace llist section

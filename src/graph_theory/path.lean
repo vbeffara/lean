@@ -15,6 +15,8 @@ namespace path section
     def simple     (p : path G x y) : Prop := llist.nodup p.l
     def size       (p : path G x y) : nat  := llist.size p.l
 
+    instance : has_sizeof (path G x y) := ⟨size⟩
+
     def point (v : G) : path G v v
         := ⟨⟨llist.P v, rfl, rfl⟩, trivial⟩
 
@@ -24,6 +26,9 @@ namespace path section
     def rev (p : path G x y) : path G y x
         := ⟨⟨llist.rev p.l, by { rw [llist.rev_head,p.hy] }, by { rw [llist.rev_last,p.hx] }⟩, 
             (llist.rev_is_path G.adj G.sym).mpr p.adj⟩
+
+    lemma sizeof_rev {p : path G x y} : sizeof p.rev = sizeof p
+        := llist.size_rev
 
     def concat (p : path G x y) (p' : path G y z) : path G x z
         := ⟨llist'.concat p.to_llist' p'.to_llist', 

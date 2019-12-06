@@ -36,10 +36,10 @@ namespace cayley section
 
     lemma linked_mp : x ∈ group.closure S -> linked span (1:G) x
         := by { intro h, induction h with s h y hs h1y y z hy hz h1y h1z,
-            { apply linked.edge, left, rwa [one_inv,one_mul] },
-            { refl },
-            { exact inv S h1y },
-            { have := shift S y h1z, rw mul_one at this, exact linked.trans h1y this } }
+            case group.in_closure.basic : s hs { apply linked.edge, left, rwa [one_inv,one_mul] },
+            case group.in_closure.one   : { refl },
+            case group.in_closure.inv   : y hy h1y { exact inv S h1y },
+            { refine linked.trans h1y _, convert shift S y h1z, rw mul_one } }
             
     lemma linked_mpr : linked span (1:G) x -> x ∈ group.closure S
         := by { intro h, induction h with b c h1b hbc hr, exact group.in_closure.one S,
