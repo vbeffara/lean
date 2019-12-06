@@ -18,6 +18,8 @@ def isomorphic (G G' : Graph) := inhabited (Graph_iso G G')
 def linked    (G : Graph) := relation.refl_trans_gen G.adj
 def connected (G : Graph) := ∀ x y, linked G x y
 
+class connected_graph (G : Graph) := (conn : connected G)
+
 @[ext] structure edge (G : Graph) := {x y : G.V} (h : G.adj x y)
 
 namespace edge section
