@@ -25,9 +25,9 @@ namespace dist section
     lemma dist_self : dist x x = 0
         := by { unfold dist, norm_cast, exact le_zero_iff_eq.mp (upper_bound (path.point x)) }
 
-    lemma eq_of_dist_eq_zero : dist x y = 0 → x = y
+    lemma eq_of_dist_eq_zero : dist x y = 0 -> x = y
         := by { unfold dist, norm_cast, intro h2, obtain p := shortest_path x y,
-            rcases p with ⟨⟨l,hx,hy⟩,hp⟩, cases l, rw [<-hx,<-hy], refl, rw h2 at h, cases h }
+            rcases p with ⟨⟨l,hx,hy⟩,hp⟩, cases l, rw [<-hx,<-hy], refl, rw h2 at h, trivial }
 
     lemma dist_comm : dist x y = dist y x
         := by { unfold dist, norm_cast, have : ∀ u v : G, graph_dist u v <= graph_dist v u,
@@ -40,8 +40,7 @@ namespace dist section
             rw [<-h,<-h_1,<-h1], apply upper_bound }
 
     noncomputable instance : metric_space G
-        :={ dist               := λ x y, graph_dist x y,
-            dist_self          := λ x, dist_self,
+        :={ dist_self          := λ x, dist_self,
             eq_of_dist_eq_zero := λ x y, eq_of_dist_eq_zero,
             dist_comm          := λ x y, dist_comm,
             dist_triangle      := λ x y z, dist_triangle }

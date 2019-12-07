@@ -2,19 +2,29 @@ import tactic group_theory.subgroup
 import graph_theory.path
 
 namespace cayley section
-    parameters {G : Type} [group G] (S : set G)
+    parameters {G : Type} [group G] 
+    
+    lemma cancel {x y a : G} : (a * x)⁻¹ * (a * y) = x⁻¹ * y 
+        := by { rw [mul_inv_rev,<-mul_assoc], simp }
+
+    lemma inv_prod {x y : G} : (x⁻¹ * y)⁻¹ = y⁻¹ * x 
+        := by { simp }
+
+    class symset (S : set G) := (sym : ∀ {s : G}, s ∈ S -> s⁻¹ ∈ S)
+
+    parameters (S : set G) [symset S]
     variables (a : G) {x y z : G}
 
-    def adj (x y : G) := x⁻¹ * y ∈ S ∨ y⁻¹ * x ∈ S
+    def adj (x y : G) := x⁻¹ * y ∈ S
 
     lemma shift_adj {a x y : G} : adj x y -> adj (a*x) (a*y) 
-        := by { rw [adj,adj], intro h, convert h using 2; rw [<-mul_assoc]; simp }
+        := by { rw [adj,adj,cancel], exact id }
 
     @[symm] lemma adj_symm {x y} : adj x y -> adj y x
-        := or.symm
+        := by { rw [adj,adj], rw <-(@inv_prod _ _ x y), exact symset.sym }
 
     def span : Graph := { V := G, adj := adj, sym := @adj_symm }
-
+    
     def shift_llist := llist.map (λ x, a * x)
 
     lemma shift_is_path {l : llist G} : llist.is_path adj l -> llist.is_path adj (shift_llist a l)
@@ -36,7 +46,7 @@ namespace cayley section
 
     lemma linked_mp : x ∈ group.closure S -> linked span (1:G) x
         := by { intro h, induction h with s h y hs h1y y z hy hz h1y h1z,
-            case group.in_closure.basic : s hs { apply linked.edge, left, rwa [one_inv,one_mul] },
+            case group.in_closure.basic : s hs { apply linked.edge, change 1⁻¹ * s ∈ S, rwa [one_inv,one_mul] },
             case group.in_closure.one   : { refl },
             case group.in_closure.inv   : y hy h1y { exact inv S h1y },
             { refine linked.trans h1y _, convert shift S y h1z, rw mul_one } }
@@ -45,13 +55,10 @@ namespace cayley section
         := by { intro h, induction h with b c h1b hbc hr, exact group.in_closure.one S,
             suffices : (b⁻¹:G) * c ∈ group.closure S,
                 { convert group.in_closure.mul hr this, rw [mul_inv_cancel_left] },
-            cases hbc; replace hbc := group.in_closure.basic hbc,
-                { exact hbc },
-                { convert group.in_closure.inv hbc, rw [mul_inv_rev,inv_inv] } }
+            apply group.in_closure.basic, exact hbc }
 
     lemma cayley_connected (h : group.closure S = set.univ) : connected span
-        := by {
-            suffices : ∀ x, linked (span S) (1:G) x,
+        := by { suffices : ∀ x, linked (span S) (1:G) x,
                 { intros x y, transitivity (1:G), symmetry, apply this, apply this },
             intro, apply linked_mp, rw h, trivial }
 end end cayley
