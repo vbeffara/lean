@@ -61,23 +61,16 @@ namespace cayley section
     instance : connected_graph span := ⟨by { exact connected S }⟩
 
     lemma covariant : @dist.graph_dist span _ (a*x:G) (a*y:G) = @dist.graph_dist span _ x y
-        := by { 
-            suffices : @dist.dists (span S) _ (a*x:G) (a*y:G) = @dist.dists (span S) _ x y,
+        := by { let dists : G -> G -> set ℕ := @dist.dists (span S) _,
+            suffices : dists (a*x) (a*y) = dists x y,
                 { unfold dist.graph_dist, congr, assumption },
-            unfold dist.dists, 
-            refine norm_num.mk_cong set_of 
-                (λ (l : ℕ), ∃ (p : path (span S) (a * x : G) (a * y : G)), sizeof p = l)
-                (λ (l : ℕ), ∃ (p : path (span S) x y), sizeof p = l) _,
-            funext ℓ, rw [eq_iff_iff], split,
-                { intro h, obtain p := h, set p' := shift_path S a⁻¹ p with hp',
+            funext ℓ, rw [eq_iff_iff], 
+            suffices : ∀ x y a ℓ, dists x y ℓ -> dists (a*x) (a*y) ℓ, 
+                { split, have h := this (a*x) (a*y) a⁻¹ ℓ, simp at h, exact h, apply this },
+            { clear x y a ℓ, intros x y a ℓ h, obtain p := h, set p' := shift_path S a p with hp',
                 have : sizeof p' = ℓ, { rw hp', 
                 simp [shift_path,sizeof,has_sizeof.sizeof,path.size,shift_llist,llist.size_map], exact h_h },
-                use p', convert p'.hx, simp, convert p'.hy, simp, exact p'.adj, exact this },
-                { intro h, obtain p := h, set p' := shift_path S a p with hp',
-                have : sizeof p' = ℓ, { rw hp', 
-                simp [shift_path,sizeof,has_sizeof.sizeof,path.size,shift_llist,llist.size_map], exact h_h },
-                use p', exact this }
-        }
+                use p', exact this } }
 end end cayley
 
 namespace cayley section
