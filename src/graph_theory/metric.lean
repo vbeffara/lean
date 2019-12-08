@@ -21,27 +21,27 @@ namespace dist section
         := well_founded.min_mem nat.lt_wf (dists x y) dists_ne_empty
 
     lemma dist_self : graph_dist x x = 0
-        := by { exact le_zero_iff_eq.mp (upper_bound (path.point x)) }
+        := le_zero_iff_eq.mp (upper_bound (path.point x))
 
     lemma dist_triangle : graph_dist x z ≤ graph_dist x y + graph_dist y z 
         := by { obtain pxy := shortest_path x y, obtain pyz := shortest_path y z, 
             have h1 : sizeof (path.concat pxy pyz) = sizeof pxy + sizeof pyz := llist.concat_size,
             rw [<-h,<-h_1,<-h1], apply upper_bound }
 
-    noncomputable instance : has_dist G := ⟨λ x y, graph_dist x y⟩
+    lemma eq_of_dist_eq_zero : graph_dist x y = 0 -> x = y
+        := by { intro h2, rcases (shortest_path x y) with ⟨⟨⟨l,hx,hy⟩,hp⟩,h⟩,
+            cases l, { rw [<-hx,<-hy], refl }, { rw h2 at h, cases h } }
 
-    lemma eq_of_dist_eq_zero : dist x y = 0 -> x = y
-        := by { unfold dist, norm_cast, intro h2, obtain p := shortest_path x y,
-            rcases p with ⟨⟨l,hx,hy⟩,hp⟩, cases l, rw [<-hx,<-hy], refl, rw h2 at h, trivial }
-
-    lemma dist_comm : dist x y = dist y x
-        := by { unfold dist, norm_cast, have : ∀ u v : G, graph_dist u v <= graph_dist v u,
+    lemma dist_comm : graph_dist x y = graph_dist y x
+        := by { have : ∀ u v : G, graph_dist u v <= graph_dist v u,
             { intros, obtain p := shortest_path v u, rw [<-h,<-path.sizeof_rev], exact upper_bound p.rev },
             exact le_antisymm (this x y) (this y x) }
 
+    noncomputable instance : has_dist G := ⟨λ x y, graph_dist x y⟩
+
     noncomputable instance : metric_space G
         :={ dist_self          := by { unfold dist, norm_cast, apply dist_self },
-            eq_of_dist_eq_zero := λ x y, eq_of_dist_eq_zero,
-            dist_comm          := λ x y, dist_comm,
+            eq_of_dist_eq_zero := by { unfold dist, norm_cast, apply eq_of_dist_eq_zero },
+            dist_comm          := by { unfold dist, norm_cast, apply dist_comm },
             dist_triangle      := by { unfold dist, norm_cast, apply dist_triangle } }
 end end dist
