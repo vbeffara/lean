@@ -64,18 +64,19 @@ namespace cayley section
         := by { 
             suffices : @dist.dists (span S) _ (a*x:G) (a*y:G) = @dist.dists (span S) _ x y,
                 { unfold dist.graph_dist, congr, assumption },
-            unfold dist.dists, refine norm_num.mk_cong set_of (λ (x_1 : ℕ), ∃ (y_1 : path (span S) (a * x : G) (a * y : G)), sizeof y_1 = x_1)
-    (λ (x_1 : ℕ), ∃ (y_1 : path (span S) x y), sizeof y_1 = x_1)
-  _,
-    funext ℓ, rw [eq_iff_iff], split,
-            { intro h, obtain p := h, set p' := shift_path S a⁻¹ p with hp',
-            have : sizeof p' = ℓ, { rw hp', 
-            simp [shift_path,sizeof,has_sizeof.sizeof,path.size,shift_llist,llist.size_map], exact h_h },
-            use p', convert p'.hx, simp, convert p'.hy, simp, exact p'.adj, exact this },
-            { intro h, obtain p := h, set p' := shift_path S a p with hp',
-            have : sizeof p' = ℓ, { rw hp', 
-            simp [shift_path,sizeof,has_sizeof.sizeof,path.size,shift_llist,llist.size_map], exact h_h },
-            use p', exact this }
+            unfold dist.dists, 
+            refine norm_num.mk_cong set_of 
+                (λ (l : ℕ), ∃ (p : path (span S) (a * x : G) (a * y : G)), sizeof p = l)
+                (λ (l : ℕ), ∃ (p : path (span S) x y), sizeof p = l) _,
+            funext ℓ, rw [eq_iff_iff], split,
+                { intro h, obtain p := h, set p' := shift_path S a⁻¹ p with hp',
+                have : sizeof p' = ℓ, { rw hp', 
+                simp [shift_path,sizeof,has_sizeof.sizeof,path.size,shift_llist,llist.size_map], exact h_h },
+                use p', convert p'.hx, simp, convert p'.hy, simp, exact p'.adj, exact this },
+                { intro h, obtain p := h, set p' := shift_path S a p with hp',
+                have : sizeof p' = ℓ, { rw hp', 
+                simp [shift_path,sizeof,has_sizeof.sizeof,path.size,shift_llist,llist.size_map], exact h_h },
+                use p', exact this }
         }
 end end cayley
 
