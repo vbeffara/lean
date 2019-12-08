@@ -243,6 +243,9 @@ end end llist
 namespace llist section
     parameters {V W : Type}
 
+    lemma size_map {f : V -> W} {l : llist V} : size (map f l) = size l
+        := by { induction l, refl, rw [map,size,l_ih,size] }
+
     lemma head_map {f : V -> W} {l : llist V} : head (map f l) = f (head l)
         := by { cases l; refl }
 
