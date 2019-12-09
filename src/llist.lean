@@ -28,19 +28,19 @@ namespace llist section
 
     variables {x y v w : V} {l l' l'' : llist V}
 
-    @[simp] lemma concat_head    (h : compat l l') : head (concat l l')       = head l
-        := by { cases l, { rw compat at h, rw [concat,<-h], refl }, { refl } }
+    @[simp] lemma concat_head : compat l l' -> head (concat l l') = head l
+        := llist.cases_on l (λ _ h, eq.trans h.symm rfl) (λ _ _ _, rfl)
 
-    @[simp] lemma concat_last                      : last (concat l l')       = last  l'
-        := by { induction l; rw concat, rwa [last] }
+    @[simp] lemma concat_last : last (concat l l') = last  l'
+        := llist.rec (λ _, rfl) (λ _ _, id) l
 
-    @[simp] lemma append_head                      : head (append v l)        = head l
-        := by { cases l; refl }
+    @[simp] lemma append_head : head (append v l) = head l
+        := llist.cases_on l (λ _, rfl) (λ _ _, rfl)
 
-    @[simp] lemma append_last                      : last (append v l)        = v
-        := by { induction l, refl, rwa [append,last] }
+    @[simp] lemma append_last : last (append v l) = v
+        := llist.rec (λ _, rfl) (λ _ _, id) l
 
-    @[simp] lemma rev_append                       : rev  (append v l)        = L v (rev l)
+    @[simp] lemma rev_append : rev (append v l) = L v (rev l)
         := by { induction l, refl, rw [append,rev,l_ih], refl }
 
     @[simp] lemma rev_head                         : head (rev l)             = last l
