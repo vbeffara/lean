@@ -73,6 +73,8 @@ namespace path section
 
     lemma iff_path : linked G x y <-> nonempty (path G x y)
         := ⟨to_path,from_path⟩
+
+    instance [connected_graph G] : nonempty (path G x y) := to_path (connected_graph.conn G x y)
 end end path
 
 @[ext] structure  spath (G : Graph) (x y) extends path G x y := ( simple : path.simple  to_path)
@@ -84,7 +86,7 @@ namespace spath section
     def mem (z) (p : spath G x y) := z ∈ to_path p
     instance : has_mem G.V (spath G x y) := ⟨mem⟩
 
-    def size       (p : spath G x y) : nat  := p.to_path.size
+    def size (p : spath G x y) : nat := p.to_path.size
 
     instance : has_coe (spath G x y) (path G x y) := ⟨spath.to_path⟩
 

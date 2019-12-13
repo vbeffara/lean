@@ -63,22 +63,20 @@ namespace cayley section
     noncomputable def word_dist : G -> G -> ℕ := @graph.dist span _
 
     lemma covariant : word_dist (a*x) (a*y) = word_dist x y
-        := by { let dists : G -> G -> set ℕ := @graph.dists (span S) _,
-            suffices : dists (a*x) (a*y) = dists x y, 
-                { unfold word_dist graph.dist, congr, assumption },
-            funext ℓ, rw [eq_iff_iff],
-            have : ∀ x y a ℓ, dists x y ℓ -> dists (a*x) (a*y) ℓ, 
-                intros x y a ℓ h, obtain p := h, use ⟨shift_path S a p, h_h ▸ llist.size_map⟩,
-            exact ⟨λ h, inv_mul_cancel_left a x ▸ inv_mul_cancel_left a y ▸ this (a*x) (a*y) a⁻¹ ℓ h,
-                this x y a ℓ⟩ }
+        := by { 
+            unfold word_dist graph.dist, congr' 1, funext ℓ, rw [eq_iff_iff],
+            let dists : G -> G -> set ℕ := @graph.dists (span S) _,
+            have h2 : ∀ x y a ℓ, dists x y ℓ -> dists (a*x) (a*y) ℓ 
+                := by { intros x y a ℓ h, cases h with p, use ⟨shift_path S a p, h_h ▸ llist.size_map⟩ },
+            exact ⟨λ h, inv_mul_cancel_left a x ▸ inv_mul_cancel_left a y ▸ h2 (a*x) (a*y) a⁻¹ ℓ h,
+                h2 x y a ℓ⟩ }
 end end cayley
 
 namespace cayley section
     parameters {G : Type} [group G] (S1 S2 : finset G) [genset S1] [genset S2]
 
     theorem lipschitz : ∃ K : ℕ, ∀ x y : G, word_dist S2 x y <= K * word_dist S1 x y
-        := by {
-            let φ : G -> ℕ := word_dist S2 1, let ls : finset ℕ := finset.image φ S1,
+        := by { let φ : G -> ℕ := word_dist S2 1, let ls := finset.image φ S1,
             obtain K := (finset.max_of_ne_empty (mt finset.image_eq_empty.1 (genset.nem S1))), 
             use K, intros x y, unfold word_dist,
             obtain ⟨⟨⟨l,hx,hy⟩,hp⟩,h⟩ := @graph.shortest_path (span S1) _ x y, rw <-h, clear h,
@@ -89,6 +87,6 @@ namespace cayley section
                     transitivity word_dist S2 x z + word_dist S2 z y,
                         { exact graph.dist_triangle },
                         { rw [mul_add,mul_one,<-(covariant S2 x⁻¹),inv_mul_self], 
-                            convert add_le_add (finset.le_max_of_mem (finset.mem_image_of_mem φ hp.1) h) l_ih, 
-                            rw [<-hx], refl } } }
+                            convert add_le_add (finset.le_max_of_mem (finset.mem_image_of_mem _ hp.1) h) l_ih, 
+                            exact hx.symm } } }
 end end cayley
