@@ -28,6 +28,10 @@ namespace llist section
 
     variables {x y v w : V} {l l' l'' : llist V}
 
+    @[simp] lemma head_P : head (P v) = v := rfl
+
+    @[simp] lemma last_P : last (P v) = v := rfl
+
     @[simp] lemma concat_head : compat l l' -> head (concat l l') = head l
         := llist.cases_on l (λ _ h, eq.trans h.symm rfl) (λ _ _ _, rfl)
 
@@ -264,28 +268,25 @@ namespace llist2 section
                 (h0 : ∀ x, C ⟨x,[]⟩) (h1 : ∀ {x y ys} (hr : C ⟨y,ys⟩), C ⟨x,y::ys⟩) : C l 
         := cases_on l (λ x l, list.rec h0 (λ y l hr x, h1 (hr y)) l x)
 
-    def mem (x : V) (l : llist2 V) : Prop := x = l.head ∨ x ∈ l.tail
+    def mem     : V -> llist2 V -> Prop     | u ⟨x,l⟩ := u = x ∨ u ∈ l
+    def size    :      llist2 V -> nat      |   ⟨x,l⟩ := l.length
+    def to_list :      llist2 V -> list V   |   ⟨x,l⟩ := x :: l
+    def cons    : V -> llist2 V -> llist2 V | u ⟨x,l⟩ := ⟨u,x::l⟩
 
     instance : has_mem V (llist2 V) := ⟨mem⟩
+    instance : has_sizeof (llist2 V) := ⟨size⟩
     instance : has_well_founded (llist2 V) := ⟨_, measure_wf ((λ n, n+n) ∘ list.length ∘ llist2.tail)⟩
-    instance : has_sizeof (llist2 V) := ⟨λ l, list.length l.tail⟩
-
-    def to_list (l : llist2 V) : list V := l.head :: l.tail
-    
-    def from_list : Π (l : list V), l ≠ [] -> llist2 V
-        | [] h := absurd rfl h
-        | (x::l) _ := ⟨x,l⟩
 
     lemma ne_nil {l : llist2 V} : to_list l ≠ []
-        := by { trivial }
+        := by { cases l, trivial }
 
     @[simp] lemma ext2 {l : llist2 V} : llist2.mk l.head l.tail = l
         := ext _ _ rfl rfl
 
-    def cons      (v : V) (l : llist2 V)                 : llist2 V := ⟨v,l.head::l.tail⟩
     def append    (v : V) (l : llist2 V)                 : llist2 V := ⟨l.head, l.tail ++ [v]⟩
     def concat            (l : llist2 V) (l' : llist2 V) : llist2 V := ⟨l.head, l.tail ++ l'.tail⟩
     def map  (f : V -> W) (l : llist2 V)                 : llist2 W := ⟨f l.head, list.map f l.tail⟩
+
 
     def reverse : llist2 V -> llist2 V | ⟨x,[]⟩ := ⟨x,[]⟩ | ⟨x,y::l⟩ := append x (reverse ⟨y,l⟩)
     def last    : llist2 V -> V        | ⟨x,[]⟩ := x      | ⟨x,y::l⟩ := last ⟨y,l⟩
@@ -325,9 +326,12 @@ namespace llist2 section
     @[simp] lemma last_append : last (append v l) = v
         := by { cases l with x l, simp [append,last,last_of_ne_nil'] }
 
+    lemma append_cons : append w (cons v l) = cons v (append w l) 
+        := by { cases l, refl }
+
     @[simp] lemma rev_append : reverse (append v l) = cons v (reverse l)
         := by { apply induction_on l; intros, refl, 
-            simp [append,reverse] at hr ⊢, rw hr, finish }
+            rw [reverse,<-append_cons,<-hr], simp [append,reverse] }
 
     @[simp] lemma rev_head : head (reverse l) = last l
         := by { apply induction_on l; intros, refl, simp [reverse,append,hr,last] }
@@ -339,7 +343,7 @@ namespace llist2 section
         := by { apply induction_on l; intros, refl, rw [reverse,rev_append,hr], refl }
 
     lemma mem_iff : x ∈ l <-> x = head l ∨ x ∈ tail l
-        := by { trivial }
+        := by { cases l, trivial }
 
     @[simp] lemma mem_singleton : x ∈ (⟨y,[]⟩ : llist2 V) <-> x = y
         := by { simp [mem_iff] }
@@ -359,7 +363,7 @@ namespace llist2 section
         := by { apply induction_on l; intros, simp [reverse], simp [reverse,mem_append,hr] }
 
     @[simp] lemma mem_head : head l ∈ l
-        := by { left, refl }
+        := by { cases l, left, refl }
 
     @[simp] lemma mem_last : last l ∈ l
         := by { apply induction_on l; intros, { left, refl }, { right, assumption } }
@@ -381,9 +385,6 @@ namespace llist2 section
     @[simp] lemma init_append : init (append x l) = to_list l
         := by { apply induction_on l; intros, refl, { simp [append,init,to_list] at hr ⊢, exact hr } }
 
-    @[simp] lemma list_head_tail : head l :: tail l = to_list l
-        := rfl
-
     @[simp] lemma list_init_last : init l ++ [last l] = to_list l
         := by { apply induction_on l; intros, refl, rw [init,last,to_list], finish }
 
@@ -394,7 +395,7 @@ namespace llist2 section
         := by { revert h, apply cases_on' l; intros, contradiction, refl }
 
     @[simp] lemma list_tail_last' : inside (cons v l) ++ [last (cons v l)] = tail (cons v l)
-        := by { rw [cons,inside,last,list_init_last], refl }
+        := by { cases l, rw [cons,inside,last,list_init_last], refl }
 
     @[simp] lemma list_tail_last (h : l.tail ≠ []) : inside l ++ [last l] = tail l
         := by { cases l with x l, cases l, contradiction, simp [inside,last,to_list] }
@@ -430,8 +431,8 @@ namespace llist2 section
     @[simp] lemma concat_nil' (h : w = head l) : concat ⟨w,[]⟩ l = l
         := by { subst h, rw concat, simp }
 
-    @[simp] lemma concat_size : sizeof (concat l l') = sizeof l + sizeof l'
-        := by { simp [concat,sizeof,has_sizeof.sizeof] }
+    @[simp] lemma concat_size : size (concat l l') = size l + size l'
+        := by { cases l, cases l', simp [concat,size] }
 
     lemma concat_assoc : concat (concat l l') l'' = concat l (concat l' l'')
         := by { simp [concat] }
@@ -442,12 +443,12 @@ namespace llist2 section
             { rw [compat,last] at h, subst h, rw [concat_nil' rfl], simp [nodup] },
             { simp [concat] at *, rw [nodup, hr h, nodup], clear hr, simp, push_neg, split,
                 { rintros ⟨⟨h1,h2,h3⟩,h4,h5,h6,h7⟩, refine ⟨⟨⟨h1,h2⟩,h4⟩,h5,_⟩, 
-                    intros v h8 h9, cases h9, assumption,
+                    intros v h8 h9, rw mem_iff at h9, cases h9, assumption,
                     cases h8, subst h8, contradiction,
-                    cases h8, subst h8, exact h6 (or.inr h9),
-                    exact h7 v h8 (or.inr h9) },
+                    cases h8, subst h8, apply h6, cases l', exact or.inr h9,
+                    apply h7 v h8, rw mem_iff, exact or.inr h9 },
                 { rintros ⟨⟨⟨h1,h2⟩,h3⟩,h4,h5⟩, refine ⟨⟨h1,h2,_⟩,h3,h4,_,_⟩,
-                    { intro h7, have h6 := h5 x (or.inl rfl) (or.inr h7), subst h6,
+                    { intro h7, have h6 := h5 x (or.inl rfl) (mem_iff.mpr (or.inr h7)), subst h6,
                         revert h4 h7, apply cases_on' l'; intros, cases h7, 
                         rw nodup at h4, apply h4.1, simp at h7, exact h7 },
                     { exact h5 y (or.inr (or.inl rfl)) },
@@ -467,23 +468,20 @@ namespace llist2 section
             cases ys, { left, refl }, { right, rw [last], apply hr, trivial } }
 
     lemma mem_tail : x ∈ tail l -> x ∈ l
-        := or.inr
+        := by { rw mem_iff, exact or.inr }
 
     lemma mem_init_last : x ∈ l <-> x ∈ init l ∨ x = last l
         := by { apply induction_on l; intros, simp [init,last], 
             rw [init,list.mem_cons_iff,last,or.assoc,<-hr], trivial }
 
-    lemma mem_head_tail : x ∈ l <-> x = head l ∨ x ∈ tail l
-        := iff.refl _
-
     lemma mem_init_inside' : x ∈ init (cons v l) <-> x = v ∨ x ∈ inside (cons v l)
-        := by { rw [cons,init,inside,list.mem_cons_iff] }
+        := by { cases l, rw [cons,init,inside,list.mem_cons_iff] }
 
     lemma mem_init_inside (h : l.tail ≠ []) : x ∈ init l <-> x = head l ∨ x ∈ inside l
         := by { rw [<-(list_head_init h),list.mem_cons_iff] }
 
     lemma mem_tail_inside' : x ∈ tail (cons v l) <-> x ∈ inside (cons v l) ∨ x = last l
-        := by { rw [cons,inside,ext2,<-mem_init_last], trivial }
+        := by { cases l with u l, rw [cons,inside,<-mem_init_last], simp }
 
     lemma mem_tail_inside (h : l.tail ≠ []) : x ∈ tail l <-> x ∈ inside l ∨ x = last l
         := by { rw [<-(list_tail_last h),list.mem_append_eq,list.mem_singleton] }
@@ -527,6 +525,19 @@ namespace llist2 section
 
     lemma last_cons : last (cons v l) = last l
         := by { apply induction_on l; intros, refl, rw [last,<-hr], simp [cons,last] }
+        
+    lemma sizeof_append : size (append v l) = size l + 1
+        := by { apply induction_on l; intros,
+            { refl },
+            { simp [append,size] } }
+
+    lemma sizeof_reverse : size l.reverse = size l
+        := by { apply induction_on l; intros,
+            { refl },
+            { rw [reverse,sizeof_append], rw hr, refl } }
+
+    @[simp] lemma head_cons : head (cons v l) = v
+        := by { cases l, refl }
 end end llist2
 
 @[ext] structure llist' (V : Type) (x y : V) := (l : llist V) (hx : l.head = x) (hy : l.last = y)
@@ -576,7 +587,7 @@ namespace llist2' section open llist2
         := by { trivial }
 
     def P    (v : V)                     : llist2' V v v := ⟨⟨v,[]⟩, rfl, rfl⟩
-    def cons (v : V) (l : llist2' V x y) : llist2' V v y := ⟨cons v l.l, rfl, by { rw last_cons, exact l.hy } ⟩
+    def cons (v : V) (l : llist2' V x y) : llist2' V v y := ⟨cons v l.l, head_cons, by { rw last_cons, exact l.hy } ⟩
 
     lemma compat {l : llist2' V x y} {l' : llist2' V y z} : llist2.compat l.l l'.l 
         := eq.trans l.hy l'.hx.symm

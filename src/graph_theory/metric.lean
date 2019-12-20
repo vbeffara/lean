@@ -20,7 +20,7 @@ namespace graph section
     lemma shortest_path (x y) : ∃ p : path G x y, sizeof p = dist x y
         := well_founded.min_mem nat.lt_wf (dists x y) dists_ne_empty
 
-    lemma dist_self : dist x x = 0
+    @[simp] lemma dist_self : dist x x = 0
         := le_zero_iff_eq.mp (upper_bound (path.point x))
 
     lemma dist_self' (h : x = y) : dist x y = 0 
