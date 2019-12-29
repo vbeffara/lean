@@ -6,7 +6,7 @@ namespace graph section
     parameters {G : Graph} [connected_graph G]
     variables (a : G) {x y z : G}
 
-    def dists (x y) := set.range (sizeof : path G x y -> ℕ)
+    def dists (x y) := set.range (path.size : path G x y -> ℕ)
 
     lemma dists_ne_empty : dists x y ≠ ∅
         := set.range_ne_empty _
@@ -14,10 +14,10 @@ namespace graph section
     noncomputable def dist (x y : G)
         := well_founded.min nat.lt_wf (dists x y) dists_ne_empty
 
-    lemma upper_bound (p : path G x y) : dist x y <= sizeof p
+    lemma upper_bound (p : path G x y) : dist x y <= p.size
         := not_lt.mp $ well_founded.not_lt_min nat.lt_wf (dists x y) dists_ne_empty (set.mem_range_self p)
             
-    lemma shortest_path (x y) : ∃ p : path G x y, sizeof p = dist x y
+    lemma shortest_path (x y) : ∃ p : path G x y, p.size = dist x y
         := well_founded.min_mem nat.lt_wf (dists x y) dists_ne_empty
 
     @[simp] lemma dist_self : dist x x = 0
@@ -38,7 +38,7 @@ namespace graph section
             cases l, { rw [<-hx,<-hy], refl }, { rw h0 at h, cases h } }
 
     lemma dist_comm' : dist x y <= dist y x
-        := Exists.cases_on (shortest_path y x) (λ p h, eq.trans path.sizeof_rev h ▸ upper_bound p.rev)
+        := Exists.cases_on (shortest_path y x) (λ p h, eq.trans path.size_rev h ▸ upper_bound p.rev)
 
     lemma dist_comm : dist x y = dist y x
         := le_antisymm dist_comm' dist_comm'

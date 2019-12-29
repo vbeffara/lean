@@ -27,7 +27,7 @@ namespace path section
         := ⟨⟨llist.rev p.l, by { rw [llist.rev_head,p.hy] }, by { rw [llist.rev_last,p.hx] }⟩, 
             (llist.rev_is_path G.adj G.sym).mpr p.adj⟩
 
-    lemma sizeof_rev {p : path G x y} : sizeof p.rev = sizeof p
+    lemma size_rev {p : path G x y} : size p.rev = size p
         := llist.size_rev
 
     def concat (p : path G x y) (p' : path G y z) : path G x z

@@ -23,7 +23,7 @@ namespace cayley section
         := by { simp }
 
     lemma shift_adj {a x y : G} : adj x y -> adj (a*x) (a*y) 
-        := by { rw [adj,adj,cancel], exact id }
+        := by { rw [adj,adj,cancel], tauto }
 
     @[symm] lemma adj_symm {x y} : adj x y -> adj y x
         := by { rw [adj,adj], rw <-(@inv_prod _ _ x y), apply S.sym }
@@ -47,14 +47,14 @@ namespace cayley section
             exact linked.tail hr (shift_adj S hbc) }
 
     lemma inv : linked Cay (1:G) x -> linked Cay (1:G) (x⁻¹:G)
-        := by { intro h, symmetry, convert shift S x⁻¹ h, rw mul_one, rw mul_left_inv }
+        := by { intro h, symmetry, convert shift S x⁻¹ h; simp }
 
     lemma linked_mp : linked Cay (1:G) x
-        := by { have h : x ∈ group.closure S.els.to_set, { rw S.gen, trivial }, induction h,
+        := by { have h : x ∈ group.closure S.els.to_set := S.gen.symm ▸ set.mem_univ x, induction h,
             case group.in_closure.basic : s { apply linked.edge, change 1⁻¹ * s ∈ S, rwa [one_inv,one_mul] },
             case group.in_closure.one   : { refl },
-            case group.in_closure.inv   : y hy h1y { exact inv S h1y },
-            case group.in_closure.mul   : y z _ _ h1y h1z { 
+            case group.in_closure.inv   : _ _ h1y { exact inv S h1y },
+            case group.in_closure.mul   : y _ _ _ h1y h1z { 
                 refine linked.trans h1y _, convert shift S y h1z, rw mul_one } }
             
     theorem connected : connected Cay
@@ -85,11 +85,10 @@ namespace cayley section
             intros x y, obtain ⟨⟨⟨l,hx,hy⟩,hp⟩,h⟩ := @graph.shortest_path (Cay S1) _ x y, 
             unfold word_dist, rw <-h, clear h, revert x y, induction l; intros,
                 { subst hx, subst hy, simp },
-                { let z := llist.head l_a_1,
+                { let z : G := llist.head l_a_1,
                     transitivity word_dist S2 x z + word_dist S2 z y, { exact graph.dist_triangle },
-                    unfold sizeof, unfold has_sizeof.sizeof, rw [path.size,llist.size,mul_add,add_comm],
-                    refine add_le_add (l_ih z y rfl hy hp.2) _,
-                    rw [mul_one,<-(covariant S2 x⁻¹),inv_mul_self], 
+                    rw [path.size,llist.size,mul_add,add_comm,mul_one],
+                    apply add_le_add (l_ih z y rfl hy hp.2), rw [<-(covariant S2 x⁻¹),inv_mul_self], 
                     refine le_max_of_mem (mem_image_of_mem _ _) h, exact (hx ▸ hp.1) } }
 
     def id_S : Cay S1 -> Cay S2 := id

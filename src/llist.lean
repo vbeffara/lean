@@ -260,6 +260,8 @@ end end llist
 namespace llist2 section
     variables {V W : Type} (adj : V -> V -> Prop)
 
+    def point (x : V) : llist2 V := ⟨x,[]⟩
+
     lemma cases_on' {C : llist2 V → Prop} (l : llist2 V)
                 (h0 : ∀ {x}, C ⟨x,[]⟩) (h1 : ∀ {x y ys}, C ⟨x,y::ys⟩) : C l 
         := cases_on l (λ x l, list.cases_on l h0 (λ _ _, h1))
@@ -280,12 +282,31 @@ namespace llist2 section
     instance : has_sizeof (llist2 V) := ⟨size⟩
     instance : has_well_founded (llist2 V) := ⟨_, measure_wf ((λ n, n+n) ∘ list.length ∘ llist2.tail)⟩
 
+    def fold (V W : Type) (f : V -> W) (g : V -> W -> W) : llist2 V -> W
+        | ⟨v,[]⟩   := f v
+        | ⟨v,w::l⟩ := g v (fold ⟨w,l⟩)
+
+    def fold' (V W : Type) (f : V -> W) (g : V -> V -> W -> W) : llist2 V -> W
+        | ⟨v,[]⟩   := f v
+        | ⟨v,w::l⟩ := g v w (fold' ⟨w,l⟩)
+
     def reverse : llist2 V -> llist2 V | ⟨x,[]⟩ := ⟨x,[]⟩ | ⟨x,y::l⟩ := append x (reverse ⟨y,l⟩)
     def last    : llist2 V -> V        | ⟨x,[]⟩ := x      | ⟨x,y::l⟩ := last ⟨y,l⟩
     def is_path : llist2 V -> Prop     | ⟨x,[]⟩ := true   | ⟨x,y::l⟩ := adj x y ∧ is_path ⟨y,l⟩
     def nodup   : llist2 V -> Prop     | ⟨x,[]⟩ := true   | ⟨x,y::l⟩ := x ∉ llist2.mk y l ∧ nodup ⟨y,l⟩
     def init    : llist2 V -> list V   | ⟨x,[]⟩ := []     | ⟨x,y::l⟩ := x :: init ⟨y,l⟩
     def inside  : llist2 V -> list V   | ⟨x,[]⟩ := []     | ⟨x,y::l⟩ := init ⟨y,l⟩
+
+    def reverse' := fold V _ point append
+
+    example : @reverse V = @reverse' V
+        := by { funext l, apply induction_on l; intros, refl, simp [reverse,reverse',hr,fold] }
+
+    example : last = fold V V id (λ _, id)
+        := by { funext l, apply induction_on l; intros, refl, simp [last,hr,fold] }
+
+    example : is_path adj = fold' V Prop (λ _, true) (λ x y, and (adj x y))
+        := by { funext l, apply induction_on l; intros, refl, simp [is_path,hr,fold'] }
 
     @[simp] def compat (l₁ l₂ : llist2 V) := last l₁ = head l₂
 
@@ -500,15 +521,15 @@ namespace llist2 section
     lemma last_cons : last (cons v l) = last l
         := by { apply induction_on l; intros, refl, rw [last,<-hr], simp [cons,last] }
         
-    lemma sizeof_append : size (append v l) = size l + 1
+    lemma size_append : size (append v l) = size l + 1
         := by { apply induction_on l; intros,
             { refl },
             { simp [append,size] } }
 
-    lemma sizeof_reverse : size l.reverse = size l
+    lemma size_reverse : size l.reverse = size l
         := by { apply induction_on l; intros,
             { refl },
-            { rw [reverse,sizeof_append], rw hr, refl } }
+            { rw [reverse,size_append], rw hr, refl } }
 
     @[simp] lemma head_cons : head (cons v l) = v
         := by { cases l, refl }
