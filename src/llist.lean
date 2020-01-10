@@ -260,7 +260,17 @@ end end llist
 namespace llist2 section
     variables {V W : Type} (adj : V -> V -> Prop)
 
+    instance : has_well_founded (llist2 V) := ⟨_, measure_wf ((λ n, n+n) ∘ list.length ∘ llist2.tail)⟩
+
     def point (x : V) : llist2 V := ⟨x,[]⟩
+
+    def fold (f : V -> W) (g : V -> W -> W) : llist2 V -> W
+        | ⟨v,[]⟩   := f v
+        | ⟨v,w::l⟩ := g v (fold ⟨w,l⟩)
+
+    def fold' (f : V -> W) (g : V -> V -> W -> W) : llist2 V -> W
+        | ⟨v,[]⟩   := f v
+        | ⟨v,w::l⟩ := g v w (fold' ⟨w,l⟩)
 
     lemma cases_on' {C : llist2 V → Prop} (l : llist2 V)
                 (h0 : ∀ {x}, C ⟨x,[]⟩) (h1 : ∀ {x y ys}, C ⟨x,y::ys⟩) : C l 
@@ -271,46 +281,40 @@ namespace llist2 section
         := cases_on l (λ x l, list.rec h0 (λ y l hr x, h1 (hr y)) l x)
 
     def mem     :        V -> llist2 V -> Prop     |     u ⟨x,l⟩   := u = x ∨ u ∈ l
+    instance : has_mem V (llist2 V) := ⟨mem⟩
+
     def size    :             llist2 V -> nat      |       ⟨x,l⟩   := l.length
     def to_list :             llist2 V -> list V   |       ⟨x,l⟩   := x :: l
     def cons    :        V -> llist2 V -> llist2 V |     u ⟨x,l⟩   := ⟨u,x::l⟩
     def append  :        V -> llist2 V -> llist2 V |     u ⟨x,l⟩   := ⟨x, l ++ [u]⟩
     def concat  : llist2 V -> llist2 V -> llist2 V | ⟨x,l⟩ ⟨x',l'⟩ := ⟨x, l ++ l'⟩
     def map     : (V -> W) -> llist2 V -> llist2 W |     f ⟨x,l⟩   := ⟨f x, list.map f l⟩
-
-    instance : has_mem V (llist2 V) := ⟨mem⟩
-    instance : has_sizeof (llist2 V) := ⟨size⟩
-    instance : has_well_founded (llist2 V) := ⟨_, measure_wf ((λ n, n+n) ∘ list.length ∘ llist2.tail)⟩
-
-    def fold (V W : Type) (f : V -> W) (g : V -> W -> W) : llist2 V -> W
-        | ⟨v,[]⟩   := f v
-        | ⟨v,w::l⟩ := g v (fold ⟨w,l⟩)
-
-    def fold' (V W : Type) (f : V -> W) (g : V -> V -> W -> W) : llist2 V -> W
-        | ⟨v,[]⟩   := f v
-        | ⟨v,w::l⟩ := g v w (fold' ⟨w,l⟩)
-
+    
     def reverse : llist2 V -> llist2 V | ⟨x,[]⟩ := ⟨x,[]⟩ | ⟨x,y::l⟩ := append x (reverse ⟨y,l⟩)
     def last    : llist2 V -> V        | ⟨x,[]⟩ := x      | ⟨x,y::l⟩ := last ⟨y,l⟩
     def is_path : llist2 V -> Prop     | ⟨x,[]⟩ := true   | ⟨x,y::l⟩ := adj x y ∧ is_path ⟨y,l⟩
-    def nodup   : llist2 V -> Prop     | ⟨x,[]⟩ := true   | ⟨x,y::l⟩ := x ∉ llist2.mk y l ∧ nodup ⟨y,l⟩
     def init    : llist2 V -> list V   | ⟨x,[]⟩ := []     | ⟨x,y::l⟩ := x :: init ⟨y,l⟩
     def inside  : llist2 V -> list V   | ⟨x,[]⟩ := []     | ⟨x,y::l⟩ := init ⟨y,l⟩
+    def nodup   : llist2 V -> Prop     | ⟨x,[]⟩ := true   | ⟨x,y::l⟩ := x ∉ llist2.mk y l ∧ nodup ⟨y,l⟩
 
-    def reverse' := fold V _ point append
+    def reverse' : llist2 V -> llist2 V             := fold point append
+    def last'    : llist2 V -> V                    := fold id (λ _, id)
+    def init'    : llist2 V -> list V               := fold (λ _, []) list.cons
+    def concat'  : llist2 V -> llist2 V -> llist2 V := fold (λ x y, ⟨x,y.tail⟩) ((∘)∘cons)
+    def concat_' : llist2 V -> llist2 V -> llist2 V := fold (λ _, id) ((∘)∘cons)
 
-    example : @reverse V = @reverse' V
-        := by { funext l, apply induction_on l; intros, refl, simp [reverse,reverse',hr,fold] }
-
-    example : last = fold V V id (λ _, id)
-        := by { funext l, apply induction_on l; intros, refl, simp [last,hr,fold] }
-
-    example : is_path adj = fold' V Prop (λ _, true) (λ x y, and (adj x y))
-        := by { funext l, apply induction_on l; intros, refl, simp [is_path,hr,fold'] }
+    def is_path' : llist2 V -> Prop := fold' (λ _, true) (λ x y, and (adj x y))
 
     @[simp] def compat (l₁ l₂ : llist2 V) := last l₁ = head l₂
 
     variables {x y v w : V} {l l' l'' : llist2 V} {xs ys zs : list V}
+
+    example : compat l l' -> concat' l l' = concat_' l l'
+        := by {
+            apply induction_on l; intros,
+            { cases l', simp [concat',fold,concat_'], convert a },
+            { cases l', have hr' := hr a, rw concat_' at hr', simp [concat_',fold,hr'.symm], refl }
+        }
 
     @[simp] lemma head_concat : head (concat l l') = head l
         := by { cases l, cases l', refl }

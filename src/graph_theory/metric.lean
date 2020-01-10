@@ -8,8 +8,8 @@ namespace graph section
 
     def dists (x y) := set.range (path.size : path G x y -> ℕ)
 
-    lemma dists_ne_empty : dists x y ≠ ∅
-        := set.range_ne_empty _
+    lemma dists_ne_empty : (dists x y).nonempty
+        := set.ne_empty_iff_nonempty.mp (set.range_ne_empty path.size)
 
     noncomputable def dist (x y : G)
         := well_founded.min nat.lt_wf (dists x y) dists_ne_empty
