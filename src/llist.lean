@@ -309,11 +309,10 @@ namespace llist2 section
     def concat  : llist2 V -> llist2 V -> llist2 V | ⟨x,l⟩ ⟨x',l'⟩ := ⟨x, l ++ l'⟩
     def map     : (V -> W) -> llist2 V -> llist2 W |     f ⟨x,l⟩   := ⟨f x, list.map f l⟩
     
-    def reverse : llist2 V -> llist2 V | ⟨x,[]⟩ := ⟨x,[]⟩ | ⟨x,y::l⟩ := append x (reverse ⟨y,l⟩)
     def is_path : llist2 V -> Prop     | ⟨x,[]⟩ := true   | ⟨x,y::l⟩ := adj x y ∧ is_path ⟨y,l⟩
     def nodup   : llist2 V -> Prop     | ⟨x,[]⟩ := true   | ⟨x,y::l⟩ := x ∉ llist2.mk y l ∧ nodup ⟨y,l⟩
 
-    def reverse' : llist2 V -> llist2 V             := fold point append
+    def reverse  : llist2 V -> llist2 V             := fold point append
     def last     : llist2 V -> V                    := fold id (λ _, id)
     def init     : llist2 V -> list V               := fold (λ _, []) list.cons
     def concat'  : llist2 V -> llist2 V -> llist2 V := fold (λ x y, ⟨x,y.tail⟩) ((∘)∘cons)
@@ -352,18 +351,27 @@ namespace llist2 section
     lemma append_cons : append w (cons v l) = cons v (append w l) 
         := by { cases l, refl }
 
+    lemma append_cons' : append w ⟨x,y::ys⟩ = cons x (append w ⟨y,ys⟩) 
+        := rfl
+
+    lemma reverse_cons : reverse (cons v l) = append v (reverse l)
+        := by { cases l, refl }
+
+    lemma reverse_cons' : reverse ⟨x,y::ys⟩ = append x (reverse ⟨y,ys⟩)
+        := rfl
+
     @[simp] lemma rev_append : reverse (append v l) = cons v (reverse l)
         := by { apply induction_on l; intros, refl, 
-            rw [reverse,<-append_cons,<-hr], simp [append,reverse] }
+            rw [append_cons',reverse_cons,hr,reverse_cons',append_cons] }
 
     @[simp] lemma rev_head : head (reverse l) = last l
-        := by { apply induction_on l; intros, refl, simp [reverse,append,hr,last] }
+        := by { apply induction_on l; intros, refl, rw [reverse_cons',head_append,hr], refl }
 
     @[simp] lemma rev_last : last (reverse l) = head l
-        := by { apply cases_on' l; intros, refl, rw [reverse,last_append] }
+        := by { apply cases_on' l; intros, refl, rw [reverse_cons',last_append] }
 
     @[simp] lemma rev_rev : reverse (reverse l) = l
-        := by { apply induction_on l; intros, refl, rw [reverse,rev_append,hr], refl }
+        := by { apply induction_on l; intros, refl, rw [reverse_cons',rev_append,hr], refl }
 
     lemma mem_iff : x ∈ l <-> x = head l ∨ x ∈ tail l
         := by { cases l, trivial }
@@ -380,7 +388,8 @@ namespace llist2 section
         := by { apply induction_on l; intros; simp [append,mem_iff,mem_iff,or.comm], finish }
 
     @[simp] lemma mem_rev : v ∈ reverse l <-> v ∈ l
-        := by { apply induction_on l; intros, simp [reverse], rw [reverse,mem_append,hr,mem_iff,mem_iff], simp }
+        := by { apply induction_on l; intros, simp [reverse,point], 
+            rw [reverse_cons',mem_append,hr,mem_iff,mem_iff], trivial }
 
     @[simp] lemma mem_head : head l ∈ l
         := by { cases l, left, refl }
@@ -396,7 +405,8 @@ namespace llist2 section
             { simp [nodup,append,mem_iff] at hr ⊢, rw hr, push_neg, finish } }
 
     @[simp] lemma rev_nodup : nodup (reverse l) <-> nodup l
-        := by { apply induction_on l; intros, { finish }, { simp [reverse,hr,nodup] } }
+        := by { apply induction_on l; intros, { trivial }, 
+            { rw [reverse_cons',append_nodup,hr,mem_rev], trivial } }
 
     @[simp] lemma append_is_path : is_path adj (append v l) <-> adj (last l) v ∧ is_path adj l
         := by { apply induction_on l; intros, { simp [append,is_path,last] }, 
@@ -429,14 +439,23 @@ namespace llist2 section
     @[simp] lemma tail_append : (append x l).tail = tail l ++ [x]
         := by { apply induction_on l; intros, refl, simp [append] }
 
+    lemma init_cons : init (cons v l) = v :: init l
+        := by { cases l, refl }
+
+    lemma init_cons' : init ⟨x,y::ys⟩ = x :: init ⟨y,ys⟩
+        := rfl
+ 
     @[simp] lemma tail_rev : tail (reverse l) = list.reverse (init l)
-        := by { apply induction_on l; intros, refl, simp [reverse], rw hr, simp [inside] }
+        := by { apply induction_on l; intros, refl, 
+            rw [reverse_cons',init_cons',list.reverse_cons,<-hr,tail_append] }
 
     @[simp] lemma rev_inside : inside (reverse l) = list.reverse (inside l)
-        := by { apply cases_on' l; intros, refl, simp [reverse,inside] } 
+        := by { apply cases_on' l; intros, refl, 
+            rw [reverse_cons',inside_append,inside,tail_rev] } 
 
     @[simp] lemma rev_is_path (h : symmetric adj) : is_path adj (reverse l) <-> is_path adj l
-        := by { apply induction_on l; intros, trivial, rw [reverse,append_is_path,hr], simp [is_path],
+        := by { apply induction_on l; intros, trivial, 
+            rw [reverse_cons',append_is_path,hr,is_path,rev_last],
             exact and_congr ⟨@h _ _, @h _ _⟩ iff.rfl }
 
     @[simp] lemma mem_concat (h : compat l l') : x ∈ concat l l' <-> x ∈ l ∨ x ∈ l'
@@ -494,12 +513,6 @@ namespace llist2 section
     lemma last_cons' : last ⟨x,y::ys⟩ = last ⟨y,ys⟩
         := rfl
 
-    lemma init_cons : init (cons v l) = v :: init l
-        := by { cases l, refl }
-
-    lemma init_cons' : init ⟨x,y::ys⟩ = x :: init ⟨y,ys⟩
-        := rfl
-
     lemma mem_init_last : x ∈ l <-> x ∈ init l ∨ x = last l
         := by { apply induction_on l; intros, simp [init,last], 
             rw [init_cons',list.mem_cons_iff,last_cons',or.assoc,<-hr], trivial }
@@ -532,8 +545,9 @@ namespace llist2 section
 
     lemma rev_concat (h : compat l l') : reverse (concat l l') = concat (reverse l') (reverse l)
         := by { revert h, apply induction_on l; intros,
-            { simp [last] at h, subst h, cases l', simp [concat,list.nil_append,reverse,concat_nil] },
-            { replace hr := hr h, cases l', rw [reverse,<-concat_append,<-hr], simp [concat,reverse] } }
+            { simp [last] at h, subst h, cases l', 
+                simp [reverse,point], rw [concat_nil], exact rev_last, },
+            { replace hr := hr h, cases l', rw [reverse_cons',<-concat_append,<-hr], simp [concat,reverse] } }
 
     lemma nodup_init (h : nodup l) : list.nodup (init l)
         := by { revert h, apply induction_on l; intros, simp [init],
@@ -561,7 +575,7 @@ namespace llist2 section
     lemma size_reverse : size l.reverse = size l
         := by { apply induction_on l; intros,
             { refl },
-            { rw [reverse,size_append], rw hr, refl } }
+            { rw [reverse_cons',size_append], rw hr, refl } }
 end end llist2
 
 @[ext] structure llist' (V : Type) (x y : V) := (l : llist V) (hx : l.head = x) (hy : l.last = y)
