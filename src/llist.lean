@@ -310,21 +310,20 @@ namespace llist2 section
     def map     : (V -> W) -> llist2 V -> llist2 W |     f ⟨x,l⟩   := ⟨f x, list.map f l⟩
     
     def reverse : llist2 V -> llist2 V | ⟨x,[]⟩ := ⟨x,[]⟩ | ⟨x,y::l⟩ := append x (reverse ⟨y,l⟩)
-    def last    : llist2 V -> V        | ⟨x,[]⟩ := x      | ⟨x,y::l⟩ := last ⟨y,l⟩
     def is_path : llist2 V -> Prop     | ⟨x,[]⟩ := true   | ⟨x,y::l⟩ := adj x y ∧ is_path ⟨y,l⟩
-    def init    : llist2 V -> list V   | ⟨x,[]⟩ := []     | ⟨x,y::l⟩ := x :: init ⟨y,l⟩
-    def inside  : llist2 V -> list V   | ⟨x,[]⟩ := []     | ⟨x,y::l⟩ := init ⟨y,l⟩
     def nodup   : llist2 V -> Prop     | ⟨x,[]⟩ := true   | ⟨x,y::l⟩ := x ∉ llist2.mk y l ∧ nodup ⟨y,l⟩
 
     def reverse' : llist2 V -> llist2 V             := fold point append
-    def last'    : llist2 V -> V                    := fold id (λ _, id)
-    def init'    : llist2 V -> list V               := fold (λ _, []) list.cons
+    def last     : llist2 V -> V                    := fold id (λ _, id)
+    def init     : llist2 V -> list V               := fold (λ _, []) list.cons
     def concat'  : llist2 V -> llist2 V -> llist2 V := fold (λ x y, ⟨x,y.tail⟩) ((∘)∘cons)
     def concat_' : llist2 V -> llist2 V -> llist2 V := fold (λ _, id) ((∘)∘cons)
 
     def is_path' : llist2 V -> Prop := fold' (λ _, true) (λ x, and ∘ adj x)
 
     def nodup' : llist2 V -> Prop := fold'' (λ _, true) (λ x, and ∘ not ∘ mem x)
+
+    def inside  : llist2 V -> list V   | ⟨x,[]⟩ := []     | ⟨x,y::l⟩ := init ⟨y,l⟩
 
     @[simp] def compat (l₁ l₂ : llist2 V) := last l₁ = head l₂
 
@@ -416,10 +415,10 @@ namespace llist2 section
         := by { revert h, apply cases_on' l; intros, contradiction, refl }
 
     @[simp] lemma list_tail_last' : inside (cons v l) ++ [last (cons v l)] = tail (cons v l)
-        := by { cases l, rw [cons,inside,last,list_init_last], refl }
+        := by { cases l, exact list_init_last }
 
     @[simp] lemma list_tail_last (h : l.tail ≠ []) : inside l ++ [last l] = tail l
-        := by { cases l with x l, cases l, contradiction, simp [inside,last,to_list] }
+        := by { cases l with x l, cases l, contradiction, exact list_init_last }
 
     @[simp] lemma init_inside (h : l.tail ≠ []) : init l = (head l) :: inside l
         := by { revert h, apply induction_on l; intros, contradiction, simp [init,inside] }
@@ -461,7 +460,7 @@ namespace llist2 section
     lemma concat_nodup (h : compat l l') : nodup (concat l l')
                 <-> nodup l ∧ nodup l' ∧ (∀ v, v ∈ l ∧ v ∈ l' -> v = head l')
         := by { revert h, apply induction_on l; intros,
-            { rw [compat,last] at h, subst h, rw [concat_nil' rfl], simp [nodup] },
+            { simp [compat,last] at h, subst h, rw [concat_nil' rfl], simp [nodup] },
             { cases l, cases l', simp [concat] at *, rw [nodup, hr h, nodup], clear hr, 
                 simp [mem_iff], push_neg, split,
                 { rintros ⟨⟨h1,h2,h3⟩,h4,h5,h6,h7⟩, refine ⟨⟨⟨h1,h2⟩,h4⟩,h5,_⟩, 
@@ -489,12 +488,24 @@ namespace llist2 section
     lemma mem_tail : x ∈ tail l -> x ∈ l
         := by { rw mem_iff, exact or.inr }
 
+    lemma last_cons : last (cons v l) = last l
+        := by { cases l, refl }
+
+    lemma last_cons' : last ⟨x,y::ys⟩ = last ⟨y,ys⟩
+        := rfl
+
+    lemma init_cons : init (cons v l) = v :: init l
+        := by { cases l, refl }
+
+    lemma init_cons' : init ⟨x,y::ys⟩ = x :: init ⟨y,ys⟩
+        := rfl
+
     lemma mem_init_last : x ∈ l <-> x ∈ init l ∨ x = last l
         := by { apply induction_on l; intros, simp [init,last], 
-            rw [init,list.mem_cons_iff,last,or.assoc,<-hr], trivial }
+            rw [init_cons',list.mem_cons_iff,last_cons',or.assoc,<-hr], trivial }
 
     lemma mem_init_inside' : x ∈ init (cons v l) <-> x = v ∨ x ∈ inside (cons v l)
-        := by { cases l, rw [cons,init,inside,list.mem_cons_iff] }
+        := by { cases l, rw [init_cons,cons,inside,list.mem_cons_iff] }
 
     lemma mem_init_inside (h : l.tail ≠ []) : x ∈ init l <-> x = head l ∨ x ∈ inside l
         := by { rw [<-(list_head_init h),list.mem_cons_iff] }
@@ -511,7 +522,7 @@ namespace llist2 section
     lemma nodup_mem_last (h : nodup l) : last l ∉ init l
         := by { revert h, apply induction_on l; intros,
             { simp [last,init] },
-            { rw [last,init,list.mem_cons_iff], push_neg, exact ⟨λ a, h.1 (a ▸ mem_last), hr h.2⟩ } }
+            { rw [last_cons',init_cons',list.mem_cons_iff], push_neg, exact ⟨λ a, h.1 (a ▸ mem_last), hr h.2⟩ } }
 
     lemma rev_compat : compat l l' <-> compat l'.reverse l.reverse
         := by { rw [compat,compat,rev_last,rev_head,eq_comm] }
@@ -526,13 +537,13 @@ namespace llist2 section
 
     lemma nodup_init (h : nodup l) : list.nodup (init l)
         := by { revert h, apply induction_on l; intros, simp [init],
-            rw [init,list.nodup,list.pairwise_cons], exact ⟨λ u h1 h2, (h2 ▸ h.1) (mem_init h1), hr h.2⟩ }
+            rw [init_cons',list.nodup,list.pairwise_cons], exact ⟨λ u h1 h2, (h2 ▸ h.1) (mem_init h1), hr h.2⟩ }
 
     lemma nodup_of_init : list.nodup (init l) -> last l ∉ init l -> nodup l
         := by { apply induction_on l; intros, { trivial },
             { rw [nodup], 
-                rw [init,list.nodup_cons] at a, cases a with h3 h4,
-                rw [last,init,list.mem_cons_iff] at a_1, push_neg at a_1, cases a_1 with h1 h2,
+                rw [init_cons',list.nodup_cons] at a, cases a with h3 h4,
+                rw [last_cons',init_cons',list.mem_cons_iff] at a_1, push_neg at a_1, cases a_1 with h1 h2,
                 refine ⟨_, hr h4 h2⟩,
                 { rw mem_init_last, push_neg, exact ⟨h3, λ h, h1 h.symm⟩ } } }
 
@@ -542,9 +553,6 @@ namespace llist2 section
     lemma last_map {f : V -> W} {l : llist2 V} : last (map f l) = f (last l)
         := by { apply induction_on l; intros, refl, simp [map,last], exact hr }
 
-    lemma last_cons : last (cons v l) = last l
-        := by { apply induction_on l; intros, refl, rw [last,<-hr], simp [cons,last] }
-        
     lemma size_append : size (append v l) = size l + 1
         := by { apply induction_on l; intros,
             { refl },
