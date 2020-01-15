@@ -260,18 +260,6 @@ end end llist
 namespace llist2 section
     variables {V W : Type} (adj : V -> V -> Prop)
 
-    instance : has_well_founded (llist2 V) := ⟨_, measure_wf ((λ n, n+n) ∘ list.length ∘ llist2.tail)⟩
-
-    def point (x : V) : llist2 V := ⟨x,[]⟩
-
-    def fold (f : V -> W) (g : V -> W -> W) : llist2 V -> W
-        | ⟨v,[]⟩   := f v
-        | ⟨v,w::l⟩ := g v (fold ⟨w,l⟩)
-
-    def fold' (f : V -> W) (g : V -> V -> W -> W) : llist2 V -> W
-        | ⟨v,[]⟩   := f v
-        | ⟨v,w::l⟩ := g v w (fold' ⟨w,l⟩)
-
     lemma cases_on' {C : llist2 V → Prop} (l : llist2 V)
                 (h0 : ∀ {x}, C ⟨x,[]⟩) (h1 : ∀ {x y ys}, C ⟨x,y::ys⟩) : C l 
         := cases_on l (λ x l, list.cases_on l h0 (λ _ _, h1))
@@ -279,6 +267,37 @@ namespace llist2 section
     lemma induction_on {C : llist2 V → Prop} (l : llist2 V) 
                 (h0 : ∀ x, C ⟨x,[]⟩) (h1 : ∀ {x y ys} (hr : C ⟨y,ys⟩), C ⟨x,y::ys⟩) : C l 
         := cases_on l (λ x l, list.rec h0 (λ y l hr x, h1 (hr y)) l x)
+
+    def fold (f : V -> W) (g : V -> W -> W) (l : llist2 V) : W
+        := llist2.cases_on l $ flip $ @list.rec V (λ _, V -> W) f (λ y ys φ x, g x (φ y))
+
+    @[simp] lemma fold_init {f : V -> W} {g : V -> W -> W} {x} : fold f g ⟨x,[]⟩ = f x
+        := rfl
+
+    @[simp] lemma fold_step {f : V -> W} {g : V -> W -> W} {x y ys} : fold f g ⟨x,y::ys⟩ = g x (fold f g ⟨y,ys⟩)
+        := rfl
+
+    def fold' (f : V -> W) (g : V -> V -> W -> W) (l : llist2 V) : W
+        := llist2.cases_on l $ flip $ @list.rec V (λ _, V -> W) f (λ y ys φ x, g x y (φ y))
+
+    @[simp] lemma fold'_init {f : V -> W} {g : V -> V -> W -> W} {x} : fold' f g ⟨x,[]⟩ = f x
+        := rfl
+
+    @[simp] lemma fold'_step {f : V -> W} {g : V -> V -> W -> W} {x y ys} : fold' f g ⟨x,y::ys⟩ = g x y (fold' f g ⟨y,ys⟩)
+        := rfl
+
+    def fold'' (f : V -> W) (g : V -> llist2 V -> W -> W) (l : llist2 V) : W
+        := llist2.cases_on l $ flip $ @list.rec V (λ _, V -> W) f (λ y ys φ x, g x ⟨y,ys⟩ (φ y))
+
+    @[simp] lemma fold''_init {f : V -> W} {g : V -> llist2 V -> W -> W} {x} : fold'' f g ⟨x,[]⟩ = f x
+        := rfl
+
+    @[simp] lemma fold''_step {f : V -> W} {g : V -> llist2 V -> W -> W} {x y ys} : fold'' f g ⟨x,y::ys⟩ = g x ⟨y,ys⟩ (fold'' f g ⟨y,ys⟩)
+        := rfl
+
+    instance : has_well_founded (llist2 V) := ⟨_, measure_wf ((λ n, n+n) ∘ list.length ∘ llist2.tail)⟩
+
+    def point (x : V) : llist2 V := ⟨x,[]⟩
 
     def mem     :        V -> llist2 V -> Prop     |     u ⟨x,l⟩   := u = x ∨ u ∈ l
     instance : has_mem V (llist2 V) := ⟨mem⟩
@@ -303,21 +322,22 @@ namespace llist2 section
     def concat'  : llist2 V -> llist2 V -> llist2 V := fold (λ x y, ⟨x,y.tail⟩) ((∘)∘cons)
     def concat_' : llist2 V -> llist2 V -> llist2 V := fold (λ _, id) ((∘)∘cons)
 
-    def is_path' : llist2 V -> Prop := fold' (λ _, true) (λ x y, and (adj x y))
+    def is_path' : llist2 V -> Prop := fold' (λ _, true) (λ x, and ∘ adj x)
+
+    def nodup' : llist2 V -> Prop := fold'' (λ _, true) (λ x, and ∘ not ∘ mem x)
 
     @[simp] def compat (l₁ l₂ : llist2 V) := last l₁ = head l₂
 
     variables {x y v w : V} {l l' l'' : llist2 V} {xs ys zs : list V}
 
-    example : compat l l' -> concat' l l' = concat_' l l'
-        := by {
-            apply induction_on l; intros,
-            { cases l', simp [concat',fold,concat_'], convert a },
-            { cases l', have hr' := hr a, rw concat_' at hr', simp [concat_',fold,hr'.symm], refl }
-        }
-
     @[simp] lemma head_concat : head (concat l l') = head l
         := by { cases l, cases l', refl }
+
+    @[simp] lemma head_cons : head (cons x l) = x 
+        := by { rcases l with ⟨x,_|⟨y,ys⟩⟩; refl }
+
+    @[simp] lemma head_concat' : head (concat' l l') = head l
+        := by { rcases l with ⟨x,_|⟨y,ys⟩⟩, refl, simp [concat'] }
 
     @[simp] lemma last_concat (h : compat l l') : last (concat l l') = last l'
         := by { revert h, apply induction_on l; intros; cases l' with y l',
@@ -534,9 +554,6 @@ namespace llist2 section
         := by { apply induction_on l; intros,
             { refl },
             { rw [reverse,size_append], rw hr, refl } }
-
-    @[simp] lemma head_cons : head (cons v l) = v
-        := by { cases l, refl }
 end end llist2
 
 @[ext] structure llist' (V : Type) (x y : V) := (l : llist V) (hx : l.head = x) (hy : l.last = y)

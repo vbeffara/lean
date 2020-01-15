@@ -34,8 +34,8 @@ namespace graph section
                     (upper_bound (path.concat pxy pyz))))
 
     lemma eq_of_dist_eq_zero : dist x y = 0 -> x = y
-        := by { intro h0, rcases (shortest_path x y) with ⟨⟨⟨l,hx,hy⟩,hp⟩,h⟩,
-            cases l, { rw [<-hx,<-hy], refl }, { rw h0 at h, cases h } }
+        := by { intro h0, rcases (shortest_path x y) with ⟨⟨⟨_|_,rfl,rfl⟩,_⟩,h⟩,
+            { refl }, { rw h0 at h, cases h } }
 
     lemma dist_comm' : dist x y <= dist y x
         := Exists.cases_on (shortest_path y x) (λ p h, eq.trans path.size_rev h ▸ upper_bound p.rev)
