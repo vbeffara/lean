@@ -309,17 +309,14 @@ namespace llist2 section
     def concat  : llist2 V -> llist2 V -> llist2 V | ⟨x,l⟩ ⟨x',l'⟩ := ⟨x, l ++ l'⟩
     def map     : (V -> W) -> llist2 V -> llist2 W |     f ⟨x,l⟩   := ⟨f x, list.map f l⟩
     
-    def is_path : llist2 V -> Prop     | ⟨x,[]⟩ := true   | ⟨x,y::l⟩ := adj x y ∧ is_path ⟨y,l⟩
-    def nodup   : llist2 V -> Prop     | ⟨x,[]⟩ := true   | ⟨x,y::l⟩ := x ∉ llist2.mk y l ∧ nodup ⟨y,l⟩
+    def reverse  : llist2 V -> llist2 V             := fold  point               append
+    def last     : llist2 V -> V                    := fold  id                  (λ _, id)
+    def init     : llist2 V -> list V               := fold  (λ _, [])           list.cons
+    def concat'  : llist2 V -> llist2 V -> llist2 V := fold  (λ x y, ⟨x,y.tail⟩) ((∘)∘cons)
+    def concat_' : llist2 V -> llist2 V -> llist2 V := fold  (λ _, id)           ((∘)∘cons)
+    def is_path  : llist2 V -> Prop                 := fold' (λ _, true)         (λ x, and ∘ adj x)
 
-    def reverse  : llist2 V -> llist2 V             := fold point append
-    def last     : llist2 V -> V                    := fold id (λ _, id)
-    def init     : llist2 V -> list V               := fold (λ _, []) list.cons
-    def concat'  : llist2 V -> llist2 V -> llist2 V := fold (λ x y, ⟨x,y.tail⟩) ((∘)∘cons)
-    def concat_' : llist2 V -> llist2 V -> llist2 V := fold (λ _, id) ((∘)∘cons)
-
-    def is_path' : llist2 V -> Prop := fold' (λ _, true) (λ x, and ∘ adj x)
-
+    def nodup  : llist2 V -> Prop | ⟨x,[]⟩ := true | ⟨x,y::l⟩ := x ∉ llist2.mk y l ∧ nodup ⟨y,l⟩
     def nodup' : llist2 V -> Prop := fold'' (λ _, true) (λ x, and ∘ not ∘ mem x)
 
     def inside  : llist2 V -> list V   | ⟨x,[]⟩ := []     | ⟨x,y::l⟩ := init ⟨y,l⟩
