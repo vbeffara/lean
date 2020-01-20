@@ -258,49 +258,41 @@ namespace llist section
 end end llist
 
 namespace llist2 section
-    variables {V W : Type} (adj : V -> V -> Prop)
+    variables {V W : Type} (adj : V -> V -> Prop) {C : llist2 V -> Prop}
 
-    lemma cases_on' {C : llist2 V → Prop} (l : llist2 V)
-                (h0 : ∀ {x}, C ⟨x,[]⟩) (h1 : ∀ {x y ys}, C ⟨x,y::ys⟩) : C l 
+    @[simp] def cons : V -> llist2 V -> llist2 V | u ⟨x,l⟩ := ⟨u,x::l⟩
+
+    lemma cases_on' (l) (h0 : ∀ {x}, C ⟨x,[]⟩) (h1 : ∀ {x y ys}, C (cons x ⟨y,ys⟩)) : C l 
         := cases_on l (λ x l, list.cases_on l h0 (λ _ _, h1))
 
-    lemma induction_on {C : llist2 V → Prop} (l : llist2 V) 
-                (h0 : ∀ x, C ⟨x,[]⟩) (h1 : ∀ {x y ys} (hr : C ⟨y,ys⟩), C ⟨x,y::ys⟩) : C l 
+    lemma induction_on (l) (h0 : ∀ x, C ⟨x,[]⟩) (h1 : ∀ {x y ys} (hr : C ⟨y,ys⟩), C ⟨x,y::ys⟩) : C l 
+        := cases_on l (λ x l, list.rec h0 (λ y l hr x, h1 (hr y)) l x)
+
+    lemma induction_on' (l) (h0 : ∀ x, C ⟨x,[]⟩) (h1 : ∀ {x l}, C l -> C (cons x l)) : C l 
         := cases_on l (λ x l, list.rec h0 (λ y l hr x, h1 (hr y)) l x)
 
     def fold (f : V -> W) (g : V -> W -> W) (l : llist2 V) : W
-        := llist2.cases_on l $ flip $ @list.rec V (λ _, V -> W) f (λ y ys φ x, g x (φ y))
+        := cases_on l $ λ x l, list.rec f (λ y ys φ x, g x (φ y)) l x
 
     def fold' (f : V -> W) (g : V -> V -> W -> W) (l : llist2 V) : W
-        := llist2.cases_on l $ flip $ @list.rec V (λ _, V -> W) f (λ y ys φ x, g x y (φ y))
+        := cases_on l $ λ x l, list.rec f (λ y ys φ x, g x y (φ y)) l x
 
     def fold'' (f : V -> W) (g : V -> llist2 V -> W -> W) (l : llist2 V) : W
-        := llist2.cases_on l $ flip $ @list.rec V (λ _, V -> W) f (λ y ys φ x, g x ⟨y,ys⟩ (φ y))
+        := cases_on l $ λ x l, list.rec f (λ y ys φ x, g x ⟨y,ys⟩ (φ y)) l x
 
-    @[simp] lemma fold_init {f : V -> W} {g : V -> W -> W} {x} : fold f g ⟨x,[]⟩ = f x
-        := rfl
+    @[simp] lemma fold_init   {f g x}      : @fold   V W f g ⟨x,[]⟩    = f x                            := rfl
+    @[simp] lemma fold'_init  {f g x}      : @fold'  V W f g ⟨x,[]⟩    = f x                            := rfl
+    @[simp] lemma fold''_init {f g x}      : @fold'' V W f g ⟨x,[]⟩    = f x                            := rfl
+    @[simp] lemma fold_step   {f g x y ys} : @fold   V W f g ⟨x,y::ys⟩ = g x (fold f g ⟨y,ys⟩)          := rfl
+    @[simp] lemma fold'_step  {f g x y ys} : @fold'  V W f g ⟨x,y::ys⟩ = g x y (fold' f g ⟨y,ys⟩)       := rfl
+    @[simp] lemma fold''_step {f g x y ys} : @fold'' V W f g ⟨x,y::ys⟩ = g x ⟨y,ys⟩ (fold'' f g ⟨y,ys⟩) := rfl
 
-    @[simp] lemma fold_step {f : V -> W} {g : V -> W -> W} {x y ys} : fold f g ⟨x,y::ys⟩ = g x (fold f g ⟨y,ys⟩)
-        := rfl
-
-    @[simp] lemma fold'_init {f : V -> W} {g : V -> V -> W -> W} {x} : fold' f g ⟨x,[]⟩ = f x
-        := rfl
-
-    @[simp] lemma fold'_step {f : V -> W} {g : V -> V -> W -> W} {x y ys} : fold' f g ⟨x,y::ys⟩ = g x y (fold' f g ⟨y,ys⟩)
-        := rfl
-
-    @[simp] lemma fold''_init {f : V -> W} {g : V -> llist2 V -> W -> W} {x} : fold'' f g ⟨x,[]⟩ = f x
-        := rfl
-
-    @[simp] lemma fold''_step {f : V -> W} {g : V -> llist2 V -> W -> W} {x y ys} : fold'' f g ⟨x,y::ys⟩ = g x ⟨y,ys⟩ (fold'' f g ⟨y,ys⟩)
-        := rfl
-
-    def mem     :        V -> llist2 V -> Prop     |     u ⟨x,l⟩   := u = x ∨ u ∈ l
+    def mem : V -> llist2 V -> Prop | u ⟨x,l⟩ := u = x ∨ u ∈ l
+    def mem' (v : V) : llist2 V -> Prop := fold (eq v) (or ∘ eq v)
     instance : has_mem V (llist2 V) := ⟨mem⟩
 
     def size    :             llist2 V -> nat      |       ⟨x,l⟩   := l.length
     def to_list :             llist2 V -> list V   |       ⟨x,l⟩   := x :: l
-    def cons    :        V -> llist2 V -> llist2 V |     u ⟨x,l⟩   := ⟨u,x::l⟩
     def append  :        V -> llist2 V -> llist2 V |     u ⟨x,l⟩   := ⟨x, l ++ [u]⟩
     def concat  : llist2 V -> llist2 V -> llist2 V | ⟨x,l⟩ ⟨x',l'⟩ := ⟨x, l ++ l'⟩
     def map     : (V -> W) -> llist2 V -> llist2 W |     f ⟨x,l⟩   := ⟨f x, list.map f l⟩
@@ -321,12 +313,14 @@ namespace llist2 section
 
     variables {x y v w : V} {l l' l'' : llist2 V} {xs ys zs : list V}
 
+    @[simp] lemma mem_cons     : x ∈ cons v l      <-> x = v ∨ x ∈ l        := by { cases l, refl }
     @[simp] lemma head_cons    : head (cons v l)     = v                    := by { cases l, refl }
     @[simp] lemma last_cons    : last (cons v l)     = last l               := by { cases l, refl }
     @[simp] lemma append_cons  : append w (cons v l) = cons v (append w l)  := by { cases l, refl }
     @[simp] lemma reverse_cons : reverse (cons v l)  = append v (reverse l) := by { cases l, refl }
     @[simp] lemma init_cons    : init (cons v l)     = v :: init l          := by { cases l, refl }
 
+    @[simp] lemma mem_cons'     : v ∈ llist2.mk x (y::ys) <-> v = x ∨ v ∈ llist2.mk y ys := iff.rfl
     @[simp] lemma last_cons'    : last ⟨x,y::ys⟩     = last ⟨y,ys⟩               := rfl
     @[simp] lemma append_cons'  : append w ⟨x,y::ys⟩ = cons x (append w ⟨y,ys⟩)  := rfl
     @[simp] lemma reverse_cons' : reverse ⟨x,y::ys⟩  = append x (reverse ⟨y,ys⟩) := rfl
@@ -360,7 +354,7 @@ namespace llist2 section
         := by { apply induction_on l; intros, refl, rw [reverse_cons',head_append,hr], refl }
 
     @[simp] lemma rev_last : last (reverse l) = head l
-        := by { apply cases_on' l; intros, refl, rw [reverse_cons',last_append] }
+        := by { apply cases_on' l; intros, refl, rw [reverse_cons,last_append], refl }
 
     @[simp] lemma rev_rev : reverse (reverse l) = l
         := by { apply induction_on l; intros, refl, rw [reverse_cons',rev_append,hr], refl }
@@ -438,7 +432,7 @@ namespace llist2 section
 
     @[simp] lemma rev_inside : inside (reverse l) = list.reverse (inside l)
         := by { apply cases_on' l; intros, refl, 
-            rw [reverse_cons',inside_append,inside,tail_rev] } 
+            rw [reverse_cons,inside_append,tail_rev], refl } 
 
     @[simp] lemma rev_is_path (h : symmetric adj) : is_path adj (reverse l) <-> is_path adj l
         := by { apply induction_on l; intros, trivial, 
@@ -452,7 +446,7 @@ namespace llist2 section
             rw [this,@mem_iff _ x l'], split; finish }
 
     @[simp] lemma concat_nil (h : last l = w) : concat l ⟨w,[]⟩ = l
-        := by { revert h, apply cases_on' l; intros, refl, simp [concat] }
+        := by { revert h, apply cases_on' l; intros, refl, simp [cons,concat] }
 
     @[simp] lemma concat_nil' (h : w = head l) : concat ⟨w,[]⟩ l = l
         := by { subst h, cases l, refl }
