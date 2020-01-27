@@ -45,7 +45,7 @@ namespace embedding section
 
     @[simp] lemma follow_head {l h} : (follow_llist l h).head = F.f l.head
         := by { induction l with v v l hr; rw follow_llist, { refl },
-            { rw [llist.concat_head], exact (F.df _).hx,
+            { rw [llist.head_concat], exact (F.df _).hx,
                 rw [llist.compat,hr], exact (F.df _).hy } }
 
     @[simp] lemma follow_last {l h} : (follow_llist l h).last = F.f l.last
@@ -106,7 +106,7 @@ namespace embedding section
             { exact llist.concat_nil (F.df _).hy },
             { revert h, rw [llist.append], intro h,
                 rw [follow_llist,follow_llist,hr h'.2 h'',llist.concat_assoc], 
-                have h3 : llist.head (llist.append v l) = llist.head l := llist.append_head,
+                have h3 : llist.head (llist.append v l) = llist.head l := llist.head_append,
                 congr; exact h3 } }
 
     lemma follow_rev {l} (h h') : (follow_llist l h).rev = follow_llist l.rev h'
@@ -117,7 +117,7 @@ namespace embedding section
                     congr,
                     let e : edge G := ⟨h.1⟩,
                     have h4 : (F.df e).l.rev = (F.df e.flip).l, by { rw F.sym _, refl },
-                    convert h4; rw llist.rev_last, exact G.sym h.1 },
+                    convert h4; rw llist.last_rev, exact G.sym h.1 },
                 { rw [llist.compat,follow_head], exact (F.df _).hy } }
 
     @[simp] def sfollow (p : spath G x y) : spath G' (F.f x) (F.f y)

@@ -24,7 +24,7 @@ namespace path section
         := ⟨⟨llist.L x (llist.P y), rfl, rfl⟩, ⟨h,trivial⟩⟩
 
     def rev (p : path G x y) : path G y x
-        := ⟨⟨llist.rev p.l, by { rw [llist.rev_head,p.hy] }, by { rw [llist.rev_last,p.hx] }⟩, 
+        := ⟨⟨llist.rev p.l, by { rw [llist.head_rev,p.hy] }, by { rw [llist.last_rev,p.hx] }⟩, 
             (llist.rev_is_path G.adj G.sym).mpr p.adj⟩
 
     lemma size_rev {p : path G x y} : size p.rev = size p
