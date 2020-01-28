@@ -55,7 +55,7 @@ namespace embedding section
     lemma follow_path {l h} : llist.is_path G'.adj (follow_llist l h)
         := by { induction l with v v l hr; rw [follow_llist],
             { trivial },
-            { apply (llist.concat_path G'.adj _).mpr ⟨(F.df _).adj, hr⟩, 
+            { apply (llist.is_path_concat G'.adj _).mpr ⟨(F.df _).adj, hr⟩, 
                 rw [llist.compat,follow_head,(F.df _).hy] } }
 
     def follow (p : path G x y) : path G' (F.f x) (F.f y)
@@ -112,7 +112,7 @@ namespace embedding section
     lemma follow_rev {l} (h h') : (follow_llist l h).rev = follow_llist l.rev h'
         := by { induction l with v v l hr, refl,
             rw [follow_llist,llist.rev_concat],
-                { replace hr := hr h.2 ((llist.rev_is_path G.adj G.sym).mpr h.2),
+                { replace hr := hr h.2 ((llist.is_path_rev G.adj G.sym).mpr h.2),
                     rw [hr], revert h', rw llist.rev, intro h', rw follow_append, 
                     congr,
                     let e : edge G := ⟨h.1⟩,

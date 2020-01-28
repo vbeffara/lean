@@ -25,14 +25,14 @@ namespace path section
 
     def rev (p : path G x y) : path G y x
         := ⟨⟨llist.rev p.l, by { rw [llist.head_rev,p.hy] }, by { rw [llist.last_rev,p.hx] }⟩, 
-            (llist.rev_is_path G.adj G.sym).mpr p.adj⟩
+            (llist.is_path_rev G.adj G.sym).mpr p.adj⟩
 
     lemma size_rev {p : path G x y} : size p.rev = size p
         := llist.size_rev
 
     def concat (p : path G x y) (p' : path G y z) : path G x z
         := ⟨llist'.concat p.to_llist' p'.to_llist', 
-            (llist.concat_path G.adj llist'.compat).mpr ⟨p.adj,p'.adj⟩⟩
+            (llist.is_path_concat G.adj llist'.compat).mpr ⟨p.adj,p'.adj⟩⟩
 
     def edges_aux : Π (l : llist G) (h : llist.is_path G.adj l), list (edge G)
         | (llist.P v)   _ := []
@@ -91,7 +91,7 @@ namespace spath section
     instance : has_coe (spath G x y) (path G x y) := ⟨spath.to_path⟩
 
     def rev (p : spath G x y) : spath G y x
-        := ⟨p.to_path.rev, llist.rev_nodup.mpr p.simple⟩
+        := ⟨p.to_path.rev, llist.nodup_rev.mpr p.simple⟩
 
     lemma edges_simple {p : spath G x y} : list.pairwise edge.nsame p.to_path.edges
         := path.edges_simple _ p.simple
