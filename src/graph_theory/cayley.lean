@@ -16,7 +16,7 @@ namespace cayley section
     
     def adj (x y : G) := x⁻¹ * y ∈ S
 
-    lemma cancel {x y a : G} : (a * x)⁻¹ * (a * y) = x⁻¹ * y 
+    @[simp] lemma cancel {x y a : G} : (a * x)⁻¹ * (a * y) = x⁻¹ * y 
         := by { simp [mul_assoc] }
 
     lemma inv_prod {x y : G} : (x⁻¹ * y)⁻¹ = y⁻¹ * x 
@@ -30,10 +30,10 @@ namespace cayley section
 
     def Cay : Graph := { V := G, adj := adj, sym := @adj_symm }
     
-    def shift_llist := llist.map ((*) a)
+    def shift_llist := llist.map (λ v, a * v)
 
-    lemma shift_is_path {l : llist G} : llist.is_path adj l -> llist.is_path adj (shift_llist a l)
-        := by { intro h, induction l with v v l hr, trivial,
+    lemma shift_is_path {l : llist G} (h : llist.is_path adj l) : llist.is_path adj (shift_llist a l)
+        := by { induction l with v v l hr, trivial,
             refine ⟨_, hr h.2⟩, rw [llist.head_map], exact shift_adj S h.1 }
 
     def shift_path (p : path Cay x y) : path Cay (a*x : G) (a*y : G)
@@ -67,8 +67,7 @@ namespace cayley section
     noncomputable def word_dist : G -> G -> ℕ := @graph.dist Cay _
 
     lemma covariant : word_dist (a*x) (a*y) = word_dist x y
-        := by { 
-            unfold word_dist graph.dist, congr' 1, funext ℓ, rw [eq_iff_iff],
+        := by { unfold word_dist graph.dist, congr' 1, funext ℓ, rw [eq_iff_iff],
             let dists : G -> G -> set ℕ := @graph.dists (Cay S) _,
             have h2 : ∀ x y a ℓ, dists x y ℓ -> dists (a*x) (a*y) ℓ 
                 := by { intros x y a ℓ h, cases h with p, use ⟨shift_path S a p, h_h ▸ llist.size_map⟩ },
@@ -82,18 +81,16 @@ namespace cayley section
 
     lemma lipschitz : ∃ K : ℕ, ∀ x y : G, word_dist S2 x y <= K * word_dist S1 x y
         := by { obtain K := max_of_ne_empty (mt image_eq_empty.1 S1.nem), use K, 
-            intros x y, obtain ⟨⟨⟨l,hx,hy⟩,hp⟩,h⟩ := @graph.shortest_path (Cay S1) _ x y, 
-            unfold word_dist, rw <-h, clear h, revert x y, induction l; intros,
-                { subst hx, subst hy, simp },
-                { let z : G := llist.head l_a_1,
-                    transitivity word_dist S2 x z + word_dist S2 z y, { exact graph.dist_triangle },
-                    rw [path.size,llist.size,mul_add,add_comm,mul_one],
-                    apply add_le_add (l_ih z y rfl hy hp.2), rw [<-(covariant S2 x⁻¹),inv_mul_self], 
-                    refine le_max_of_mem (mem_image_of_mem _ _) h, exact (hx ▸ hp.1) } }
+            intros x y, obtain ⟨⟨⟨l,rfl,rfl⟩,hp⟩,h⟩ := @graph.shortest_path (Cay S1) _ x y, 
+            unfold word_dist, rw <-h, clear h, induction l; intros, simp,
+            { let z : G := llist.head l_a_1,
+                transitivity word_dist S2 l_a z + word_dist S2 z l_a_1.last, { exact graph.dist_triangle },
+                rw [path.size,llist.size,mul_add,add_comm,mul_one],
+                apply add_le_add (l_ih hp.2), rw [<-(covariant S2 l_a⁻¹),inv_mul_self], 
+                refine le_max_of_mem (mem_image_of_mem _ _) h, exact hp.1 } }
 
     def id_S : Cay S1 -> Cay S2 := id
 
     theorem bilipschitz : ∃ K, lipschitz_with K id_S
-        := by { cases lipschitz S1 S2 with K h, use K,
-            intros x y, unfold dist, rw [nnreal.coe_nat_cast], norm_cast, apply h }
+        := by { cases lipschitz S1 S2 with K h, use K, unfold lipschitz_with dist, norm_cast, exact h }
 end end cayley

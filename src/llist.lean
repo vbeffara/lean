@@ -1,27 +1,27 @@
 import tactic
 
-inductive llist (V : Type) : Type | P : V -> llist | L : V -> llist -> llist
+inductive llist (V : Type) : Type | pt : V -> llist | cons : V -> llist -> llist
 
 namespace llist section
     variables {V W : Type} (adj : V -> V -> Prop) (f : V -> W)
 
-    def mem (x) : llist V -> Prop | (P v) := x = v | (L v l) := x = v ∨ mem l
+    def mem (x) : llist V -> Prop | (pt v) := x = v | (cons v l) := x = v ∨ mem l
     instance : has_mem V (llist V) := ⟨mem⟩
 
-    @[simp] def to_list        : llist V -> list V  | (P v) := [v]       | (L v l) := v :: to_list l
-    @[simp] def size           : llist V -> nat     | (P _) := 0         | (L v l) := (size l) + 1
-    @[simp] def head           : llist V -> V       | (P v) := v         | (L v l) := v
-    @[simp] def tail           : llist V -> list V  | (P v) := []        | (L v l) := l.head :: tail l
-    @[simp] def init           : llist V -> list V  | (P v) := []        | (L v l) := v :: init l
-    @[simp] def last           : llist V -> V       | (P v) := v         | (L v l) := last l
-    @[simp] def inside         : llist V -> list V  | (P v) := []        | (L v l) := init l
-    @[simp] def is_path        : llist V -> Prop    | (P v) := true      | (L v l) := adj v l.head ∧ is_path l
-    @[simp] def append (x : V) : llist V -> llist V | (P v) := L v (P x) | (L v l) := L v (append l)
-    @[simp] def rev            : llist V -> llist V | (P v) := (P v)     | (L v l) := append v (rev l)
-    @[simp] def nodup          : llist V -> Prop    | (P v) := true      | (L v l) := v ∉ l ∧ nodup l
-    @[simp] def map            : llist V -> llist W | (P v) := P (f v)   | (L v l) := L (f v) (map l)
+    @[simp] def to_list        : llist V -> list V  | (pt v) := [v]          | (cons v l) := v :: to_list l
+    @[simp] def size           : llist V -> nat     | (pt _) := 0            | (cons v l) := (size l) + 1
+    @[simp] def head           : llist V -> V       | (pt v) := v            | (cons v l) := v
+    @[simp] def tail           : llist V -> list V  | (pt v) := []           | (cons v l) := l.head :: tail l
+    @[simp] def init           : llist V -> list V  | (pt v) := []           | (cons v l) := v :: init l
+    @[simp] def last           : llist V -> V       | (pt v) := v            | (cons v l) := last l
+    @[simp] def inside         : llist V -> list V  | (pt v) := []           | (cons v l) := init l
+    @[simp] def is_path        : llist V -> Prop    | (pt v) := true         | (cons v l) := adj v l.head ∧ is_path l
+    @[simp] def append (x : V) : llist V -> llist V | (pt v) := cons v (pt x) | (cons v l) := cons v (append l)
+    @[simp] def rev            : llist V -> llist V | (pt v) := (pt v)        | (cons v l) := append v (rev l)
+    @[simp] def nodup          : llist V -> Prop    | (pt v) := true         | (cons v l) := v ∉ l ∧ nodup l
+    @[simp] def map            : llist V -> llist W | (pt v) := pt (f v)      | (cons v l) := cons (f v) (map l)
 
-    @[simp] def concat : llist V -> llist V -> llist V | (P _) l' := l' | (L v l) l' := L v (concat l l')
+    @[simp] def concat : llist V -> llist V -> llist V | (pt _) l' := l' | (cons v l) l' := cons v (concat l l')
     
     variables {x y v w : V} {l l' l'' : llist V}
 
@@ -39,7 +39,7 @@ namespace llist section
     @[simp] lemma last_append : last (append v l) = v
         := by { induction l, refl, simpa }
 
-    @[simp] lemma rev_append : rev (append v l) = L v (rev l)
+    @[simp] lemma rev_append : rev (append v l) = cons v (rev l)
         := by { induction l, refl, simp [l_ih] }
 
     @[simp] lemma head_rev : head (rev l) = last l
@@ -51,8 +51,8 @@ namespace llist section
     @[simp] lemma rev_rev : rev (rev l) = l
         := by { induction l, refl, simpa }
 
-    @[simp] lemma mem_singleton : x ∈ P y <-> x = y := iff.rfl
-    @[simp] lemma mem_cons : x ∈ L v l <-> x = v ∨ x ∈ l := iff.rfl
+    @[simp] lemma mem_singleton : x ∈ pt y <-> x = y := iff.rfl
+    @[simp] lemma mem_cons : x ∈ cons v l <-> x = v ∨ x ∈ l := iff.rfl
 
     @[simp] lemma is_path_concat (h : compat l l') : is_path adj (concat l l') <-> is_path adj l ∧ is_path adj l'
         := by { induction l, tauto, simp at h, finish [l_ih h,head_concat h] }
@@ -93,7 +93,7 @@ namespace llist section
     @[simp] lemma head_inside  (h : 0 < size l) : head l :: inside l = init l
         := by { cases l, cases h, refl }
 
-    @[simp] lemma inside_last' : inside (L v l) ++ [last (L v l)] = tail (L v l)
+    @[simp] lemma inside_last' : inside (cons v l) ++ [last (cons v l)] = tail (cons v l)
         := by { simp [init_last,head_tail] }
 
     @[simp] lemma inside_last (h : 0 < size l) : inside l ++ [last l] = tail l
@@ -119,7 +119,7 @@ namespace llist section
             { simp at ⊢ h, subst h, cases l', simp, simp, rw [<-or_assoc,or_self] },
             { simp at ⊢ h, simp [l_ih h,or_assoc] } }
 
-    @[simp] lemma concat_nil (h : last l = w) : concat l (P w) = l
+    @[simp] lemma concat_nil (h : last l = w) : concat l (pt w) = l
         := by { subst h, induction l, refl, simpa }
 
     @[simp] lemma concat_size : size (concat l l') = size l + size l'
@@ -165,7 +165,7 @@ namespace llist section
     lemma mem_init_inside (h : 0 < size l) : x ∈ init l <-> x = head l ∨ x ∈ inside l
         := by { rw [<-(head_inside h),list.mem_cons_iff] }
 
-    lemma mem_tail_inside' : x ∈ tail (L v l) <-> x ∈ inside (L v l) ∨ x = last l
+    lemma mem_tail_inside' : x ∈ tail (cons v l) <-> x ∈ inside (cons v l) ∨ x = last l
         := by { rw [inside,<-mem_init_last,tail,mem_head_tail], trivial }
 
     lemma mem_tail_inside (h : 0 < size l) : x ∈ tail l <-> x ∈ inside l ∨ x = last l
@@ -226,22 +226,17 @@ namespace llist' section open llist
     parameters {V : Type} (adj : V -> V -> Prop)
     variables {x y z : V}
 
-    def mem (v : V) (l : llist' V x y) := v ∈ l.l
-    instance has_mem : has_mem V (llist' V x y) := ⟨mem⟩
+    instance : has_mem V (llist' V x y) := ⟨λ v l, v ∈ l.l⟩
 
-    @[simp] lemma reduce {l hx hy} : (⟨l,hx,hy⟩ : llist' V x y).l = l := rfl
-
-    @[simp] lemma mem_simp {v l hx hy} : v ∈ (⟨l,hx,hy⟩ : llist' V x y) <-> v ∈ l := iff.rfl
-
-    def P    (v : V)                    : llist' V v v := ⟨P v,   rfl, rfl⟩
-    def cons (v : V) (l : llist' V x y) : llist' V v y := ⟨L v l, rfl, l.hy⟩
+    def pt   (v : V)                    : llist' V v v := ⟨pt v,     rfl, rfl⟩
+    def cons (v : V) (l : llist' V x y) : llist' V v y := ⟨cons v l, rfl, l.hy⟩
 
     lemma compat {l : llist' V x y} {l' : llist' V y z} : llist.compat l.l l'.l 
         := eq.trans l.hy l'.hx.symm
 
-    def concat {x y z : V} (l : llist' V x y) (l' : llist' V y z) : llist' V x z
+    @[simp] def concat {x y z : V} (l : llist' V x y) (l' : llist' V y z) : llist' V x z
         := ⟨llist.concat l l', eq.trans (head_concat compat) l.hx, eq.trans concat_last l'.hy⟩
 
-    @[simp] lemma concat_P {l : llist' V x y} : concat l (P y) = l
+    @[simp] lemma concat_P {l : llist' V x y} : concat l (pt y) = l
         := by { ext, exact llist.concat_nil l.hy }
 end end llist'

@@ -15,23 +15,21 @@ namespace graph section
         := well_founded.min nat.lt_wf (dists x y) dists_ne_empty
 
     lemma upper_bound (p : path G x y) : dist x y <= p.size
-        := not_lt.mp $ well_founded.not_lt_min nat.lt_wf (dists x y) dists_ne_empty (set.mem_range_self p)
+        := not_lt.mp $ well_founded.not_lt_min _ _ _ (set.mem_range_self p)
             
     lemma shortest_path (x y) : ∃ p : path G x y, p.size = dist x y
-        := well_founded.min_mem nat.lt_wf (dists x y) dists_ne_empty
+        := well_founded.min_mem _ _ dists_ne_empty
 
     @[simp] lemma dist_self : dist x x = 0
-        := le_zero_iff_eq.mp (upper_bound (path.point x))
-
-    lemma dist_self' (h : x = y) : dist x y = 0 
-        := eq.rec dist_self h
+        := le_antisymm (upper_bound (path.point x)) (zero_le _)
 
     lemma dist_triangle : dist x z ≤ dist x y + dist y z 
-        := Exists.cases_on (shortest_path x y) (λ pxy hxy, 
-            Exists.cases_on (shortest_path y z) (λ pyz hyz, 
-                hyz ▸ hxy ▸ eq.mpr
-                    (congr (congr_arg (<=) (eq.refl (dist x z))) llist.concat_size.symm)
-                    (upper_bound (path.concat pxy pyz))))
+        := by { 
+            obtain ⟨pxy,hxy⟩ := shortest_path x y, rw <-hxy,
+            obtain ⟨pyz,hyz⟩ := shortest_path y z, rw <-hyz,
+            convert (upper_bound $ path.concat pxy pyz), 
+            exact path.size_concat.symm
+        }
 
     lemma eq_of_dist_eq_zero : dist x y = 0 -> x = y
         := by { intro h0, rcases (shortest_path x y) with ⟨⟨⟨_|_,rfl,rfl⟩,_⟩,h⟩,

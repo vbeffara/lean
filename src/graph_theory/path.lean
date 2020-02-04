@@ -18,10 +18,10 @@ namespace path section
     instance : has_sizeof (path G x y) := ⟨size⟩
 
     def point (v : G) : path G v v
-        := ⟨⟨llist.P v, rfl, rfl⟩, trivial⟩
+        := ⟨⟨llist.pt v, rfl, rfl⟩, trivial⟩
 
     def from_edge {x y} (h : G.adj x y) : path G x y 
-        := ⟨⟨llist.L x (llist.P y), rfl, rfl⟩, ⟨h,trivial⟩⟩
+        := ⟨⟨llist.cons x (llist.pt y), rfl, rfl⟩, ⟨h,trivial⟩⟩
 
     def rev (p : path G x y) : path G y x
         := ⟨⟨llist.rev p.l, by { rw [llist.head_rev,p.hy] }, by { rw [llist.last_rev,p.hx] }⟩, 
@@ -34,9 +34,12 @@ namespace path section
         := ⟨llist'.concat p.to_llist' p'.to_llist', 
             (llist.is_path_concat G.adj llist'.compat).mpr ⟨p.adj,p'.adj⟩⟩
 
+    @[simp] lemma size_concat {p : path G x y} {p' : path G y z} : (concat p p').size = p.size + p'.size
+        := llist.concat_size 
+
     def edges_aux : Π (l : llist G) (h : llist.is_path G.adj l), list (edge G)
-        | (llist.P v)   _ := []
-        | (llist.L v l) h := ⟨h.1⟩ :: edges_aux l h.2
+        | (llist.pt v)   _ := []
+        | (llist.cons v l) h := ⟨h.1⟩ :: edges_aux l h.2
 
     def edges (p : path G x y) : list (edge G)
         := edges_aux p.l p.adj
