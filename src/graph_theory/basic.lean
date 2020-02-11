@@ -22,8 +22,8 @@ class connected_graph (G : Graph) := (conn : connected G)
 
 @[ext] structure edge (G : Graph) := {x y : G.V} (h : G.adj x y)
 
-namespace edge section
-    parameters {G : Graph}
+namespace edge
+    variables {G : Graph}
 
     def mem (v : G) (e : edge G) := v = e.x ∨ v = e.y
     instance : has_mem G.V (edge G) := ⟨mem⟩
@@ -31,7 +31,7 @@ namespace edge section
     def flip  (e : edge G)    : edge G := ⟨G.sym e.h⟩
     def same  (e e' : edge G) : Prop   := e' = e ∨ e' = flip e
     def nsame (e e' : edge G) : Prop   := ¬ same e e'
-end end edge
+end edge
 
 @[symm] lemma Graph.adj.symm {G : Graph} : ∀ {x y : G}, G.adj x y -> G.adj y x
     := G.sym

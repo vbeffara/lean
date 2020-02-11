@@ -15,9 +15,8 @@ structure graph_embedding (G G' : Graph) :=
 
 def embeds_into (G G' : Graph) := nonempty (graph_embedding G G')
 
-namespace embedding section
-    parameters {G G' G'' : Graph} (F : graph_embedding G G')
-    variables {x y z : G} 
+namespace embedding
+    variables {G G' G'' : Graph} (F : graph_embedding G G') {x y z : G} 
 
     lemma endpoint_init {e : edge G} : F.f x ∈ (F.df e).l.init <-> x = e.x
         := by { split; intro h1, 
@@ -39,32 +38,32 @@ namespace embedding section
         | (llist.pt v)     _ := llist.pt (F.f v)
         | (llist.cons v l) h := llist.concat (F.df ⟨h.1⟩) (follow_llist l h.2)
 
-    lemma follow_nop {l h} (hz : 0 < llist.size l) : 0 < (follow_llist l h).size
+    lemma follow_nop {l h} (hz : 0 < llist.size l) : 0 < (follow_llist F l h).size
         := by { cases l, { cases hz }, 
             { rw [follow_llist,llist.concat_size], apply nat.lt_add_right, apply F.nop } }
 
-    @[simp] lemma follow_head {l h} : (follow_llist l h).head = F.f l.head
+    @[simp] lemma follow_head {l h} : (follow_llist F l h).head = F.f l.head
         := by { induction l with v v l hr; rw follow_llist, { refl },
             { rw [llist.head_concat], exact (F.df _).hx,
                 rw [llist.compat,hr], exact (F.df _).hy } }
 
-    @[simp] lemma follow_last {l h} : (follow_llist l h).last = F.f l.last
+    @[simp] lemma follow_last {l h} : (follow_llist F l h).last = F.f l.last
         := by { induction l with v v l hr; rw follow_llist, { refl },
             { rw llist.concat_last, exact hr } }
 
-    lemma follow_path {l h} : llist.is_path G'.adj (follow_llist l h)
+    lemma follow_path {l h} : llist.is_path G'.adj (follow_llist F l h)
         := by { induction l with v v l hr; rw [follow_llist],
             { trivial },
             { apply (llist.is_path_concat G'.adj _).mpr ⟨(F.df _).adj, hr⟩, 
                 rw [llist.compat,follow_head,(F.df _).hy] } }
 
     def follow (p : path G x y) : path G' (F.f x) (F.f y)
-        := ⟨⟨follow_llist p.l p.adj, 
+        := ⟨⟨follow_llist F p.l p.adj, 
             by { rw [follow_head,p.hx] }, 
-            by { rw [follow_last,p.hy] }⟩, follow_path⟩
+            by { rw [follow_last,p.hy] }⟩, follow_path F⟩
 
     lemma follow_edges {z l h} (hz : 0 < llist.size l) :
-            z ∈ follow_llist l h <-> ∃ e ∈ path.edges_aux l h, z ∈ F.df e
+            z ∈ follow_llist F l h <-> ∃ e ∈ path.edges_aux l h, z ∈ F.df e
         := by { cases l with w w l, cases hz, clear hz, revert w,
             induction l with v v l hr; intros,
             { rw [path.edges_aux,path.edges_aux,follow_llist,follow_llist,llist.concat_nil], 
@@ -80,10 +79,10 @@ namespace embedding section
                     { subst he1, left, assumption },
                     { right, apply (hr _).mpr, exact ⟨e,he1,he2⟩ } } } }
 
-    lemma follow_edges' {z} {p : path G x y} (hz : 0 < p.size) : z ∈ follow p <-> ∃ e ∈ path.edges p, z ∈ F.df e
-        := follow_edges hz
+    lemma follow_edges' {z} {p : path G x y} (hz : 0 < p.size) : z ∈ follow F p <-> ∃ e ∈ path.edges p, z ∈ F.df e
+        := follow_edges F hz
 
-    lemma follow_simple {l h} (hs : llist.nodup l) : (follow_llist l h).nodup
+    lemma follow_simple {l h} (hs : llist.nodup l) : (follow_llist F l h).nodup
         := by { cases l with w w l, trivial, revert w, 
             induction l with v v l hr; intros,
                 { convert (F.df _).simple, exact llist.concat_nil (F.df _).hy },
@@ -101,7 +100,7 @@ namespace embedding section
                     cases F.endpoint h9 with h15 h15; rw h15; assumption } }
 
     lemma follow_append {v l h} (h') (h'' : G.adj (llist.last l) v) : 
-            follow_llist (llist.append v l) h = llist.concat (follow_llist l h') (F.df ⟨h''⟩).l
+            follow_llist F (llist.append v l) h = llist.concat (follow_llist F l h') (F.df ⟨h''⟩).l
         := by { induction l with w w l hr,
             { exact llist.concat_nil (F.df _).hy },
             { revert h, rw [llist.append], intro h,
@@ -109,7 +108,7 @@ namespace embedding section
                 have h3 : llist.head (llist.append v l) = llist.head l := llist.head_append,
                 congr; exact h3 } }
 
-    lemma follow_rev {l} (h h') : (follow_llist l h).rev = follow_llist l.rev h'
+    lemma follow_rev {l} (h h') : (follow_llist F l h).rev = follow_llist F l.rev h'
         := by { induction l with v v l hr, refl,
             rw [follow_llist,llist.rev_concat],
                 { replace hr := hr h.2 ((llist.is_path_rev G.adj G.sym).mpr h.2),
@@ -121,14 +120,14 @@ namespace embedding section
                 { rw [llist.compat,follow_head], exact (F.df _).hy } }
 
     @[simp] def sfollow (p : spath G x y) : spath G' (F.f x) (F.f y)
-        := ⟨follow p.to_path, follow_simple p.simple⟩
+        := ⟨follow F p.to_path, follow_simple F p.simple⟩
 
-    @[simp] lemma sfollow_rev (p : spath G x y) : sfollow p.rev = (sfollow p).rev
+    @[simp] lemma sfollow_rev (p : spath G x y) : sfollow F p.rev = (sfollow F p).rev
         := by { simp only [sfollow,follow,spath.rev,path.rev], rw follow_rev }
-end end embedding
+end embedding
 
-namespace embedding section
-    parameters {G G' G'' : Graph} 
+namespace embedding
+    variables {G G' G'' : Graph} 
 
     def comp (F : graph_embedding G G') (F' : graph_embedding G' G'') : (graph_embedding G G'') := {
         f := F'.f ∘ F.f,
@@ -179,9 +178,9 @@ namespace embedding section
 
     theorem embed_trans : transitive embeds_into
         := by { intros G G' G'' F F', cases F, cases F', use comp F F' }
-end end embedding
+end embedding
 
-namespace contraction section
+namespace contraction
     structure chunked extends Graph :=
         (rel : V -> V -> Prop)
         (eqv : equivalence rel)
@@ -240,6 +239,6 @@ namespace contraction section
             intro ybar, obtain ⟨y,hy⟩ := quot.exists_rep ybar, subst hy, 
             have h' := h x y, induction h', refl,
             exact linked.tail h'_ih (proj_adj h'_a_1) }
-end end contraction
+end contraction
 
 def is_minor (G G' : Graph) : Prop := ∃ C : contraction.chunked, C.to_Graph = G' ∧ embeds_into G (contraction.contract C)

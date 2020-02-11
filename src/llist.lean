@@ -222,9 +222,8 @@ end end llist
 @[ext] structure llist' (V : Type) (x y : V) := (l : llist V) (hx : l.head = x) (hy : l.last = y)
 instance {V : Type} {x y : V} : has_coe (llist' V x y) (llist V) := ⟨llist'.l⟩
 
-namespace llist' section open llist
-    parameters {V : Type} (adj : V -> V -> Prop)
-    variables {x y z : V}
+namespace llist' open llist
+    variables {V : Type} (adj : V -> V -> Prop) {x y z : V}
 
     instance : has_mem V (llist' V x y) := ⟨λ v l, v ∈ l.l⟩
 
@@ -239,4 +238,4 @@ namespace llist' section open llist
 
     @[simp] lemma concat_P {l : llist' V x y} : concat l (pt y) = l
         := by { ext, exact llist.concat_nil l.hy }
-end end llist'
+end llist'

@@ -3,9 +3,8 @@ import graph_theory.basic llist
 
 structure path  (G : Graph) (x y) extends llist' G x y := (adj : llist.is_path G.adj l)
 
-namespace path section
-    parameters {G : Graph}
-    variables {x y z : G}
+namespace path
+    variables {G : Graph} {x y z : G}
 
     instance : has_coe (path G x y) (llist' G x y) := ⟨path.to_llist'⟩
 
@@ -44,12 +43,12 @@ namespace path section
     def edges (p : path G x y) : list (edge G)
         := edges_aux p.l p.adj
 
-    lemma mem_edges_aux' {l h} {e : edge G} : e ∈ edges_aux l h -> e.x ∈ l.init ∧ e.y ∈ l.tail
+    lemma mem_edges_aux' {l h} {e : edge G} : e ∈ @edges_aux G l h -> e.x ∈ l.init ∧ e.y ∈ l.tail
         := by { induction l with v v l hr; intros he; cases he with he he,
             { subst he, split; left; refl },
             { cases hr he, split; right; assumption } }
 
-    lemma mem_edges_aux {l h} {e : edge G} : e ∈ edges_aux l h -> e.x ∈ l ∧ e.y ∈ l
+    lemma mem_edges_aux {l h} {e : edge G} : e ∈ @edges_aux G l h -> e.x ∈ l ∧ e.y ∈ l
         := by { intro h1, cases mem_edges_aux' h1 with h2 h3, split, 
             { exact llist.mem_init_last.mpr (or.inl h2) },
             { exact llist.mem_head_tail.mpr (or.inr h3) } }
@@ -57,7 +56,7 @@ namespace path section
     lemma mem_edges {p : path G x y} {e : edge G} : e ∈ p.edges -> e.x ∈ p ∧ e.y ∈ p
         := mem_edges_aux
 
-    lemma edges_simple {l} (h) (hs : llist.nodup l) : list.pairwise edge.nsame (edges_aux l h)
+    lemma edges_simple {l} (h) (hs : llist.nodup l) : list.pairwise edge.nsame (@edges_aux G l h)
         := by { induction l with v v l hr, { exact list.pairwise.nil },
             { apply list.pairwise.cons, 
             { intros e he, rw [edge.nsame, edge.same], push_neg, have h5 := mem_edges_aux he,
@@ -78,13 +77,12 @@ namespace path section
         := ⟨to_path,from_path⟩
 
     instance [connected_graph G] : nonempty (path G x y) := to_path (connected_graph.conn G x y)
-end end path
+end path
 
 @[ext] structure  spath (G : Graph) (x y) extends path G x y := ( simple : path.simple  to_path)
 
-namespace spath section
-    parameters {G : Graph}
-    variables {x y z : G}
+namespace spath
+    variables {G : Graph} {x y z : G}
 
     def mem (z) (p : spath G x y) := z ∈ to_path p
     instance : has_mem G.V (spath G x y) := ⟨mem⟩
@@ -98,4 +96,4 @@ namespace spath section
 
     lemma edges_simple {p : spath G x y} : list.pairwise edge.nsame p.to_path.edges
         := path.edges_simple _ p.simple
-end end spath
+end spath

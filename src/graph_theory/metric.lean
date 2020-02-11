@@ -2,14 +2,13 @@ import graph_theory.basic graph_theory.path
 import topology.metric_space.basic
 set_option trace.check true
 
-namespace graph section
-    parameters {G : Graph} [connected_graph G]
-    variables (a : G) {x y z : G}
+namespace graph
+    variables {G : Graph} [connected_graph G] (a : G) {x y z : G}
 
     def dists (x y) := set.range (path.size : path G x y -> ℕ)
 
     lemma dists_ne_empty : (dists x y).nonempty
-        := set.ne_empty_iff_nonempty.mp (set.range_ne_empty path.size)
+        := set.range_nonempty_iff_nonempty.mpr path.nonempty
 
     noncomputable def dist (x y : G)
         := well_founded.min nat.lt_wf (dists x y) dists_ne_empty
@@ -24,11 +23,8 @@ namespace graph section
         := le_antisymm (upper_bound (path.point x)) (zero_le _)
 
     lemma dist_triangle : dist x z ≤ dist x y + dist y z 
-        := by { 
-            obtain ⟨pxy,hxy⟩ := shortest_path x y, rw <-hxy,
-            obtain ⟨pyz,hyz⟩ := shortest_path y z, rw <-hyz,
-            convert (upper_bound $ path.concat pxy pyz), 
-            exact path.size_concat.symm
+        := by { choose f g using @shortest_path, rw [<-(g x y),<-(g y z),<-path.size_concat],
+            exact upper_bound _
         }
 
     lemma eq_of_dist_eq_zero : dist x y = 0 -> x = y
@@ -40,7 +36,7 @@ namespace graph section
 
     lemma dist_comm : dist x y = dist y x
         := le_antisymm dist_comm' dist_comm'
-end end graph
+end graph
 
 noncomputable instance graph.has_dist (G : Graph) [connected_graph G] : has_dist G := ⟨λ x y, graph.dist x y⟩
 
