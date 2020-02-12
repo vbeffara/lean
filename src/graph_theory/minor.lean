@@ -186,71 +186,71 @@ namespace Graph
     end embedding
 
     namespace contraction
-        variables (V : Type)
+        variables {V : Type}
 
-        structure chunked extends Graph V :=
+        structure chunked (V : Type) extends Graph V :=
             (rel : V -> V -> Prop)
             (eqv : equivalence rel)
             (cmp : ∀ x y, rel x y -> linked to_Graph x y)
 
         def vertices (G : chunked V) := V
 
-        def chunked_setoid (G : chunked V) : setoid (vertices V G) := ⟨G.rel,G.eqv⟩
+        def chunked_setoid (G : chunked V) : setoid (vertices G) := ⟨G.rel,G.eqv⟩
         local attribute [instance] chunked_setoid
 
-        def adj (G : chunked V) (x y : vertices V G) : Prop := ∃ x' y', x' ≈ x ∧ y' ≈ y ∧ G.adj x' y'
+        def adj (G : chunked V) (x y : vertices G) : Prop := ∃ x' y', x' ≈ x ∧ y' ≈ y ∧ G.adj x' y'
 
-        lemma adj_symm {G : chunked V} (x y : vertices V G) : adj V G x y -> adj V G y x
+        lemma adj_symm {G : chunked V} (x y : vertices G) : adj G x y -> adj G y x
             := by { rintros ⟨x',y',h1,h2,h3⟩, exact ⟨y',x',h2,h1,G.sym h3⟩ }
 
-        lemma adj_lift1 {G : chunked V} {a₁ a₂ b₁ b₂ : vertices V G} {h₁ : a₁ ≈ b₁} {h₂ : a₂ ≈ b₂} : adj V G a₁ a₂ -> adj V G b₁ b₂
+        lemma adj_lift1 {G : chunked V} {a₁ a₂ b₁ b₂ : vertices G} {h₁ : a₁ ≈ b₁} {h₂ : a₂ ≈ b₂} : adj G a₁ a₂ -> adj G b₁ b₂
             := by { rintros ⟨x',y',h1,h2,h3⟩, exact ⟨x', y', ⟨G.eqv.2.2 h1 h₁, G.eqv.2.2 h2 h₂, h3⟩⟩ }
 
-        lemma adj_lift {G : chunked V} : ∀ (a₁ a₂ b₁ b₂ : vertices V G), a₁ ≈ b₁ → a₂ ≈ b₂ → adj V G a₁ a₂ = adj V G b₁ b₂
+        lemma adj_lift {G : chunked V} : ∀ (a₁ a₂ b₁ b₂ : vertices G), a₁ ≈ b₁ → a₂ ≈ b₂ → adj G a₁ a₂ = adj G b₁ b₂
             := by { intros, apply iff_iff_eq.mp, split; 
                     apply adj_lift1; assumption <|> { symmetry, assumption } }
 
-        def contract (G : chunked V) : Graph (quotient (chunked_setoid V G)) :=
+        def contract (G : chunked V) : Graph (quotient (chunked_setoid G)) :=
         {
-            adj := quotient.lift₂ (adj V G) (adj_lift V),
-            sym := λ x y, quotient.induction_on₂ x y (adj_symm V)
+            adj := quotient.lift₂ (adj G) adj_lift,
+            sym := λ x y, quotient.induction_on₂ x y adj_symm
         }
 
         -- def is_contraction {V V' : Type} (G : Graph V) (G' : Graph V') : Prop 
         --     := ∃ C : chunked V', C.to_Graph = G' ∧ G = contract V' C
 
-        def proj_llist {G : chunked V} : llist G.to_Graph.vertices -> llist (contract V G).vertices := llist.map (λ x, ⟦x⟧)
+        def proj_llist {G : chunked V} : llist G.to_Graph.vertices -> llist (contract G).vertices := llist.map (λ x, ⟦x⟧)
 
-        lemma proj_head {G : chunked V} {l : llist G.to_Graph.vertices} : (proj_llist _ l).head = ⟦l.head⟧ 
+        lemma proj_head {G : chunked V} {l : llist G.to_Graph.vertices} : (proj_llist l).head = ⟦l.head⟧ 
             := llist.head_map
 
-        lemma proj_last {G : chunked V} {l : llist G.to_Graph.vertices} : (proj_llist _ l).last = ⟦l.last⟧
+        lemma proj_last {G : chunked V} {l : llist G.to_Graph.vertices} : (proj_llist l).last = ⟦l.last⟧
             := llist.last_map
 
-        lemma proj_adj {G : chunked V} {x y} : G.adj x y -> (contract V G).adj ⟦x⟧ ⟦y⟧ 
+        lemma proj_adj {G : chunked V} {x y} : G.adj x y -> (contract G).adj ⟦x⟧ ⟦y⟧ 
             := λ h, exists.intro x (exists.intro y ⟨quotient.eq.mp rfl,quotient.eq.mp rfl,h⟩)
 
-        lemma proj_is_path {G : chunked V} {l} : llist.is_path G.adj l -> llist.is_path (contract V G).adj (proj_llist V l)
+        lemma proj_is_path {G : chunked V} {l} : llist.is_path G.adj l -> llist.is_path (contract G).adj (proj_llist l)
             := by { induction l, 
                 { intro, trivial },
-                { intro h, rw [proj_llist,llist.map,llist.is_path,llist.head_map], exact ⟨proj_adj V h.1, l_ih h.2⟩ } }
+                { intro h, rw [proj_llist,llist.map,llist.is_path,llist.head_map], exact ⟨proj_adj h.1, l_ih h.2⟩ } }
 
-        def proj_path {G : chunked V} {x y} (p : path G.to_Graph x y) : path (contract V G) ⟦x⟧ ⟦y⟧
+        def proj_path {G : chunked V} {x y} (p : path G.to_Graph x y) : path (contract G) ⟦x⟧ ⟦y⟧
             := {
-                l := proj_llist V p.l,
+                l := proj_llist p.l,
                 hx := by { rw [proj_head,p.hx] },
                 hy := by { rw [proj_last,p.hy], },
-                adj := proj_is_path V p.adj
+                adj := proj_is_path p.adj
             }
 
-        lemma contract_connected {G : chunked V} (h : connected G.to_Graph) : connected (contract V G)
+        lemma contract_connected {G : chunked V} (h : connected G.to_Graph) : connected (contract G)
             := by {
                 intro xbar, obtain ⟨x,hx⟩ := quot.exists_rep xbar, subst hx, 
                 intro ybar, obtain ⟨y,hy⟩ := quot.exists_rep ybar, subst hy, 
                 have h' := h x y, induction h', refl,
-                exact linked.tail _ h'_ih (proj_adj _ h'_a_1) }
+                exact linked.tail _ h'_ih (proj_adj h'_a_1) }
     end contraction
 
     def is_minor {V : Type} {V' : Type} (G : Graph V) (G' : Graph V') : Prop 
-        := ∃ C : contraction.chunked V', C.to_Graph = G' ∧ embeds_into G (contraction.contract _ C)
+        := ∃ C : contraction.chunked V', C.to_Graph = G' ∧ embeds_into G (contraction.contract C)
 end Graph
