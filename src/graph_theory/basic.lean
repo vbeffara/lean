@@ -17,22 +17,21 @@ namespace Graph
         (iso : ∀ x y, G.adj x y <-> G'.adj (f x) (f y))
 
     def isomorphic := inhabited (iso G G')
-
-    def linked    := relation.refl_trans_gen G.adj
-    def connected := ∀ x y, linked G x y
+    def linked     := relation.refl_trans_gen G.adj
+    def connected  := ∀ x y, linked G x y
 
     class connected_graph := (conn : connected G)
 
-    @[ext] structure edge := {x y : V} (h : G.adj x y)
+    @[ext] structure edges := {x y : V} (h : G.adj x y)
 
-    namespace edge
-        def mem (v : V) (e : edge G) := v = e.x ∨ v = e.y
-        instance : has_mem V (edge G) := ⟨mem G⟩
+    namespace edges
+        def mem (v : V) (e : G.edges) := v = e.x ∨ v = e.y
+        instance : has_mem V G.edges := ⟨mem G⟩
 
-        def flip  (e : edge G)    : edge G := ⟨G.sym e.h⟩
-        def same  (e e' : edge G) : Prop   := e' = e ∨ e' = flip G e
-        def nsame (e e' : edge G) : Prop   := ¬ same G e e'
-    end edge
+        def flip  {G : Graph V} (e : G.edges)    : G.edges := ⟨G.sym e.h⟩
+        def same  {G : Graph V} (e e' : G.edges) : Prop   := e' = e ∨ e' = e.flip
+        def nsame {G : Graph V} (e e' : G.edges) : Prop   := ¬ same e e'
+    end edges
 
     @[symm] lemma Graph.adj.symm : ∀ {x y : V}, G.adj x y -> G.adj y x
         := G.sym

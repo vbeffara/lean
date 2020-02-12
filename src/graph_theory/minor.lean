@@ -7,14 +7,14 @@ namespace Graph
 
     structure embedding :=
         (f        : V -> V')
-        (df       : Π e : G.edge, G'.spath (f e.x) (f e.y))
+        (df       : Π e : G.edges, G'.spath (f e.x) (f e.y))
         --
         (inj      : injective f)
         (nop      : ∀ e, 0 < (df e).size)
-        (sym      : ∀ e : G.edge, df (edge.flip G e) = (df e).rev)
+        (sym      : ∀ e : G.edges, df e.flip = (df e).rev)
         --
         (endpoint : ∀ {e x},    f x ∈ df e              -> x ∈ e)
-        (disjoint : ∀ {e e' z},   z ∈ df e -> z ∈ df e' -> e.same G e' ∨ ∃ x, z = f x)
+        (disjoint : ∀ {e e' z},   z ∈ df e -> z ∈ df e' -> e.same e' ∨ ∃ x, z = f x)
 
     def embeds_into := nonempty (embedding G G')
 end Graph
@@ -23,7 +23,7 @@ namespace Graph
     namespace embedding
         variables {V V' : Type} {G : Graph V} {G' : Graph V'} (F : embedding G G') {x y z : V} 
 
-        lemma endpoint_init {e : edge G} : F.f x ∈ (F.df e).l.init <-> x = e.x
+        lemma endpoint_init {e : edges G} : F.f x ∈ (F.df e).l.init <-> x = e.x
             := by { split; intro h1, 
                 { have h2 : F.f x ∈ F.df e, by { apply llist.mem_init_last.mpr, left, assumption },
                     have h3 := F.endpoint h2, cases h3, assumption,
@@ -31,7 +31,7 @@ namespace Graph
                     rw (F.df e).hy at h5, rw h3 at h1, cases h5 h1 },
                 { subst h1, convert llist.mem_head_init (F.nop e), exact (F.df e).hx.symm } }
 
-        lemma endpoint_tail {e : edge G} : F.f x ∈ (F.df e).l.tail <-> x = e.y
+        lemma endpoint_tail {e : edges G} : F.f x ∈ (F.df e).l.tail <-> x = e.y
             := by { split; intro h1, 
                 { have h2 : F.f x ∈ F.df e, by { apply llist.mem_head_tail.mpr, right, assumption },
                     have h3 := F.endpoint h2, cases h3, swap, assumption,
@@ -84,7 +84,7 @@ namespace Graph
                         { subst he1, left, assumption },
                         { right, apply (hr _).mpr, exact ⟨e,he1,he2⟩ } } } }
 
-        lemma follow_edges' {z} {p : path G x y} (hz : 0 < p.size) : z ∈ follow F p <-> ∃ e ∈ path.edges p, z ∈ F.df e
+        lemma follow_edges' {z} {p : path G x y} (hz : 0 < p.size) : z ∈ follow F p <-> ∃ e ∈ p.all_edges, z ∈ F.df e
             := follow_edges F hz
 
         lemma follow_simple {l h} (hs : llist.nodup l) : (follow_llist F l h).nodup
@@ -119,8 +119,8 @@ namespace Graph
                     { replace hr := hr h.2 ((llist.is_path_rev G.adj G.sym).mpr h.2),
                         rw [hr], revert h', rw llist.rev, intro h', rw follow_append, 
                         congr,
-                        let e : edge G := ⟨h.1⟩,
-                        have h4 : (F.df e).l.rev = (F.df (e.flip G)).l, by { rw F.sym _, refl },
+                        let e : edges G := ⟨h.1⟩,
+                        have h4 : (F.df e).l.rev = (F.df e.flip).l, by { rw F.sym _, refl },
                         convert h4; rw llist.last_rev, exact G.sym h.1 },
                     { rw [llist.compat,follow_head], exact (F.df _).hy } }
 
@@ -164,11 +164,11 @@ namespace Graph
                         obtain ⟨x,hx⟩ := h10, rw [hx,endpoint_init F] at h3l h5l, clear hx,
                         obtain ⟨y,hy⟩ := h11, rw [hy,endpoint_tail F] at h3r h5r, clear hy,
                         left, ext; cc },
-                    { rw [edge.flip] at h5l, rw [edge.flip] at h5r,
+                    { rw [edges.flip] at h5l, rw [edges.flip] at h5r,
                         cases F.disjoint (llist.mem_init h3l) (llist.mem_tail h5r) with h10 h10, assumption,
                         cases F.disjoint (llist.mem_tail h3r) (llist.mem_init h5l) with h11 h11, assumption,
-                        obtain ⟨x,hx⟩ := h10, unfold edge.y at h5r, rw [hx] at h3l h5r, clear hx,
-                        obtain ⟨y,hy⟩ := h11, unfold edge.x at h5l, rw [hy] at h5l h3r, clear hy,
+                        obtain ⟨x,hx⟩ := h10, unfold edges.y at h5r, rw [hx] at h3l h5r, clear hx,
+                        obtain ⟨y,hy⟩ := h11, unfold edges.x at h5l, rw [hy] at h5l h3r, clear hy,
                         rw endpoint_init F at h3l h5l, rw endpoint_tail F at h3r h5r,
                         right, ext; cc }
                 },
