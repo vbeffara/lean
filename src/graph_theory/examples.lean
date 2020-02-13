@@ -1,6 +1,6 @@
 import graph_theory.basic graph_theory.minor
 
-namespace Graph.examples
+namespace Graph
     instance (G G' : Type) [Graph G] [Graph G'] : Graph (G×G') := {
         adj := λ x y, (x.1 = y.1 ∧ Graph.adj x.2 y.2) ∨ (Graph.adj x.1 y.1 ∧ x.2 = y.2),
         sym := by { intros x y h, cases h,
@@ -25,11 +25,10 @@ namespace Graph.examples
         adj := λ x y, x ≠ y,
         sym := λ x y h1 h2, h1 h2.symm
     }
-end Graph.examples
 
-def planar (G : Type) [Graph G] := Graph.is_minor G (ℤ×ℤ)
+    def planar (G : Type) [Graph G] := contraction.is_minor G (ℤ×ℤ)
 
-def colorable (n : nat) (G : Type) [Graph G]
-    := nonempty (Graph.hom G (Graph.examples.K' n))
+    def colorable (n : nat) (G : Type) [Graph G] := nonempty (hom G (K' n))
 
--- theorem four_color {G : Type} [Graph G] : planar G -> colorable 4 G := sorry
+    -- theorem four_color {G : Type} [Graph G] : planar G -> colorable 4 G := sorry
+end Graph
