@@ -116,12 +116,12 @@ namespace Graph
         lemma follow_rev {l} (h h') : (follow_llist F l h).rev = follow_llist F l.rev h'
             := by { induction l with v v l hr, refl,
                 rw [follow_llist,llist.rev_concat],
-                    { replace hr := hr h.2 ((llist.is_path_rev Graph.adj (Graph.sym _)).mpr h.2),
+                    { replace hr := hr h.2 ((llist.is_path_rev Graph.adj Graph.sym).mpr h.2),
                         rw [hr], revert h', rw llist.rev, intro h', rw follow_append, 
                         congr,
                         let e : edges G := ⟨h.1⟩,
                         have h4 : (F.df e).l.rev = (F.df e.flip).l, by { rw F.sym _, refl },
-                        convert h4; rw llist.last_rev, exact Graph.sym _ h.1 },
+                        convert h4; rw llist.last_rev, exact Graph.sym h.1 },
                     { rw [llist.compat,follow_head], exact (F.df _).hy } }
 
         @[simp] def sfollow (p : spath G x y) : spath G' (F.f x) (F.f y)
@@ -198,7 +198,7 @@ namespace Graph
         def adj (x y : G) := ∃ x' y', x' ≈ x ∧ y' ≈ y ∧ @Graph.adj G _ x' y'
 
         lemma adj_symm (x y : G) : adj G x y -> adj G y x
-            := by { rintros ⟨x',y',h1,h2,h3⟩, exact ⟨y',x',h2,h1,Graph.sym _ h3⟩ }
+            := by { rintros ⟨x',y',h1,h2,h3⟩, exact ⟨y',x',h2,h1,Graph.sym h3⟩ }
 
         lemma adj_lift1 {a₁ a₂ b₁ b₂ : G} {h₁ : a₁ ≈ b₁} {h₂ : a₂ ≈ b₂} : adj G a₁ a₂ -> adj G b₁ b₂
             := by { rintros ⟨x',y',h1,h2,h3⟩, exact ⟨x', y', ⟨(chunked.eqv G).2.2 h1 h₁, (chunked.eqv G).2.2 h2 h₂, h3⟩⟩ }
@@ -247,7 +247,6 @@ namespace Graph
                 exact linked.tail _ h'_ih (proj_adj _ h'_a_1) }
 
         def is_minor (G G' : Type) [Graph G] [Graph G'] : Prop 
-            := ∃ C : chunked G', @embeds_into G (@contract G' C) _ 
-                (by apply contraction.contract_graph)
+            := ∃ C : chunked G', by exactI embeds_into G (contract G')
     end contraction
 end Graph

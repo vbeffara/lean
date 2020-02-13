@@ -25,7 +25,7 @@ namespace Graph
 
         def rev (p : path G x y) : path G y x
             := ⟨⟨llist.rev p.l, by { rw [llist.head_rev,p.hy] }, by { rw [llist.last_rev,p.hx] }⟩, 
-                (llist.is_path_rev Graph.adj (Graph.sym G)).mpr p.adj⟩
+                (llist.is_path_rev Graph.adj Graph.sym).mpr p.adj⟩
 
         lemma size_rev {p : path G x y} : size p.rev = size p
             := llist.size_rev

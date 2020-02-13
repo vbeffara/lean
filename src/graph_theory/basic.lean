@@ -1,7 +1,7 @@
 import tactic
 open relation.refl_trans_gen function
 
-@[ext] class Graph (V : Type) := (adj : V -> V -> Prop) (sym : symmetric adj)
+@[ext] class Graph (V : Type) := (adj : V -> V -> Prop) (sym {} : symmetric adj)
 
 def Graph.vertices {V : Type} (G : Graph V) := V
 
@@ -28,12 +28,12 @@ namespace Graph
         def mem (v : G) (e : edges G) := v = e.x ∨ v = e.y
         instance : has_mem G (edges G) := ⟨mem G⟩
 
-        def flip  {G : Type} [Graph G] (e : edges G)    : edges G := ⟨Graph.sym _ e.h⟩
+        def flip  {G : Type} [Graph G] (e : edges G)    : edges G := ⟨Graph.sym e.h⟩
         def same  {G : Type} [Graph G] (e e' : edges G) : Prop    := e' = e ∨ e' = e.flip
         def nsame {G : Type} [Graph G] (e e' : edges G) : Prop    := ¬ same e e'
     end edges
 
-    @[symm] lemma Graph.adj.symm : ∀ {x y : G}, Graph.adj x y -> Graph.adj y x := Graph.sym G
+    @[symm] lemma Graph.adj.symm : ∀ {x y : G}, Graph.adj x y -> Graph.adj y x := Graph.sym
 
     namespace linked
         variables {x y z : G}
