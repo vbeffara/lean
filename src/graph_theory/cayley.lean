@@ -28,7 +28,10 @@ namespace Graph
         @[symm] lemma adj_symm {x y} : adj S x y -> adj S y x
             := by { rw [adj,adj], rw <-(@inv_prod _ _ x y), apply S.sym }
 
-        def Cay : Graph G := { adj := adj S, sym := @adj_symm _ _ S }
+        def Cay (S : genset G) := G
+
+        instance : group (Cay S) := by { exact _inst_1 }
+        instance : Graph (Cay S) := { adj := adj S, sym := @adj_symm _ _ S }
         
         def shift_llist : llist G -> llist G := llist.map (λ v, a * v)
 
@@ -64,11 +67,11 @@ namespace Graph
 
         instance : connected_graph (Cay S) := ⟨connected S⟩
 
-        noncomputable def word_dist : G -> G -> ℕ := Graph.dist (Cay S)
+        noncomputable def word_dist : G -> G -> ℕ := @Graph.dist (Cay S) _ _
 
         lemma covariant : word_dist S (a*x) (a*y) = word_dist S x y
             := by { unfold word_dist Graph.dist, congr' 1, funext ℓ, rw [eq_iff_iff],
-                let dists : G -> G -> set ℕ := Graph.dists (Cay S),
+                let dists : G -> G -> set ℕ := @dists (Cay S) _ _,
                 have h2 : ∀ x y a ℓ, dists x y ℓ -> dists (a*x) (a*y) ℓ 
                     := by { intros x y a ℓ h, cases h with p, use ⟨shift_path S a p, h_h ▸ llist.size_map⟩ },
                 exact ⟨λ h, inv_mul_cancel_left a x ▸ inv_mul_cancel_left a y ▸ h2 (a*x) (a*y) a⁻¹ ℓ h,
@@ -89,7 +92,7 @@ namespace Graph
                     apply add_le_add (l_ih hp.2), rw [<-(covariant S2 l_a⁻¹),inv_mul_self], 
                     refine le_max_of_mem (mem_image_of_mem _ _) h, exact hp.1 } }
 
-        def id_S : (Cay S1).vertices -> (Cay S2).vertices := id
+        def id_S : Cay S1 -> Cay S2 := id
 
         theorem bilipschitz : ∃ K, lipschitz_with K (id_S S1 S2)
             := by { cases lipschitz S1 S2 with K h, use K, 

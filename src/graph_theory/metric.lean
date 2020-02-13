@@ -3,14 +3,14 @@ import topology.metric_space.basic
 set_option trace.check true
 
 namespace Graph
-    variables {V : Type} (G : Graph V) [connected_graph G] (a : V) {x y z : V}
+    variables (G : Type) [Graph G] [connected_graph G] (a : G) {x y z : G}
 
     def dists (x y) := set.range (path.size : path G x y -> ℕ)
 
     lemma dists_ne_empty : (dists G x y).nonempty
         := set.range_nonempty_iff_nonempty.mpr path.nonempty
 
-    noncomputable def dist (x y : V)
+    noncomputable def dist (x y : G)
         := well_founded.min nat.lt_wf (dists G x y) (dists_ne_empty _)
 
     lemma upper_bound (p : path G x y) : dist G x y <= p.size
@@ -38,10 +38,10 @@ namespace Graph
         := le_antisymm (dist_comm' G) (dist_comm' G)
 end Graph
 
-noncomputable instance Graph.vertices_has_dist {V : Type} (G : Graph V) [Graph.connected_graph G] : has_dist G.vertices
-    := ⟨λ x y, G.dist x y⟩
+noncomputable instance Graph.has_dist (G : Type) [Graph G] [Graph.connected_graph G] : has_dist G
+    := ⟨λ x y, Graph.dist G x y⟩
 
-noncomputable instance Graph.metric_space {V : Type} (G : Graph V) [Graph.connected_graph G] : metric_space G.vertices
+noncomputable instance Graph.metric_space (G : Type) [Graph G] [Graph.connected_graph G] : metric_space G
     :={ dist_self          := by { unfold dist, norm_cast, apply Graph.dist_self },
         eq_of_dist_eq_zero := by { unfold dist, norm_cast, apply Graph.eq_of_dist_eq_zero },
         dist_comm          := by { unfold dist, norm_cast, apply Graph.dist_comm },

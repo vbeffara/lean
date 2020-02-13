@@ -3,15 +3,15 @@ import graph_theory.basic graph_theory.path
 open function
 
 namespace Graph
-    variables {V V' : Type} (G : Graph V) (G' : Graph V')
+    variables (G G' : Type) [Graph G] [Graph G']
 
     structure embedding :=
-        (f        : V -> V')
-        (df       : Π e : G.edges, G'.spath (f e.x) (f e.y))
+        (f        : G -> G')
+        (df       : Π e : edges G, spath G' (f e.x) (f e.y))
         --
         (inj      : injective f)
         (nop      : ∀ e, 0 < (df e).size)
-        (sym      : ∀ e : G.edges, df e.flip = (df e).rev)
+        (sym      : ∀ e : edges G, df e.flip = (df e).rev)
         --
         (endpoint : ∀ {e x},    f x ∈ df e              -> x ∈ e)
         (disjoint : ∀ {e e' z},   z ∈ df e -> z ∈ df e' -> e.same e' ∨ ∃ x, z = f x)
@@ -21,7 +21,7 @@ end Graph
 
 namespace Graph
     namespace embedding
-        variables {V V' : Type} {G : Graph V} {G' : Graph V'} (F : embedding G G') {x y z : V} 
+        variables {G G' : Type} [Graph G] [Graph G'] (F : embedding G G') {x y z : G} 
 
         lemma endpoint_init {e : edges G} : F.f x ∈ (F.df e).l.init <-> x = e.x
             := by { split; intro h1, 
@@ -39,7 +39,7 @@ namespace Graph
                     rw (F.df e).hx at h5, rw h3 at h1, cases h5 h1 },
                 { subst h1, convert llist.mem_last_tail (F.nop e), exact (F.df e).hy.symm } }
 
-        def follow_llist : Π (l : llist V) (h : l.is_path G.adj), llist V'
+        def follow_llist : Π (l : llist G) (h : l.is_path Graph.adj), llist G'
             | (llist.pt v)     _ := llist.pt (F.f v)
             | (llist.cons v l) h := llist.concat (F.df ⟨h.1⟩) (follow_llist l h.2)
 
@@ -56,10 +56,10 @@ namespace Graph
             := by { induction l with v v l hr; rw follow_llist, { refl },
                 { rw llist.concat_last, exact hr } }
 
-        lemma follow_path {l h} : llist.is_path G'.adj (follow_llist F l h)
+        lemma follow_path {l h} : llist.is_path Graph.adj (follow_llist F l h)
             := by { induction l with v v l hr; rw [follow_llist],
                 { trivial },
-                { apply (llist.is_path_concat G'.adj _).mpr ⟨(F.df _).adj, hr⟩, 
+                { apply (llist.is_path_concat Graph.adj _).mpr ⟨(F.df _).adj, hr⟩, 
                     rw [llist.compat,follow_head,(F.df _).hy] } }
 
         def follow (p : path G x y) : path G' (F.f x) (F.f y)
@@ -104,7 +104,7 @@ namespace Graph
                         cases path.mem_edges_aux h8 with h13 h14,
                         cases F.endpoint h9 with h15 h15; rw h15; assumption } }
 
-        lemma follow_append {v l h} (h') (h'' : G.adj (llist.last l) v) : 
+        lemma follow_append {v l h} (h') (h'' : Graph.adj (llist.last l) v) : 
                 follow_llist F (llist.append v l) h = llist.concat (follow_llist F l h') (F.df ⟨h''⟩).l
             := by { induction l with w w l hr,
                 { exact llist.concat_nil (F.df _).hy },
@@ -116,12 +116,12 @@ namespace Graph
         lemma follow_rev {l} (h h') : (follow_llist F l h).rev = follow_llist F l.rev h'
             := by { induction l with v v l hr, refl,
                 rw [follow_llist,llist.rev_concat],
-                    { replace hr := hr h.2 ((llist.is_path_rev G.adj G.sym).mpr h.2),
+                    { replace hr := hr h.2 ((llist.is_path_rev Graph.adj (Graph.sym _)).mpr h.2),
                         rw [hr], revert h', rw llist.rev, intro h', rw follow_append, 
                         congr,
                         let e : edges G := ⟨h.1⟩,
                         have h4 : (F.df e).l.rev = (F.df e.flip).l, by { rw F.sym _, refl },
-                        convert h4; rw llist.last_rev, exact G.sym h.1 },
+                        convert h4; rw llist.last_rev, exact Graph.sym _ h.1 },
                     { rw [llist.compat,follow_head], exact (F.df _).hy } }
 
         @[simp] def sfollow (p : spath G x y) : spath G' (F.f x) (F.f y)
@@ -132,7 +132,7 @@ namespace Graph
     end embedding
 
     namespace embedding
-        variables {V V' V'' : Type} {G : Graph V} {G' : Graph V'} {G'' : Graph V''}
+        variables {G G' G'' : Type} [Graph G] [Graph G'] [Graph G'']
 
         def comp (F : embedding G G') (F' : embedding G' G'') : embedding G G'' := {
             f := F'.f ∘ F.f,
@@ -186,56 +186,58 @@ namespace Graph
     end embedding
 
     namespace contraction
-        variables {V : Type}
-
-        structure chunked (V : Type) extends Graph V :=
-            (rel : V -> V -> Prop)
+        structure chunked (G : Type) [Graph G] :=
+            (rel : G -> G -> Prop)
             (eqv : equivalence rel)
-            (cmp : ∀ x y, rel x y -> linked to_Graph x y)
+            (cmp : ∀ x y, rel x y -> Graph.linked G x y)
 
-        def vertices (G : chunked V) := V
+        variables {G : Type} [Graph G]
 
-        def chunked_setoid (G : chunked V) : setoid (vertices G) := ⟨G.rel,G.eqv⟩
+        def vertices (C : chunked G) := G
+
+        def chunked_setoid (C : chunked G) : setoid (vertices C) := ⟨C.rel,C.eqv⟩
         local attribute [instance] chunked_setoid
 
-        def adj (G : chunked V) (x y : vertices G) : Prop := ∃ x' y', x' ≈ x ∧ y' ≈ y ∧ G.adj x' y'
+        def adj (C : chunked G) (x y : vertices C) : Prop := ∃ x' y', x' ≈ x ∧ y' ≈ y ∧ @Graph.adj G _ x' y'
 
-        lemma adj_symm {G : chunked V} (x y : vertices G) : adj G x y -> adj G y x
-            := by { rintros ⟨x',y',h1,h2,h3⟩, exact ⟨y',x',h2,h1,G.sym h3⟩ }
+        lemma adj_symm {C : chunked G} (x y : vertices C) : adj C x y -> adj C y x
+            := by { rintros ⟨x',y',h1,h2,h3⟩, exact ⟨y',x',h2,h1,Graph.sym _ h3⟩ }
 
-        lemma adj_lift1 {G : chunked V} {a₁ a₂ b₁ b₂ : vertices G} {h₁ : a₁ ≈ b₁} {h₂ : a₂ ≈ b₂} : adj G a₁ a₂ -> adj G b₁ b₂
-            := by { rintros ⟨x',y',h1,h2,h3⟩, exact ⟨x', y', ⟨G.eqv.2.2 h1 h₁, G.eqv.2.2 h2 h₂, h3⟩⟩ }
+        lemma adj_lift1 {C : chunked G} {a₁ a₂ b₁ b₂ : vertices C} {h₁ : a₁ ≈ b₁} {h₂ : a₂ ≈ b₂} : adj C a₁ a₂ -> adj C b₁ b₂
+            := by { rintros ⟨x',y',h1,h2,h3⟩, exact ⟨x', y', ⟨C.eqv.2.2 h1 h₁, C.eqv.2.2 h2 h₂, h3⟩⟩ }
 
-        lemma adj_lift {G : chunked V} : ∀ (a₁ a₂ b₁ b₂ : vertices G), a₁ ≈ b₁ → a₂ ≈ b₂ → adj G a₁ a₂ = adj G b₁ b₂
+        lemma adj_lift {C : chunked G} : ∀ (a₁ a₂ b₁ b₂ : vertices C), a₁ ≈ b₁ → a₂ ≈ b₂ → adj C a₁ a₂ = adj C b₁ b₂
             := by { intros, apply iff_iff_eq.mp, split; 
                     apply adj_lift1; assumption <|> { symmetry, assumption } }
 
-        def contract (G : chunked V) : Graph (quotient (chunked_setoid G)) :=
+        def contract (C : chunked G) := quotient (chunked_setoid C)
+
+        instance (C : chunked G) : Graph (contract C) :=
         {
-            adj := quotient.lift₂ (adj G) adj_lift,
+            adj := quotient.lift₂ (adj C) adj_lift,
             sym := λ x y, quotient.induction_on₂ x y adj_symm
         }
 
         -- def is_contraction {V V' : Type} (G : Graph V) (G' : Graph V') : Prop 
         --     := ∃ C : chunked V', C.to_Graph = G' ∧ G = contract V' C
 
-        def proj_llist {G : chunked V} : llist G.to_Graph.vertices -> llist (contract G).vertices := llist.map (λ x, ⟦x⟧)
+        def proj_llist {C : chunked G} : llist G -> llist (contract C) := llist.map (λ x, ⟦x⟧)
 
-        lemma proj_head {G : chunked V} {l : llist G.to_Graph.vertices} : (proj_llist l).head = ⟦l.head⟧ 
+        lemma proj_head {C : chunked G} {l : llist G} : (@proj_llist G _ C l).head = ⟦l.head⟧ 
             := llist.head_map
 
-        lemma proj_last {G : chunked V} {l : llist G.to_Graph.vertices} : (proj_llist l).last = ⟦l.last⟧
+        lemma proj_last {C : chunked G} {l : llist G} : (@proj_llist G _ C l).last = ⟦l.last⟧
             := llist.last_map
 
-        lemma proj_adj {G : chunked V} {x y} : G.adj x y -> (contract G).adj ⟦x⟧ ⟦y⟧ 
+        lemma proj_adj {C : chunked G} {x y : vertices C} : @Graph.adj G _ x y -> @Graph.adj (contract C) _ ⟦x⟧ ⟦y⟧ 
             := λ h, exists.intro x (exists.intro y ⟨quotient.eq.mp rfl,quotient.eq.mp rfl,h⟩)
 
-        lemma proj_is_path {G : chunked V} {l} : llist.is_path G.adj l -> llist.is_path (contract G).adj (proj_llist l)
+        lemma proj_is_path {C : chunked G} {l : llist G} : llist.is_path Graph.adj l -> llist.is_path Graph.adj (@proj_llist G _ C l)
             := by { induction l, 
                 { intro, trivial },
                 { intro h, rw [proj_llist,llist.map,llist.is_path,llist.head_map], exact ⟨proj_adj h.1, l_ih h.2⟩ } }
 
-        def proj_path {G : chunked V} {x y} (p : path G.to_Graph x y) : path (contract G) ⟦x⟧ ⟦y⟧
+        def proj_path {C : chunked G} {x y} (p : path G x y) : path (contract C) ⟦x⟧ ⟦y⟧
             := {
                 l := proj_llist p.l,
                 hx := by { rw [proj_head,p.hx] },
@@ -243,7 +245,7 @@ namespace Graph
                 adj := proj_is_path p.adj
             }
 
-        lemma contract_connected {G : chunked V} (h : connected G.to_Graph) : connected (contract G)
+        lemma contract_connected {C : chunked G} (h : connected G) : connected (contract C)
             := by {
                 intro xbar, obtain ⟨x,hx⟩ := quot.exists_rep xbar, subst hx, 
                 intro ybar, obtain ⟨y,hy⟩ := quot.exists_rep ybar, subst hy, 
@@ -251,6 +253,6 @@ namespace Graph
                 exact linked.tail _ h'_ih (proj_adj h'_a_1) }
     end contraction
 
-    def is_minor {V : Type} {V' : Type} (G : Graph V) (G' : Graph V') : Prop 
-        := ∃ C : contraction.chunked V', C.to_Graph = G' ∧ embeds_into G (contraction.contract C)
+    def is_minor (G G' : Type) [Graph G] [Graph G'] : Prop 
+        := ∃ C : contraction.chunked G', embeds_into G (contraction.contract C)
 end Graph
