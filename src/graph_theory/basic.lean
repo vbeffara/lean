@@ -1,7 +1,7 @@
 import tactic
 open relation.refl_trans_gen function
 
-@[ext] class Graph (V : Type) := (adj : V -> V -> Prop) (sym {} : symmetric adj)
+@[ext,class] structure Graph (V : Type) := (adj : V -> V -> Prop) (sym {} : symmetric adj)
 
 def Graph.vertices {V : Type} (G : Graph V) := V
 
