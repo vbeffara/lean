@@ -84,13 +84,13 @@ namespace llist section
     lemma init_append : init (append x l) = to_list l
         := by { induction l, refl, simpa }
 
-    lemma head_tail : head l :: tail l = to_list l
+    lemma head_tail : list.cons (head l) (tail l) = to_list l
         := by { induction l, refl, simpa }
 
     lemma init_last : init l ++ [last l] = to_list l
         := by { induction l, { refl }, { rw [init,last,to_list,<-l_ih], refl } }
 
-    @[simp] lemma head_inside  (h : 0 < size l) : head l :: inside l = init l
+    @[simp] lemma head_inside  (h : 0 < size l) : list.cons (head l) (inside l) = init l
         := by { cases l, cases h, refl }
 
     @[simp] lemma inside_last' : inside (cons v l) ++ [last (cons v l)] = tail (cons v l)
@@ -123,7 +123,8 @@ namespace llist section
         := by { subst h, induction l, refl, simpa }
 
     @[simp] lemma concat_size : size (concat l l') = size l + size l'
-        := by { induction l, simp, simp [l_ih] }
+        := by { induction l, simp, rw [concat,size,l_ih,size], 
+            exact add_right_comm (size l_a_1) (size l') 1}
 
     lemma concat_assoc : concat (concat l l') l'' = concat l (concat l' l'')
         := by { induction l; rw [concat,concat], rw [l_ih,concat] }

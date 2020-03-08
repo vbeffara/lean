@@ -96,7 +96,8 @@ namespace Graph
 
         theorem bilipschitz : ∃ K, lipschitz_with K (id_S S1 S2)
             := by { cases lipschitz S1 S2 with K h, use K, 
-                unfold lipschitz_with dist has_dist.dist, 
+                rw lipschitz_with_iff_dist_le_mul,
+                simp only [id_S,id,has_dist.dist], 
                 norm_cast, exact h }
     end cayley
 end Graph
