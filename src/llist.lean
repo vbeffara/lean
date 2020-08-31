@@ -116,7 +116,7 @@ namespace llist section
 
     @[simp] lemma mem_concat (h : compat l l') : x ∈ concat l l' <-> x ∈ l ∨ x ∈ l'
         := by { induction l,
-            { simp at ⊢ h, subst h, cases l', simp, simp, rw [<-or_assoc,or_self] },
+            { simp at ⊢ h, subst h, cases l', simp, simp },
             { simp at ⊢ h, simp [l_ih h,or_assoc] } }
 
     @[simp] lemma concat_nil (h : last l = w) : concat l (pt w) = l

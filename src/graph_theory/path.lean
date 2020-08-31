@@ -77,7 +77,7 @@ namespace Graph
         lemma iff_path : linked G x y <-> nonempty (path G x y)
             := ⟨to_path,from_path⟩
 
-        instance [connected_graph G] : nonempty (path G x y) := to_path (connected_graph.conn G x y)
+        instance [connected_graph G] : nonempty (path G x y) := to_path (connected_graph.conn x y)
     end path
 
     @[ext] structure spath (G : Type) [Graph G] (x y) extends path G x y 

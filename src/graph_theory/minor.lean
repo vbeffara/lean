@@ -138,7 +138,7 @@ namespace Graph
             f := F'.f ∘ F.f,
             df := λ e, sfollow F' (F.df e),
             --
-            inj := injective_comp F'.inj F.inj,
+            inj := injective.comp F'.inj F.inj, 
             sym := λ e, (F.sym e).symm ▸ (sfollow_rev F' (F.df e)),
             nop := λ e, follow_nop F' (F.nop e),
             --
@@ -193,7 +193,7 @@ namespace Graph
 
         variables (G : Type) [chunked G]
 
-        instance chunked_setoid : setoid G := ⟨chunked.rel,chunked.eqv G⟩
+        instance chunked_setoid : setoid G := ⟨chunked.rel,chunked.eqv⟩
 
         def adj (x y : G) := ∃ x' y', x' ≈ x ∧ y' ≈ y ∧ @Graph.adj G _ x' y'
 
@@ -201,7 +201,7 @@ namespace Graph
             := by { rintros ⟨x',y',h1,h2,h3⟩, exact ⟨y',x',h2,h1,Graph.sym h3⟩ }
 
         lemma adj_lift1 {a₁ a₂ b₁ b₂ : G} {h₁ : a₁ ≈ b₁} {h₂ : a₂ ≈ b₂} : adj G a₁ a₂ -> adj G b₁ b₂
-            := by { rintros ⟨x',y',h1,h2,h3⟩, exact ⟨x', y', ⟨(chunked.eqv G).2.2 h1 h₁, (chunked.eqv G).2.2 h2 h₂, h3⟩⟩ }
+            := by { rintros ⟨x',y',h1,h2,h3⟩, exact ⟨x', y', ⟨(chunked.eqv).2.2 h1 h₁, (chunked.eqv).2.2 h2 h₂, h3⟩⟩ }
 
         lemma adj_lift : ∀ (a₁ a₂ b₁ b₂ : G), a₁ ≈ b₁ → a₂ ≈ b₂ → adj G a₁ a₂ = adj G b₁ b₂
             := by { intros, apply iff_iff_eq.mp, split; 
