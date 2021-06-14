@@ -1,8 +1,8 @@
 [package]
-name = "scratch"
+name = "graphs"
 version = "0.1"
-lean_version = "leanprover-community/lean:3.19.0"
+lean_version = "leanprover-community/lean:3.30.0"
 path = "src"
 
 [dependencies]
-mathlib = {git = "https://github.com/leanprover-community/mathlib", rev = "9e9e318c78c8aecbc3fcb0223e6f3d3aeba762c5"}
+mathlib = {git = "https://github.com/leanprover-community/mathlib", rev = "461b444d065e1747f1bda60070b4b5d6a3026fb2"}

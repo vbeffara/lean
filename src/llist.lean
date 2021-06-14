@@ -73,7 +73,7 @@ namespace llist section
         := by { induction l, simp, simp [l_ih] }
 
     @[simp] lemma nodup_append : nodup (append x l) <-> x ∉ l ∧ nodup l
-        := by { induction l; finish }
+        := by { induction l; split; finish }
 
     @[simp] lemma nodup_rev : nodup (rev l) <-> nodup l
         := by { induction l, simp, simp [l_ih] }
@@ -112,7 +112,7 @@ namespace llist section
         := by { cases l, refl, simp }
 
     @[simp] lemma is_path_rev (h : symmetric adj) : is_path adj (rev l) <-> is_path adj l
-        := by { induction l, trivial, simp [l_ih], exact and_congr ⟨@h _ _, @h _ _⟩ iff.rfl }
+        := by { induction l, trivial, simp [l_ih], intro hh, split; apply h }
 
     @[simp] lemma mem_concat (h : compat l l') : x ∈ concat l l' <-> x ∈ l ∨ x ∈ l'
         := by { induction l,
@@ -123,15 +123,14 @@ namespace llist section
         := by { subst h, induction l, refl, simpa }
 
     @[simp] lemma concat_size : size (concat l l') = size l + size l'
-        := by { induction l, simp, rw [concat,size,l_ih,size], 
-            exact add_right_comm (size l_a_1) (size l') 1}
+        := by { induction l, simp, rw [concat,size,l_ih,size], linarith }
 
     lemma concat_assoc : concat (concat l l') l'' = concat l (concat l' l'')
         := by { induction l; rw [concat,concat], rw [l_ih,concat] }
 
     lemma concat_nodup (h : compat l l') : nodup (concat l l') <-> nodup l ∧ nodup l' ∧ (∀ x, x ∈ l ∧ x ∈ l' -> x = head l')
         := by { induction l with v v l hr; rw [concat,nodup],
-            { split, { intro, refine ⟨trivial,a,_⟩, intros x h1, rw mem_singleton at h1, rwa h1.1 }, tauto },
+            { split, { intro a, refine ⟨trivial,a,_⟩, intros x h1, rw mem_singleton at h1, rwa h1.1 }, tauto },
             { rw [nodup,hr h], rw [compat,last] at h, split,
                 { rintros ⟨h1,h2,h3,h4⟩, rw mem_concat h at h1, push_neg at h1, refine ⟨⟨h1.1,h2⟩,h3,_⟩,
                     rintros x ⟨h6,h7⟩, cases h6,
@@ -155,9 +154,9 @@ namespace llist section
 
     lemma mem_init_last : x ∈ l <-> x ∈ init l ∨ x = last l
         := by { split,
-            { intro, induction l, { right, assumption }, { cases a, { left, left, exact a },
+            { intro a, induction l, { right, assumption }, { cases a, { left, left, exact a },
                 cases l_ih a, { left, right, assumption }, { right, rwa last } } },
-            { intro, cases a, exact mem_init a, convert last_mem } }
+            { intro a, cases a, exact mem_init a, convert last_mem } }
 
     lemma mem_head_tail : x ∈ l <-> x = head l ∨ x ∈ tail l
         := by { cases l, { rw [mem_singleton,head,tail], convert (or_false _).symm },
@@ -179,7 +178,7 @@ namespace llist section
     lemma nodup_mem_last (h : nodup l) : last l ∉ init l
         := by { induction l, { rw [init,list.mem_nil_iff], trivial }, 
             { rw [last,init,list.mem_cons_iff], push_neg, split,
-                { intro, apply h.1, convert last_mem, exact a.symm },
+                { intro a, apply h.1, convert last_mem, exact a.symm },
                 { exact l_ih h.2 } } }
 
     lemma rev_compat : compat l l' <-> compat l'.rev l.rev
