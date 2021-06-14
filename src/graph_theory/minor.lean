@@ -121,7 +121,7 @@ namespace Graph
                         congr,
                         let e : edges G := ⟨h.1⟩,
                         have h4 : (F.df e).l.rev = (F.df e.flip).l, by { rw F.sym _, refl },
-                        convert h4; rw llist.last_rev, exact Graph.sym h.1 },
+                        convert h4; exact llist.last_rev, finish },
                     { rw [llist.compat,follow_head], exact (F.df _).hy } }
 
         @[simp] def sfollow (p : spath G x y) : spath G' (F.f x) (F.f y)
@@ -244,7 +244,7 @@ namespace Graph
                 intro xbar, obtain ⟨x,hx⟩ := quot.exists_rep xbar, subst hx, 
                 intro ybar, obtain ⟨y,hy⟩ := quot.exists_rep ybar, subst hy, 
                 have h' := h x y, induction h', refl,
-                exact linked.tail _ h'_ih (proj_adj _ h'_a_1) }
+                exact linked.tail _ h'_ih (proj_adj _ h'_ᾰ_1) }
 
         def is_minor (G G' : Type) [Graph G] [Graph G'] : Prop 
             := ∃ C : chunked G', by exactI embeds_into G (contract G')

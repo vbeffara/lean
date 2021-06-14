@@ -59,8 +59,8 @@ namespace Graph
             { exact h, },
             { intros, apply linked.edge (Cay S), change 1⁻¹ * x_1 ∈ S, rwa [one_inv,one_mul] },
             { refl },
-            { intros, refine linked.trans _ a _, convert shift _ x_1 a_1, rw mul_one, },
-            { intros, apply inv, exact a },
+            { intros u v h1 h2, refine linked.trans _ h1 _, convert shift _ u h2, rw mul_one, },
+            { intros, apply inv, assumption },
         end
                 
         theorem connected : connected (Cay S)
@@ -89,10 +89,10 @@ namespace Graph
             := by { obtain K := max_of_nonempty (nonempty.image S1.nem _), cases K, use K_w, 
                 intros x y, obtain ⟨⟨⟨l,rfl,rfl⟩,hp⟩,h⟩ := Graph.shortest_path (Cay S1) x y, 
                 unfold word_dist, rw <-h, clear h, induction l; intros, simp,
-                { let z : G := llist.head l_a_1,
-                    transitivity word_dist S2 l_a z + word_dist S2 z l_a_1.last, { exact Graph.dist_triangle _ },
+                { let z : G := llist.head l_ᾰ_1,
+                    transitivity word_dist S2 l_ᾰ z + word_dist S2 z l_ᾰ_1.last, { exact Graph.dist_triangle _ },
                     rw [path.size,llist.size,mul_add,add_comm,mul_one],
-                    apply add_le_add (l_ih hp.2), rw [<-(covariant S2 l_a⁻¹),inv_mul_self], 
+                    apply add_le_add (l_ih hp.2), rw [<-(covariant S2 l_ᾰ⁻¹),inv_mul_self], 
                     refine le_max_of_mem (mem_image_of_mem _ _) K_h, exact hp.1 } }
 
         def id_S : Cay S1 -> Cay S2 := id
