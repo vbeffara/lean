@@ -2,28 +2,15 @@ import tactic
 import combinatorics.simple_graph.basic
 open relation.refl_trans_gen function
 
-abbreviation Graph := simple_graph
+namespace simple_graph
+    variables {V V': Type} {G : simple_graph V} {G' : simple_graph V'}
 
-def Graph.vertices {V : Type} (G : Graph V) := V
+    def linked (G : simple_graph V) (x y : V) := relation.refl_trans_gen G.adj x y
+    def connected (G : simple_graph V)        := ∀ x y, linked G x y
 
-namespace Graph
-    variables {V V': Type} {G : Graph V} {G' : Graph V'}
+    class connected_graph (G : simple_graph V) := (conn : connected G)
 
-    structure hom (G : Graph V) (G' : Graph V') :=
-        (f   : V -> V')
-        (hom : ∀ x y, G.adj x y -> G'.adj (f x) (f y))
-
-    structure iso (G : Graph V) (G' : Graph V') extends hom G G' :=
-        (bij : bijective f)
-        (iso : ∀ x y, G.adj x y <-> G'.adj (f x) (f y))
-
-    def isomorphic                     := inhabited (iso G G')
-    def linked (G : Graph V) (x y : V) := relation.refl_trans_gen G.adj x y
-    def connected (G : Graph V)        := ∀ x y, linked G x y
-
-    class connected_graph (G : Graph V) := (conn : connected G)
-
-    @[ext] structure edges (G : Graph V) := {x y : V} (h : G.adj x y)
+    @[ext] structure edges (G : simple_graph V) := {x y : V} (h : G.adj x y)
 
     namespace edges
         def mem (v : V) (e : edges G) := v = e.x ∨ v = e.y
@@ -34,7 +21,7 @@ namespace Graph
         def nsame (e e' : edges G) : Prop    := ¬ same e e'
     end edges
 
-    @[symm] lemma Graph.adj.symm : ∀ {x y : V}, G.adj x y -> G.adj y x := G.sym
+    @[symm] lemma simple_graph.adj.symm : ∀ {x y : V}, G.adj x y -> G.adj y x := G.sym
 
     namespace linked
         variables {x y z : V}
@@ -54,4 +41,4 @@ namespace Graph
 
         lemma equiv : equivalence (linked G) := ⟨@refl _ _, @symm _ _, @trans _ _⟩
     end linked
-end Graph
+end simple_graph

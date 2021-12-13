@@ -2,10 +2,10 @@ import tactic
 import graph_theory.basic graph_theory.path
 open function
 
-namespace Graph
-    variables {V V' : Type} (G : Graph V) (G' : Graph V')
+namespace simple_graph
+    variables {V V' : Type} (G : simple_graph V) (G' : simple_graph V')
 
-    structure embedding :=
+    structure path_embedding :=
         (f        : V -> V')
         (df       : Π e : edges G, spath G' (f e.x) (f e.y))
         --
@@ -16,12 +16,12 @@ namespace Graph
         (endpoint : ∀ {e x},    f x ∈ df e              -> x ∈ e)
         (disjoint : ∀ {e e' z},   z ∈ df e -> z ∈ df e' -> e.same e' ∨ ∃ x, z = f x)
 
-    def embeds_into := nonempty (embedding G G')
-end Graph
+    def embeds_into := nonempty (path_embedding G G')
+end simple_graph
 
-namespace Graph
-    namespace embedding
-        variables {V V' : Type} {G : Graph V} {G' : Graph V'} (F : embedding G G') {x y z : V}
+namespace simple_graph
+    namespace path_embedding
+        variables {V V' : Type} {G : simple_graph V} {G' : simple_graph V'} (F : path_embedding G G') {x y z : V}
 
         lemma endpoint_init {e : edges G} : F.f x ∈ (F.df e).l.init <-> x = e.x
             := by { split; intro h1,
@@ -129,12 +129,12 @@ namespace Graph
 
         @[simp] lemma sfollow_rev (p : spath G x y) : sfollow F p.rev = (sfollow F p).rev
             := by { simp only [sfollow,follow,spath.rev,path.rev], rw follow_rev }
-    end embedding
+    end path_embedding
 
-    namespace embedding
-        variables {V V' V'' : Type} {G : Graph V} {G' : Graph V'} {G'' : Graph V''}
+    namespace path_embedding
+        variables {V V' V'' : Type} {G : simple_graph V} {G' : simple_graph V'} {G'' : simple_graph V''}
 
-        def comp (F : embedding G G') (F' : embedding G' G'') : embedding G G'' := {
+        def comp (F : path_embedding G G') (F' : path_embedding G' G'') : path_embedding G G'' := {
             f := F'.f ∘ F.f,
             df := λ e, sfollow F' (F.df e),
             --
@@ -183,15 +183,15 @@ namespace Graph
 
         theorem trans : embeds_into G G' -> embeds_into G' G'' -> embeds_into G G''
             := by { intros F F', cases F, cases F', use comp F F' }
-    end embedding
+    end path_embedding
 
     namespace contraction
-        structure chunks {V : Type} (G : Graph V) :=
+        structure chunks {V : Type} (G : simple_graph V) :=
             (rel : V -> V -> Prop)
             (eqv : equivalence rel)
             (cmp : ∀ x y, rel x y -> linked G x y)
 
-        variables {V : Type} {G : Graph V} (C : chunks G)
+        variables {V : Type} {G : simple_graph V} (C : chunks G)
 
         instance chunked_setoid (C : chunks G) : setoid V := ⟨C.rel,C.eqv⟩
 
@@ -208,7 +208,7 @@ namespace Graph
                     { apply adj_lift1; assumption },
                     { intro h, apply adj_lift1, exact C.eqv.2.1 h1, exact C.eqv.2.1 h2, exact h } }
 
-        -- def contract C : Graph (quotient (chunked_setoid C)) :=
+        -- def contract C : simple_graph (quotient (chunked_setoid C)) :=
         -- {
         --     adj := quotient.lift₂ (adj G) (adj_lift G),
         --     sym := λ x y, quotient.induction_on₂ x y (adj_symm G)
@@ -222,10 +222,10 @@ namespace Graph
         -- lemma proj_last {l : llist G} : (proj_llist G l).last = ⟦l.last⟧
         --     := llist.last_map
 
-        -- lemma proj_adj {x y : G} : Graph.adj x y -> @Graph.adj (contract G) _ ⟦x⟧ ⟦y⟧
+        -- lemma proj_adj {x y : G} : simple_graph.adj x y -> @simple_graph.adj (contract G) _ ⟦x⟧ ⟦y⟧
         --     := λ h, exists.intro x (exists.intro y ⟨quotient.eq.mp rfl,quotient.eq.mp rfl,h⟩)
 
-        -- lemma proj_is_path {l : llist G} : llist.is_path Graph.adj l -> llist.is_path Graph.adj (proj_llist G l)
+        -- lemma proj_is_path {l : llist G} : llist.is_path simple_graph.adj l -> llist.is_path simple_graph.adj (proj_llist G l)
         --     := by { induction l,
         --         { intro, trivial },
         --         { intro h, rw [proj_llist,llist.map,llist.is_path,llist.head_map], exact ⟨proj_adj G h.1, l_ih h.2⟩ } }
@@ -245,7 +245,7 @@ namespace Graph
         --         have h' := h x y, induction h', refl,
         --         exact linked.tail _ h'_ih (proj_adj _ h'_ᾰ_1) }
 
-        -- def is_minor (G G' : Type) [Graph G] [Graph G'] : Prop
+        -- def is_minor (G G' : Type) [simple_graph G] [simple_graph G'] : Prop
         --     := ∃ C : chunked G', by exactI embeds_into G (contract G')
     end contraction
-end Graph
+end simple_graph

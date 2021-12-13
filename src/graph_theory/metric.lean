@@ -2,8 +2,8 @@ import graph_theory.basic graph_theory.path
 import topology.metric_space.basic
 set_option trace.check true
 
-namespace Graph
-    variables {V : Type} (G : Graph V) [connected_graph G] (a : V) {x y z : V}
+namespace simple_graph
+    variables {V : Type} (G : simple_graph V) [connected_graph G] (a : V) {x y z : V}
 
     def dists (x y) := set.range (path.size : path G x y -> ℕ)
 
@@ -40,13 +40,13 @@ namespace Graph
 
     lemma dist_comm : dist G x y = dist G y x
         := le_antisymm (dist_comm' G) (dist_comm' G)
-end Graph
+end simple_graph
 
-noncomputable instance Graph.has_dist {V : Type} (G : Graph V) [Graph.connected_graph G] : has_dist V
-    := ⟨λ x y, Graph.dist G x y⟩
+noncomputable instance simple_graph.has_dist {V : Type} (G : simple_graph V) [simple_graph.connected_graph G] : has_dist V
+    := ⟨λ x y, simple_graph.dist G x y⟩
 
-noncomputable instance Graph.metric_space {V : Type} (G : Graph V) [Graph.connected_graph G] : metric_space V
-    :={ dist_self          := by { unfold dist, norm_cast, apply Graph.dist_self },
-        eq_of_dist_eq_zero := by { unfold dist, norm_cast, apply Graph.eq_of_dist_eq_zero },
-        dist_comm          := by { unfold dist, norm_cast, apply Graph.dist_comm },
-        dist_triangle      := by { unfold dist, norm_cast, apply Graph.dist_triangle } }
+noncomputable instance simple_graph.metric_space {V : Type} (G : simple_graph V) [simple_graph.connected_graph G] : metric_space V
+    :={ dist_self          := by { unfold dist, norm_cast, apply simple_graph.dist_self },
+        eq_of_dist_eq_zero := by { unfold dist, norm_cast, apply simple_graph.eq_of_dist_eq_zero },
+        dist_comm          := by { unfold dist, norm_cast, apply simple_graph.dist_comm },
+        dist_triangle      := by { unfold dist, norm_cast, apply simple_graph.dist_triangle } }

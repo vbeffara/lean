@@ -1,7 +1,7 @@
 import tactic group_theory.subgroup
 import graph_theory.path graph_theory.metric topology.metric_space.lipschitz
 
-namespace Graph
+namespace simple_graph
     namespace cayley
         structure genset (G : Type) [group G] :=
             (els : finset G)
@@ -36,14 +36,14 @@ namespace Graph
             rw <-inv_prod, exact S.sym h2
         end
 
-        def Cay (S : genset G) : Graph G := ⟨
+        def Cay (S : genset G) : simple_graph G := ⟨
             adj S,
             by { apply adj_symm },
             by { intro x, unfold adj, tauto }
         ⟩
 
         -- instance : group (Cay S) := by { exact _inst_1 }
-        -- instance : Graph (Cay S) := { adj := adj S, sym := @adj_symm _ _ S }
+        -- instance : simple_graph (Cay S) := { adj := adj S, sym := @adj_symm _ _ S }
 
         def shift_llist : llist G -> llist G := llist.map (λ v, a * v)
 
@@ -84,10 +84,10 @@ namespace Graph
 
         instance : connected_graph (Cay S) := ⟨connected S⟩
 
-        noncomputable def word_dist : G -> G -> ℕ := Graph.dist (Cay S)
+        noncomputable def word_dist : G -> G -> ℕ := simple_graph.dist (Cay S)
 
         lemma covariant : word_dist S (a*x) (a*y) = word_dist S x y
-            := by { unfold word_dist Graph.dist, congr' 1, funext ℓ, rw [eq_iff_iff],
+            := by { unfold word_dist simple_graph.dist, congr' 1, funext ℓ, rw [eq_iff_iff],
                 let dists : G -> G -> set ℕ := dists (Cay S),
                 have h2 : ∀ x y a ℓ, dists x y ℓ -> dists (a*x) (a*y) ℓ
                     := by { intros x y a ℓ h, cases h with p, use ⟨shift_path S a p, h_h ▸ llist.size_map⟩ },
@@ -101,14 +101,14 @@ namespace Graph
 
         lemma lipschitz : ∃ K : ℕ, ∀ x y : G, word_dist S2 x y <= K * word_dist S1 x y
             := by { obtain K := max_of_nonempty (nonempty.image S1.nem _), cases K, use K_w,
-                intros x y, obtain ⟨⟨⟨l,rfl,rfl⟩,hp⟩,h⟩ := Graph.shortest_path (Cay S1) x y,
+                intros x y, obtain ⟨⟨⟨l,rfl,rfl⟩,hp⟩,h⟩ := simple_graph.shortest_path (Cay S1) x y,
                 unfold word_dist, rw <-h, clear h, induction l; intros, simp,
                 { let z : G := llist.head l_ᾰ_1,
-                    transitivity word_dist S2 l_ᾰ z + word_dist S2 z l_ᾰ_1.last, { exact Graph.dist_triangle _ },
+                    transitivity word_dist S2 l_ᾰ z + word_dist S2 z l_ᾰ_1.last, { exact simple_graph.dist_triangle _ },
                     rw [path.size,llist.size,mul_add,add_comm,mul_one],
                     apply add_le_add (l_ih hp.2), rw [<-(covariant S2 l_ᾰ⁻¹),inv_mul_self],
                     refine le_max_of_mem (mem_image_of_mem _ _) K_h, exact hp.1.2 } }
 
         -- theorem bilipschitz : don't know how to state it
     end cayley
-end Graph
+end simple_graph

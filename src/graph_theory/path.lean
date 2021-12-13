@@ -1,22 +1,22 @@
 import tactic
 import graph_theory.basic llist
 
-namespace Graph
-    structure path {V : Type} (G : Graph V) (x y) extends llist' V x y
+namespace simple_graph
+    structure path {V : Type} (G : simple_graph V) (x y) extends llist' V x y
       := (adj : llist.is_path G.adj l)
 
     namespace path
-        variables {V : Type} (G : Graph V) {x y z : V}
+        variables {V : Type} (G : simple_graph V) {x y z : V}
 
         instance : has_coe (path G x y) (llist' V x y) := ⟨path.to_llist'⟩
 
-        def mem {G : Graph V} (v : V) (p : path G x y) : Prop := v ∈ p.l
+        def mem {G : simple_graph V} (v : V) (p : path G x y) : Prop := v ∈ p.l
 
         instance : has_mem V (path G x y) := ⟨mem⟩
 
         def simple     (p : path G x y) : Prop := llist.nodup p.l
 
-        def size {G : Graph V} (p : path G x y) : nat  := llist.size p.l
+        def size {G : simple_graph V} (p : path G x y) : nat  := llist.size p.l
 
         instance : has_sizeof (path G x y) := ⟨size⟩
 
@@ -44,20 +44,20 @@ namespace Graph
             | (llist.pt v)   _ := []
             | (llist.cons v l) h := ⟨h.1⟩ :: edges_aux l h.2
 
-        def all_edges {G : Graph V} (p : path G x y) : list (edges G)
+        def all_edges {G : simple_graph V} (p : path G x y) : list (edges G)
             := edges_aux G p.l p.adj
 
-        lemma mem_edges_aux' {G : Graph V} {l h} {e : edges G} : e ∈ edges_aux G l h -> e.x ∈ l.init ∧ e.y ∈ l.tail
+        lemma mem_edges_aux' {G : simple_graph V} {l h} {e : edges G} : e ∈ edges_aux G l h -> e.x ∈ l.init ∧ e.y ∈ l.tail
             := by { induction l with v v l hr; intros he; cases he with he he,
                 { subst he, split; left; refl },
                 { cases hr he, split; right; assumption } }
 
-        lemma mem_edges_aux {G : Graph V} {l h} {e : edges G} : e ∈ edges_aux G l h -> e.x ∈ l ∧ e.y ∈ l
+        lemma mem_edges_aux {G : simple_graph V} {l h} {e : edges G} : e ∈ edges_aux G l h -> e.x ∈ l ∧ e.y ∈ l
             := by { intro h1, cases mem_edges_aux' h1 with h2 h3, split,
                 { exact llist.mem_init_last.mpr (or.inl h2) },
                 { exact llist.mem_head_tail.mpr (or.inr h3) } }
 
-        lemma mem_edges {G : Graph V} {p : path G x y} {e : edges G} : e ∈ p.all_edges -> e.x ∈ p ∧ e.y ∈ p
+        lemma mem_edges {G : simple_graph V} {p : path G x y} {e : edges G} : e ∈ p.all_edges -> e.x ∈ p ∧ e.y ∈ p
             := mem_edges_aux
 
         lemma edges_simple {l} (h : llist.is_path G.adj l) (hs : llist.nodup l) : list.pairwise (edges.nsame) (edges_aux G l h)
@@ -83,11 +83,11 @@ namespace Graph
         instance [connected_graph G] : nonempty (path G x y) := to_path G (connected_graph.conn x y)
     end path
 
-    @[ext] structure spath {V : Type} (G : Graph V) (x y) extends path G x y
+    @[ext] structure spath {V : Type} (G : simple_graph V) (x y) extends path G x y
         := (simple : path.simple G to_path)
 
     namespace spath
-        variables {V : Type} {G : Graph V} {x y z : V}
+        variables {V : Type} {G : simple_graph V} {x y z : V}
 
         def mem (z) (p : spath G x y) := z ∈ to_path p
         instance : has_mem V (spath G x y) := ⟨mem⟩
@@ -102,4 +102,4 @@ namespace Graph
         lemma edges_simple {p : spath G x y} : list.pairwise (edges.nsame) p.to_path.all_edges
             := path.edges_simple G _ p.simple
     end spath
-end Graph
+end simple_graph
