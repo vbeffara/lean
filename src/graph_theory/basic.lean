@@ -1,56 +1,57 @@
 import tactic
+import combinatorics.simple_graph.basic
 open relation.refl_trans_gen function
 
-@[ext,class] structure Graph (V : Type) := (adj : V -> V -> Prop) (sym {} : symmetric adj)
+abbreviation Graph := simple_graph
 
 def Graph.vertices {V : Type} (G : Graph V) := V
 
 namespace Graph
-    variables (G G' : Type) [Graph G] [Graph G']
+    variables {V V': Type} {G : Graph V} {G' : Graph V'}
 
-    structure hom :=
-        (f   : G -> G')
-        (hom : ∀ x y, Graph.adj x y -> Graph.adj (f x) (f y))
+    structure hom (G : Graph V) (G' : Graph V') :=
+        (f   : V -> V')
+        (hom : ∀ x y, G.adj x y -> G'.adj (f x) (f y))
 
-    structure iso extends hom G G' :=
+    structure iso (G : Graph V) (G' : Graph V') extends hom G G' :=
         (bij : bijective f)
-        (iso : ∀ x y, Graph.adj x y <-> Graph.adj (f x) (f y))
+        (iso : ∀ x y, G.adj x y <-> G'.adj (f x) (f y))
 
-    def isomorphic       := inhabited (iso G G')
-    def linked (x y : G) := relation.refl_trans_gen Graph.adj x y
-    def connected        := ∀ x y, linked G x y
+    def isomorphic                     := inhabited (iso G G')
+    def linked (G : Graph V) (x y : V) := relation.refl_trans_gen G.adj x y
+    def connected (G : Graph V)        := ∀ x y, linked G x y
 
-    class connected_graph := (conn : connected G)
+    class connected_graph (G : Graph V) := (conn : connected G)
 
-    @[ext] structure edges := {x y : G} (h : Graph.adj x y)
+    @[ext] structure edges (G : Graph V) := {x y : V} (h : G.adj x y)
 
     namespace edges
-        def mem (v : G) (e : edges G) := v = e.x ∨ v = e.y
-        instance : has_mem G (edges G) := ⟨mem G⟩
+        def mem (v : V) (e : edges G) := v = e.x ∨ v = e.y
+        instance : has_mem V (edges G) := ⟨mem⟩
 
-        def flip  {G : Type} [Graph G] (e : edges G)    : edges G := ⟨Graph.sym e.h⟩
-        def same  {G : Type} [Graph G] (e e' : edges G) : Prop    := e' = e ∨ e' = e.flip
-        def nsame {G : Type} [Graph G] (e e' : edges G) : Prop    := ¬ same e e'
+        def flip  (e : edges G)    : edges G := ⟨G.sym e.h⟩
+        def same  (e e' : edges G) : Prop    := e' = e ∨ e' = flip e
+        def nsame (e e' : edges G) : Prop    := ¬ same e e'
     end edges
 
-    @[symm] lemma Graph.adj.symm : ∀ {x y : G}, Graph.adj x y -> Graph.adj y x := Graph.sym
+    @[symm] lemma Graph.adj.symm : ∀ {x y : V}, G.adj x y -> G.adj y x := G.sym
 
     namespace linked
-        variables {x y z : G}
+        variables {x y z : V}
 
         @[refl] lemma refl : linked G x x := refl
 
-        lemma edge : Graph.adj x y                  -> linked G x y := single
-        lemma cons : Graph.adj x y -> linked G y z  -> linked G x z := head
-        lemma tail : linked G x y  -> Graph.adj y z -> linked G x z := tail
+        lemma edge : G.adj x y                  -> linked G x y := single
+        lemma cons : G.adj x y -> linked G y z  -> linked G x z := head
+        lemma tail : linked G x y  -> G.adj y z -> linked G x z := tail
 
         @[symm] lemma symm : linked G x y -> linked G y x
-            := by { intro h, induction h with b c hxb hbc hbx, refl, 
+            := by { intro h, induction h with b c hxb hbc hbx, refl,
                 apply cons, symmetry, exact hbc, exact hbx }
 
         @[trans] lemma trans : linked G x y -> linked G y z -> linked G x z
             := trans
 
-        lemma equiv : equivalence (linked G) := ⟨@refl G _, @symm G _, @trans G _⟩
+        lemma equiv : equivalence (linked G) := ⟨@refl _ _, @symm _ _, @trans _ _⟩
     end linked
 end Graph
