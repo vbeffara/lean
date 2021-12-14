@@ -22,10 +22,12 @@ namespace llist section
     @[simp] def map            : llist V -> llist W | (pt v) := pt (f v)      | (cons v l) := cons (f v) (map l)
 
     @[simp] def concat : llist V -> llist V -> llist V | (pt _) l' := l' | (cons v l) l' := cons v (concat l l')
-    
+
     variables {x y v w : V} {l l' l'' : llist V}
 
     @[simp] def compat (l l' : llist V) := last l = head l'
+
+    @[simp] lemma head_pt : head (pt v) = v := rfl
 
     @[simp] lemma head_concat : compat l l' -> head (concat l l') = head l
         := by { cases l, exact eq.symm, simp }
@@ -172,11 +174,11 @@ namespace llist section
         := by { rw [<-(inside_last h),list.mem_append_eq,list.mem_singleton] }
 
     lemma nodup_mem_head (h : nodup l) : head l ∉ tail l
-        := by { cases l, { rw [tail,list.mem_nil_iff], trivial }, 
+        := by { cases l, { rw [tail,list.mem_nil_iff], trivial },
             { rw [head,tail,head_tail,mem_list], exact h.1 } }
 
     lemma nodup_mem_last (h : nodup l) : last l ∉ init l
-        := by { induction l, { rw [init,list.mem_nil_iff], trivial }, 
+        := by { induction l, { rw [init,list.mem_nil_iff], trivial },
             { rw [last,init,list.mem_cons_iff], push_neg, split,
                 { intro a, apply h.1, convert last_mem, exact a.symm },
                 { exact l_ih h.2 } } }
@@ -193,13 +195,13 @@ namespace llist section
             { rw [concat,rev,l_ih h,concat_append,rev] } }
 
     lemma nodup_init (h : nodup l) : list.nodup (init l)
-        := by { induction l, { exact list.pairwise.nil }, 
-            { rw [init,list.nodup,list.pairwise_cons], refine ⟨_,l_ih h.2⟩, 
+        := by { induction l, { exact list.pairwise.nil },
+            { rw [init,list.nodup,list.pairwise_cons], refine ⟨_,l_ih h.2⟩,
                 intros a h1 h2, replace h := h.1, rw h2 at h, exact h (mem_init h1) } }
 
     lemma nodup_of_init : list.nodup (init l) -> last l ∉ init l -> nodup l
         := by { induction l, { intros, trivial },
-            { rw [init,last,nodup,list.nodup_cons,list.mem_cons_iff], push_neg, 
+            { rw [init,last,nodup,list.nodup_cons,list.mem_cons_iff], push_neg,
                 rintros ⟨h1,h2⟩ ⟨h3,h4⟩, refine ⟨_,l_ih h2 h4⟩,
                 rw mem_init_last, push_neg, exact ⟨h1,h3.symm⟩ } }
 
@@ -230,7 +232,7 @@ namespace llist' open llist
     def pt   (v : V)                    : llist' V v v := ⟨pt v,     rfl, rfl⟩
     def cons (v : V) (l : llist' V x y) : llist' V v y := ⟨cons v l, rfl, l.hy⟩
 
-    lemma compat {l : llist' V x y} {l' : llist' V y z} : llist.compat l.l l'.l 
+    lemma compat {l : llist' V x y} {l' : llist' V y z} : llist.compat l.l l'.l
         := eq.trans l.hy l'.hx.symm
 
     @[simp] def concat {x y z : V} (l : llist' V x y) (l' : llist' V y z) : llist' V x z

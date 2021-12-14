@@ -23,6 +23,13 @@ namespace simple_graph
         def point (v : V) : path G v v
             := ⟨⟨llist.pt v, rfl, rfl⟩, trivial⟩
 
+        def step (h : G.adj x y) (p : path G y z) : path G x z
+            := by {
+                refine p.cases_on (λ l', _),
+                refine l'.cases_on (λ l hy hz, _),
+                exact (λ hh, (⟨⟨llist.cons x l,rfl,hz⟩,⟨hy.symm ▸ h,hh⟩⟩ : path G x z))
+            }
+
         def from_edge (h : G.adj x y) : path G x y
             := ⟨⟨llist.cons x (llist.pt y), rfl, rfl⟩, ⟨h,trivial⟩⟩
 
@@ -102,4 +109,43 @@ namespace simple_graph
         lemma edges_simple {p : spath G x y} : list.pairwise (edges.nsame) p.to_path.all_edges
             := path.edges_simple G _ p.simple
     end spath
+end simple_graph
+
+namespace simple_graph
+    variables {V : Type} {G : simple_graph V}
+
+    inductive path2 (G : simple_graph V) : V -> V -> Type
+    | point (x : V) : path2 x x
+    | step {x y z : V} : G.adj x y -> path2 y z -> path2 x z
+
+    def concat2 {x y z : V} (p1 : path2 G x y) (p2 : path2 G y z) : path2 G x z
+    := begin
+        induction p1 with x u v w h1 p'1 h2, exact p2,
+        refine path2.step h1 (h2 p2)
+    end
+
+    def concat2' {x y z : V} (p1 : path2 G x y) (p2 : path2 G y z) : path2 G x z
+        := path2.rec (λ _ p2, p2) (λ _ _ _ h' _ h p3, path2.step h' (h p3)) p1 p2
+
+    def path_to_path2 {x y : V} (p : path G x y) : path2 G x y
+    := begin
+        rcases p with ⟨⟨l,hx,hy⟩,h⟩, simp at h, revert x y h hx hy,
+        induction l with x' x' l ih; intros x y h hx hy,
+        { rw [<-hx, <-hy], exact path2.point x' },
+        { rw [<-hx], exact path2.step h.1 (ih h.2 rfl hy) }
+    end
+
+    #print path_to_path2
+
+    def path2_to_path {x y : V} (p : path2 G x y) : path G x y
+        := path2.rec (path.point G) (λ _ _ _ h _, path.step G h) p
+
+    @[simp] lemma toto {x y z : V} {h : G.adj x y} {p : path2 G y z}: path2_to_path (path2.step h p) = path.step G h (path2_to_path p)
+        := rfl
+
+    @[simp] lemma toto2 {x y z : V} {h : G.adj x y} {p : path G y z}: path_to_path2 (path.step G h p) = path2.step h (path_to_path2 p)
+        := by { rcases p with ⟨⟨l,hx,hy⟩,hh⟩, finish }
+
+    lemma path2_to_path_to_path2 {x y : V} {p : path2 G x y}: path_to_path2 (path2_to_path p) = p
+        := by { induction p; simpa }
 end simple_graph
