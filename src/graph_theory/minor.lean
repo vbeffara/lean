@@ -6,10 +6,9 @@ namespace simple_graph
     variables {V V' : Type} (G : simple_graph V) (G' : simple_graph V')
 
     structure path_embedding :=
-        (f        : V -> V')
+        (f        : V ↪ V')
         (df       : Π e : edges G, spath G' (f e.x) (f e.y))
         --
-        (inj      : injective f)
         (nop      : ∀ e, 0 < (df e).size)
         (sym      : ∀ e : edges G, df e.flip = (df e).rev)
         --
@@ -135,10 +134,9 @@ namespace simple_graph
         variables {V V' V'' : Type} {G : simple_graph V} {G' : simple_graph V'} {G'' : simple_graph V''}
 
         def comp (F : path_embedding G G') (F' : path_embedding G' G'') : path_embedding G G'' := {
-            f := F'.f ∘ F.f,
+            f := ⟨F'.f ∘ F.f, injective.comp F'.f.inj' F.f.inj'⟩,
             df := λ e, sfollow F' (F.df e),
             --
-            inj := injective.comp F'.inj F.inj,
             sym := λ e, (F.sym e).symm ▸ (sfollow_rev F' (F.df e)),
             nop := λ e, follow_nop F' (F.nop e),
             --
@@ -177,7 +175,7 @@ namespace simple_graph
                     replace h5 : x ∈ F.df e2, { cases path.mem_edges h5, cases F'.endpoint h6; rw h; assumption },
                     cases (F.disjoint h3 h5),
                     { exact or.inl h },
-                    { obtain ⟨y,h⟩ := h, right, use y, rw h } }
+                    { obtain ⟨y,h⟩ := h, right, use y, rw h, refl } }
                 }
         }
 
@@ -197,7 +195,10 @@ namespace simple_graph
 
         def adj (x y : V) := ∃ x' y', C.rel x x' ∧ C.rel y y' ∧ G.adj x' y'
 
-        lemma adj_symm (x y : V) : adj C x y -> adj C y x
+        @[symm] lemma rel_symm (x y : V) : C.rel x y -> C.rel y x
+            := by { apply C.eqv.2.1 }
+
+        @[symm] lemma adj_symm (x y : V) : adj C x y -> adj C y x
             := by { rintros ⟨x',y',h1,h2,h3⟩, exact ⟨y',x',h2,h1,G.sym h3⟩ }
 
         lemma adj_lift1 {a₁ a₂ b₁ b₂ : V} {h₁ : C.rel b₁ a₁} {h₂ : C.rel b₂ a₂} : adj C a₁ a₂ -> adj C b₁ b₂
@@ -206,7 +207,7 @@ namespace simple_graph
         lemma adj_lift : ∀ (a₁ a₂ b₁ b₂ : V), C.rel b₁ a₁ → C.rel b₂ a₂ → adj C a₁ a₂ = adj C b₁ b₂
             := by { intros a₁ a₂ b₁ b₂ h1 h2, apply iff_iff_eq.mp, split,
                     { apply adj_lift1; assumption },
-                    { intro h, apply adj_lift1, exact C.eqv.2.1 h1, exact C.eqv.2.1 h2, exact h } }
+                    { intro h, apply adj_lift1, symmetry, assumption, symmetry, assumption, assumption } }
 
         -- def contract C : simple_graph (quotient (chunked_setoid C)) :=
         -- {
