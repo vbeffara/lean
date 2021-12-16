@@ -42,24 +42,19 @@ namespace simple_graph
             by { intro x, unfold adj, tauto }
         ⟩
 
-        -- instance : group (Cay S) := by { exact _inst_1 }
-        -- instance : simple_graph (Cay S) := { adj := adj S, sym := @adj_symm _ _ S }
-
-        def shift_llist : llist G -> llist G := llist.map (λ v, a * v)
-
-        lemma shift_is_path {l : llist G} (h : llist.is_path (adj S) l) : llist.is_path (adj S) (shift_llist a l)
-            := by { induction l with v v l hr, trivial,
-                refine ⟨_, hr h.2⟩, rw [llist.head_map], exact shift_adj S h.1 }
-
         def shift_path (p : path (Cay S) x y) : path (Cay S) (a*x : G) (a*y : G)
-            := { l := @shift_llist _ _ a p.l,
-                hx := by { rw [shift_llist,llist.head_map,p.hx] },
-                hy := by { rw [shift_llist,llist.last_map,p.hy] },
-                adj := shift_is_path _ _ p.adj }
+            := path.rec (λ x', path.point (a * x'))
+                        (λ _ _ _ h' _, path.step (shift_adj S h')) p
 
-        lemma shift : linked (Cay S) x y -> linked (Cay S) (a*x : G) (a*y : G)
-            := by { intro h, induction h with b c hxb hbc hr, refl,
-                exact linked.tail hr (shift_adj S hbc) }
+        @[simp] lemma shift_path_step (h : (Cay S).adj x y) (p : path (Cay S) y z)
+        : shift_path S a (path.step h p) = path.step (shift_adj S h) (shift_path S a p)
+            := rfl
+
+        @[simp] lemma size_shift_path (p : path (Cay S) x y) : (shift_path S a p).size = p.size
+            := by { induction p, refl, simp [*] }
+
+        lemma shift (h : linked (Cay S) x y) : linked (Cay S) (a*x : G) (a*y : G)
+            := by { cases (path.iff_path.mp h), refine path.iff_path.mpr _, use shift_path S _ val }
 
         lemma inv : linked (Cay S) (1:G) x -> linked (Cay S) (1:G) (x⁻¹:G)
             := by { intro h, symmetry, convert shift S x⁻¹ h; simp }
@@ -90,7 +85,7 @@ namespace simple_graph
             := by { unfold word_dist simple_graph.dist, congr' 1, funext ℓ, rw [eq_iff_iff],
                 let dists : G -> G -> set ℕ := dists (Cay S),
                 have h2 : ∀ x y a ℓ, dists x y ℓ -> dists (a*x) (a*y) ℓ
-                    := by { intros x y a ℓ h, cases h with p, use ⟨shift_path S a p, h_h ▸ llist.size_map⟩ },
+                    := by { intros x y a ℓ h, cases h with p, use shift_path S a p, simpa },
                 exact ⟨λ h, inv_mul_cancel_left a x ▸ inv_mul_cancel_left a y ▸ h2 (a*x) (a*y) a⁻¹ ℓ h,
                     h2 x y a ℓ⟩ }
     end cayley
@@ -100,15 +95,18 @@ namespace simple_graph
         open finset
 
         lemma lipschitz : ∃ K : ℕ, ∀ x y : G, word_dist S2 x y <= K * word_dist S1 x y
-            := by { obtain K := max_of_nonempty (nonempty.image S1.nem _), cases K, use K_w,
-                intros x y, obtain ⟨⟨⟨l,rfl,rfl⟩,hp⟩,h⟩ := simple_graph.shortest_path (Cay S1) x y,
-                unfold word_dist, rw <-h, clear h, induction l; intros, simp,
-                { let z : G := llist.head l_ᾰ_1,
-                    transitivity word_dist S2 l_ᾰ z + word_dist S2 z l_ᾰ_1.last, { exact simple_graph.dist_triangle _ },
-                    rw [path.size,llist.size,mul_add,add_comm,mul_one],
-                    apply add_le_add (l_ih hp.2), rw [<-(covariant S2 l_ᾰ⁻¹),inv_mul_self],
-                    refine le_max_of_mem (mem_image_of_mem _ _) K_h, exact hp.1.2 } }
-
-        -- theorem bilipschitz : don't know how to state it
+            := begin
+                let Δ := finset.image (word_dist S2 1) S1,
+                obtain K := max_of_nonempty (nonempty.image S1.nem _), cases K, use K_w,
+                intros x y, obtain p := simple_graph.shortest_path (Cay S1) x y, cases p with p hp,
+                unfold word_dist, rw <-hp, clear hp, induction p with x' x' y' z' h' p' ih, simp,
+                transitivity (Cay S2).dist x' y' + (Cay S2).dist y' z', apply simple_graph.dist_triangle,
+                simp, rw [mul_add,add_comm,mul_one], apply add_le_add ih,
+                have : (Cay S2).dist x' y' ∈ Δ, by {
+                    simp, use (x')⁻¹ * y', split, exact h'.2,
+                    convert covariant S2 x'⁻¹, rw inv_mul_self
+                },
+                exact le_max_of_mem this K_h
+            end
     end cayley
 end simple_graph

@@ -8,7 +8,8 @@ namespace simple_graph
     def dists (x y) := set.range (path.size : path G x y -> ℕ)
 
     lemma dists_ne_empty : (dists G x y).nonempty
-        := set.range_nonempty_iff_nonempty.mpr (path.nonempty G)
+        := by { apply set.range_nonempty_iff_nonempty.mpr,
+            apply path.iff_path.mp, apply connected_graph.conn }
 
     noncomputable def dist (x y : V)
         := well_founded.min nat.lt_wf (dists G x y) (dists_ne_empty _)
@@ -20,23 +21,18 @@ namespace simple_graph
         := well_founded.min_mem _ _ (dists_ne_empty _)
 
     @[simp] lemma dist_self : dist G x x = 0
-        := le_antisymm (upper_bound G (path.point G x)) (zero_le _)
+        := le_antisymm (upper_bound G (path.point x)) (zero_le _)
 
     lemma dist_triangle : dist G x z ≤ dist G x y + dist G y z
         := by { choose f g using @shortest_path, rw [<-(g G x y),<-(g G y z),<-path.size_concat],
             exact upper_bound _ _
         }
 
-    lemma eq_of_dist_eq_zero : dist G x y = 0 -> x = y
-        := by { intro h0, rcases (shortest_path G x y) with ⟨⟨⟨_|_,rfl,rfl⟩,_⟩,h⟩,
-            { refl }, { rw h0 at h, cases h } }
+    lemma eq_of_dist_eq_zero (h : dist G x y = 0) : x = y
+        := by { cases shortest_path G x y with p hp, cases p; finish }
 
     lemma dist_comm' : dist G x y <= dist G y x
-    := begin
-        cases shortest_path G y x with p h, rw <-h,
-        have : (p.rev G).size = p.size := path.size_rev _, rw <-this,
-        apply upper_bound
-    end
+        := by { cases shortest_path G y x with p h, rw [<-h, <-path.size_rev], apply upper_bound }
 
     lemma dist_comm : dist G x y = dist G y x
         := le_antisymm (dist_comm' G) (dist_comm' G)
