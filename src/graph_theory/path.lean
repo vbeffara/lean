@@ -2,125 +2,155 @@ import tactic
 import graph_theory.basic llist
 
 namespace simple_graph
-    structure path {V : Type} (G : simple_graph V) (x y) extends llist' V x y
+    structure old_path {V : Type} (G : simple_graph V) (x y) extends llist' V x y
       := (adj : llist.is_path G.adj l)
 
-    inductive path2 {V : Type} (G : simple_graph V) : V -> V -> Type
-    | point (x : V) : path2 x x
-    | step {x y z : V} : G.adj x y -> path2 y z -> path2 x z
+    inductive path {V : Type} (G : simple_graph V) : V -> V -> Type
+    | point (x : V) : path x x
+    | step {x y z : V} : G.adj x y -> path y z -> path x z
 
     namespace path
-        variables {V : Type} (G : simple_graph V) {x y z : V}
+        variables {V : Type} {G : simple_graph V} {u x y z : V}
 
-        instance : has_coe (path G x y) (llist' V x y) := ⟨path.to_llist'⟩
-
-        def mem {G : simple_graph V} (v : V) (p : path G x y) : Prop := v ∈ p.l
+        def mem (z : V) (p : path G x y) : Prop
+            := path.rec (eq z) (λ x' _ _ _ _ ih, z = x' ∨ ih) p
 
         instance : has_mem V (path G x y) := ⟨mem⟩
 
-        def simple     (p : path G x y) : Prop := llist.nodup p.l
+        @[simp] lemma mem_point : z ∈ (point x : path G x x) <-> z = x := iff.rfl
 
-        def size {G : simple_graph V} (p : path G x y) : nat  := llist.size p.l
+        @[simp] lemma mem_step {h : G.adj x y} {p : path G y z} : u ∈ step h p <-> u = x ∨ u ∈ p
+            := iff.refl (u ∈ step h p)
+
+        lemma mem_head {p : path G x y} : x ∈ p
+            := by { cases p, obviously }
+
+        lemma mem_tail {p : path G x y} : y ∈ p
+            := by { induction p, obviously, right, assumption }
+
+        lemma mem_step_left {h : G.adj x y} {p : path G y z} : x ∈ step h p
+            := by { left, refl }
+
+        def size (p : path G x y) : nat
+            := path.rec (λ _, 0) (λ _ _ _ _ _, nat.succ) p
 
         instance : has_sizeof (path G x y) := ⟨size⟩
 
-        def point (v : V) : path G v v
-            := ⟨⟨llist.pt v, rfl, rfl⟩, trivial⟩
+        @[simp] lemma size_point : size (point x : path G x x) = 0 := rfl
 
-        def step (h : G.adj x y) (p : path G y z) : path G x z
-            := by {
-                refine p.cases_on (λ l', _),
-                refine l'.cases_on (λ l hy hz, _),
-                exact (λ hh, (⟨⟨llist.cons x l,rfl,hz⟩,⟨hy.symm ▸ h,hh⟩⟩ : path G x z))
-            }
+        @[simp] lemma size_step (p : path G x y) {h : G.adj z x} : size (step h p) = size p + 1
+            := rfl
 
         def from_edge (h : G.adj x y) : path G x y
-            := ⟨⟨llist.cons x (llist.pt y), rfl, rfl⟩, ⟨h,trivial⟩⟩
+            := step h (point y)
+
+        def append (p : path G x y) (h : G.adj y z) : path G x z
+            := path.rec (λ _, from_edge) (λ _ _ _ h' _ ih, step h' ∘ ih) p h
+
+        @[simp] lemma append_point {h : G.adj x y} : append (point x : path G x x) h = step h (point y : path G y y) := rfl
+
+        @[simp] lemma append_step {h₁ : G.adj u x} {p : path G x y} {h₂ : G.adj y z} : append (step h₁ p) h₂ = step h₁ (append p h₂)
+            := rfl
+
+        @[simp] lemma mem_append {p : path G x y} {h : G.adj y z} : u ∈ append p h <-> u ∈ p ∨ u = z
+            := by { induction p; simp [*], exact or.assoc.symm }
+
+        @[simp] lemma size_append {p : path G x y} {h : G.adj y z} : size (append p h) = size p + 1
+            := by { induction p with x x y z h p ih, refl, simp, exact ih }
 
         def rev (p : path G x y) : path G y x
-            := ⟨⟨llist.rev p.l, by { rw [llist.head_rev,p.hy] }, by { rw [llist.last_rev,p.hx] }⟩,
-                (llist.is_path_rev G.adj G.sym).mpr p.adj⟩
+            := path.rec (point) (λ _ _ _ h _ ih, append ih (G.sym h)) p
 
-        lemma size_rev {p : path G x y} : size (rev G p) = size p
-            := llist.size_rev
+        @[simp] lemma rev_step {h : G.adj x y} {p : path G y z} : rev (step h p) = append (rev p) (G.sym h)
+            := rfl
+
+        @[simp] lemma size_rev {p : path G x y} : size (rev p) = size p
+            := by { induction p with x, refl, simp [*] }
+
+        @[simp] lemma mem_rev {p : path G x y} : z ∈ rev p <-> z ∈ p
+            := by { induction p, exact iff.rfl, simp [*], exact or.comm }
 
         def concat (p : path G x y) (p' : path G y z) : path G x z
-            := ⟨llist'.concat p.to_llist' p'.to_llist',
-                (llist.is_path_concat G.adj llist'.compat).mpr ⟨p.adj,p'.adj⟩⟩
+            := path.rec (λ _, id) (λ _ _ _ h' _ ih, step h' ∘ ih) p p'
 
-        @[simp] lemma size_concat {p : path G x y} {p' : path G y z} : (concat G p p').size = p.size + p'.size
-            := llist.concat_size
+        @[simp] lemma concat_point {p : path G x y} : concat (path.point x) p = p := rfl
 
-        def edges_aux : Π (l : llist V) (h : llist.is_path G.adj l), list (edges G)
-            | (llist.pt v)   _ := []
-            | (llist.cons v l) h := ⟨h.1⟩ :: edges_aux l h.2
+        @[simp] lemma concat_step {h : G.adj x y} {p : path G y z} {p' : path G z u} : concat (step h p) p' = step h (concat p p')
+            := rfl
 
-        def all_edges {G : simple_graph V} (p : path G x y) : list (edges G)
-            := edges_aux G p.l p.adj
+        @[simp] lemma size_concat {p : path G x y} {p' : path G y z} : (concat p p').size = p.size + p'.size
+            := by { induction p; simp, rw p_ih, linarith }
 
-        lemma mem_edges_aux' {G : simple_graph V} {l h} {e : edges G} : e ∈ edges_aux G l h -> e.x ∈ l.init ∧ e.y ∈ l.tail
-            := by { induction l with v v l hr; intros he; cases he with he he,
-                { subst he, split; left; refl },
-                { cases hr he, split; right; assumption } }
+        def all_edges (p : path G x y) : list (edges G)
+            := path.rec (λ _, []) (λ _ _ _ h _, list.cons ⟨h⟩) p
 
-        lemma mem_edges_aux {G : simple_graph V} {l h} {e : edges G} : e ∈ edges_aux G l h -> e.x ∈ l ∧ e.y ∈ l
-            := by { intro h1, cases mem_edges_aux' h1 with h2 h3, split,
-                { exact llist.mem_init_last.mpr (or.inl h2) },
-                { exact llist.mem_head_tail.mpr (or.inr h3) } }
+        @[simp] lemma all_edges_point : all_edges (point x : path G x x) = []
+            := rfl
 
-        lemma mem_edges {G : simple_graph V} {p : path G x y} {e : edges G} : e ∈ p.all_edges -> e.x ∈ p ∧ e.y ∈ p
-            := mem_edges_aux
+        @[simp] lemma all_edges_step {h : G.adj x y} {p : path G y z} : all_edges (step h p) = ⟨h⟩ :: all_edges p
+            := rfl
 
-        lemma edges_simple {l} (h : llist.is_path G.adj l) (hs : llist.nodup l) : list.pairwise (edges.nsame) (edges_aux G l h)
-            := by { induction l with v v l hr, { exact list.pairwise.nil },
-                { apply list.pairwise.cons,
-                { intros e he, rw [edges.nsame, edges.same], push_neg, have h5 := mem_edges_aux he,
-                    split; intro h6; subst h6, exact hs.1 h5.1, exact hs.1 h5.2 },
-                { exact hr h.2 hs.2 } } }
+        lemma mem_edges {p : path G x y} {e : edges G} : e ∈ p.all_edges -> e.x ∈ p ∧ e.y ∈ p
+            := begin
+                induction p with x' x' y' z' h p' ih, simp,
+                intro hh, simp at hh, cases hh,
+                    { simp [*], right, apply mem_head },
+                    { simp [*] }
+            end
 
-        lemma to_path : linked G x y -> nonempty (path G x y)
-            := by { intro h, induction h with b c hxb hbc hr, use path.point G x,
-                cases hr, use path.concat G hr (path.from_edge G hbc) }
+        -- lemma edges_simple {l} (h : llist.is_path G.adj l) (hs : llist.nodup l) : list.pairwise (edges.nsame) (edges_aux G l h)
+        --     := by { induction l with v v l hr, { exact list.pairwise.nil },
+        --         { apply list.pairwise.cons,
+        --         { intros e he, rw [edges.nsame, edges.same], push_neg, have h5 := mem_edges_aux he,
+        --             split; intro h6; subst h6, exact hs.1 h5.1, exact hs.1 h5.2 },
+        --         { exact hr h.2 hs.2 } } }
+
+        lemma to_path (h : linked G x y) : nonempty (path G x y)
+            := by { induction h with x' y' h1 h2 ih,
+                { use point x },
+                { cases ih, use append ih h2 }
+            }
 
         lemma from_path : nonempty (path G x y) -> linked G x y
-            := by { intro h, rcases h with ⟨⟨l,hx,hy⟩,hp⟩, revert x y, induction l with v v l hr,
-                { intros, subst hx, subst hy, refl },
-                { intros, cases hp with hp1 hp2, replace hr := hr rfl rfl hp2,
-                    convert linked.cons hp1 hr, subst hx, refl, subst hy, refl } }
+            := by { intro h, cases h with p, induction p with x' x' y' z' h' p' ih,
+                exact linked.refl,
+                transitivity y', exact linked.edge h', exact ih }
 
         lemma iff_path : linked G x y <-> nonempty (path G x y)
-            := ⟨to_path G,from_path G⟩
+            := ⟨to_path, from_path⟩
 
-        instance [connected_graph G] : nonempty (path G x y) := to_path G (connected_graph.conn x y)
+        def nodup (p : path G x y) : Prop
+            := path.rec (λ _, true) (λ x _ _ _ p ih, x ∉ p ∧ ih) p
+
+        @[simp] lemma nodup_point : nodup (point x : path G x x) := trivial
+
+        @[simp] lemma nodup_step {h : G.adj x y} {p : path G y z} : nodup (step h p) <-> x ∉ p ∧ nodup p
+            := ⟨id,id⟩
+
+        @[simp] lemma nodup_append {p : path G x y} {h : G.adj y z} : nodup (append p h) <-> nodup p ∧ z ∉ p
+            := by { induction p, { simp, exact ne_comm }, { split; finish } }
+
+        lemma nodup_rev {p : path G x y} : nodup p -> nodup p.rev
+            := by { induction p, obviously }
     end path
 
-    @[ext] structure spath {V : Type} (G : simple_graph V) (x y) extends path G x y
-        := (simple : path.simple G to_path)
+    @[ext] structure spath {V : Type} (G : simple_graph V) (x y : V)
+        := (p : path G x y) (simple : path.nodup p)
 
     namespace spath
         variables {V : Type} {G : simple_graph V} {x y z : V}
 
-        def mem (z) (p : spath G x y) := z ∈ to_path p
+        def mem (z : V) (p : spath G x y) := z ∈ p.p
         instance : has_mem V (spath G x y) := ⟨mem⟩
 
-        def size (p : spath G x y) : nat := p.to_path.size
+        def size (p : spath G x y) := p.p.size
 
-        instance : has_coe (spath G x y) (path G x y) := ⟨spath.to_path⟩
+        instance : has_coe (spath G x y) (path G x y) := ⟨spath.p⟩
 
         def rev (p : spath G x y) : spath G y x
-            := ⟨path.rev G p.to_path , llist.nodup_rev.mpr p.simple⟩
+            := ⟨p.p.rev, path.nodup_rev p.simple⟩
 
-        lemma edges_simple {p : spath G x y} : list.pairwise (edges.nsame) p.to_path.all_edges
-            := path.edges_simple G _ p.simple
+        -- lemma edges_simple {p : spath G x y} : list.pairwise (edges.nsame) p.to_path.all_edges
+        --     := path.edges_simple G _ p.simple
     end spath
-end simple_graph
-
-namespace simple_graph
-    variables {V : Type} {G : simple_graph V} {x y z : V}
-
-    def mem (z : V) (p : path2 G x y ) : Prop
-        := path2.rec (eq x) (λ {x _ _} _ _ ih, z = x ∨ ih) p
-
-    def concat2 (p1 : path2 G x y) (p2 : path2 G y z) : path2 G x z
-        := path2.rec (λ _, id) (λ _ _ _ h' _ ih p3, path2.step h' (ih p3)) p1 p2
 end simple_graph
