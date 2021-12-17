@@ -21,20 +21,10 @@ namespace simple_graph
         variables {G : simple_graph V} {G' : simple_graph V'} (F : path_embedding G G') {x y z : V}
 
         lemma endpoint_init {e : edges G} : F.f x ∈ (F.df e).p.init <-> x = e.x
-            := by { split; intro h1,
-                { have h2 : F.f x ∈ F.df e, by { apply llist.mem_init_last.mpr, left, assumption },
-                    have h3 := F.endpoint h2, cases h3, assumption,
-                    have h5 := llist.nodup_mem_last (F.df e).simple,
-                    rw (F.df e).hy at h5, rw h3 at h1, cases h5 h1 },
-                { subst h1, convert llist.mem_head_init (F.nop e), exact (F.df e).hx.symm } }
+            := sorry
 
         lemma endpoint_tail {e : edges G} : F.f x ∈ (F.df e).l.tail <-> x = e.y
-            := by { split; intro h1,
-                { have h2 : F.f x ∈ F.df e, by { apply llist.mem_head_tail.mpr, right, assumption },
-                    have h3 := F.endpoint h2, cases h3, swap, assumption,
-                    have h5 := llist.nodup_mem_head (F.df e).simple,
-                    rw (F.df e).hx at h5, rw h3 at h1, cases h5 h1 },
-                { subst h1, convert llist.mem_last_tail (F.nop e), exact (F.df e).hy.symm } }
+            := sorry
 
         def follow_llist : Π (l : llist V) (h : l.is_path G.adj), llist V'
             | (llist.pt v)     _ := llist.pt (F.f v)
@@ -49,20 +39,8 @@ namespace simple_graph
                 { rw [llist.head_concat], exact (F.df _).hx,
                     rw [llist.compat,hr], exact (F.df _).hy } }
 
-        @[simp] lemma follow_last {l h} : (follow_llist F l h).last = F.f l.last
-            := by { induction l with v v l hr; rw follow_llist, { refl },
-                { rw llist.concat_last, exact hr } }
-
-        lemma follow_path {l} {h} : llist.is_path G'.adj (follow_llist F l h)
-            := by { induction l with v v l hr; rw [follow_llist],
-                { trivial },
-                { apply (llist.is_path_concat G'.adj _).mpr ⟨(F.df _).adj, hr⟩,
-                    rw [llist.compat,follow_head,(F.df _).hy] } }
-
         def follow (p : path G x y) : path G' (F.f x) (F.f y)
-            := ⟨⟨follow_llist F p.l p.adj,
-                by { rw [follow_head,p.hx] },
-                by { rw [follow_last,p.hy] }⟩, follow_path F⟩
+            := path.rec (λ _, path.point _) (λ _ _ _ h' _, path.concat (F.df ⟨h'⟩).p) p
 
         lemma follow_edges {z l h} (hz : 0 < llist.size l) :
                 z ∈ follow_llist F l h <-> ∃ e ∈ path.edges_aux G l h, z ∈ F.df e
