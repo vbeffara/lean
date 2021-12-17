@@ -128,6 +128,44 @@ namespace simple_graph
 
         lemma nodup_rev {p : path G x y} : nodup p -> nodup p.rev
             := by { induction p, obviously }
+
+        def to_list (p : path G x y) : list V
+            := path.rec (λ x', [x']) (λ x' _ _ _ _ ih, x' :: ih) p
+
+        @[simp] def to_list_step {h : G.adj x y} {p : path G y z} : to_list (step h p) = x :: to_list p := rfl
+
+        def init (p : path G x y) : list V
+            := path.rec (λ _, []) (λ x' _ _ _ _ ih, x' :: ih) p
+
+        @[simp] lemma init_step {h : G.adj x y} {p : path G y z} : init (step h p) = x :: init p := rfl
+
+        def init' (p : path G x y) : list V := p.to_list.init
+
+        @[simp] lemma init'_step {h : G.adj x y} {p : path G y z} : init' (step h p) = x :: init' p
+            := by { cases p; refl }
+
+        example  {p : path G x y} : init p = init' p
+            := by { induction p, refl, simpa }
+
+        def tail (p : path G x y) : list V
+            := path.rec (λ _, []) (λ x' y' z' h' p' ih, to_list p') p
+
+        @[simp] lemma tail_step {h : G.adj x y} {p : path G y z} : tail (step h p) = y :: tail p
+            := by { induction p with x' x' y' z' h' p' ih, refl, unfold tail, unfold to_list }
+
+        def tail' (p : path G x y) : list V
+            := path.rec (λ _, []) (λ _ y' _ _ _ ih, y' :: ih) p
+
+        @[simp] lemma tail'_step {h : G.adj x y} {p : path G y z} : tail' (step h p) = y :: tail' p := rfl
+
+        example {p : path G x y} : tail p = tail' p := by { induction p, refl, simpa }
+
+        def tail'' (p : path G x y) : list V := p.to_list.tail
+
+        @[simp] lemma tail''_step {h : G.adj x y} {p : path G y z} : tail'' (step h p) = y :: tail'' p
+            := by { cases p; refl }
+
+        example {p : path G x y} : tail p = tail'' p := by { cases p; refl }
     end path
 
     @[ext] structure spath {V : Type} (G : simple_graph V) (x y : V)

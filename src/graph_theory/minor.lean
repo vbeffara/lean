@@ -3,9 +3,9 @@ import graph_theory.basic graph_theory.path
 open function
 
 namespace simple_graph
-    variables {V V' : Type} (G : simple_graph V) (G' : simple_graph V')
+    variables {V V' : Type}
 
-    structure path_embedding :=
+    structure path_embedding (G : simple_graph V) (G' : simple_graph V') :=
         (f        : V ↪ V')
         (df       : Π e : edges G, spath G' (f e.x) (f e.y))
         --
@@ -15,14 +15,12 @@ namespace simple_graph
         (endpoint : ∀ {e x},    f x ∈ df e              -> x ∈ e)
         (disjoint : ∀ {e e' z},   z ∈ df e -> z ∈ df e' -> e.same e' ∨ ∃ x, z = f x)
 
-    def embeds_into := nonempty (path_embedding G G')
-end simple_graph
+    def embeds_into (G : simple_graph V) (G' : simple_graph V') := nonempty (path_embedding G G')
 
-namespace simple_graph
     namespace path_embedding
-        variables {V V' : Type} {G : simple_graph V} {G' : simple_graph V'} (F : path_embedding G G') {x y z : V}
+        variables {G : simple_graph V} {G' : simple_graph V'} (F : path_embedding G G') {x y z : V}
 
-        lemma endpoint_init {e : edges G} : F.f x ∈ (F.df e).l.init <-> x = e.x
+        lemma endpoint_init {e : edges G} : F.f x ∈ (F.df e).p.init <-> x = e.x
             := by { split; intro h1,
                 { have h2 : F.f x ∈ F.df e, by { apply llist.mem_init_last.mpr, left, assumption },
                     have h3 := F.endpoint h2, cases h3, assumption,
