@@ -23,7 +23,7 @@ namespace simple_graph
         def mem (z : V) (p : path G x y) : Prop           := path.rec (eq z)      (λ u _ _ _ _ h, z = u ∨ h)          p
         def size        (p : path G x y) : nat            := path.rec (λ _, 0)    (λ _ _ _ _ _ h, h + 1)              p
         def rev         (p : path G x y) : path G y x     := path.rec (point)     (λ _ _ _ e _ h, append h (G.sym e)) p
-        def all_edges   (p : path G x y) : list (edges G) := path.rec (λ _, [])   (λ _ _ _ e _ h, ⟨e⟩ :: h)           p
+        def edges       (p : path G x y) : list (edges G) := path.rec (λ _, [])   (λ _ _ _ e _ h, ⟨e⟩ :: h)           p
         def nodup       (p : path G x y) : Prop           := path.rec (λ _, true) (λ u _ _ _ p h, ¬ mem u p ∧ h)      p
         def to_list     (p : path G x y) : list V         := path.rec (λ u, [u])  (λ u _ _ _ _ h, u :: h)             p
 
@@ -72,22 +72,28 @@ namespace simple_graph
         @[simp] lemma mem_rev {p : path G x y} : z ∈ rev p <-> z ∈ p
             := by { induction p, exact iff.rfl, simp [*], exact or.comm }
 
+        @[simp] lemma mem_concat {p1 : path G x y} {p2 : path G y z} : u ∈ (concat p1 p2) <-> u ∈ p1 ∨ u ∈ p2
+            := sorry
+
         @[simp] lemma concat_point {p : path G x y} : concat (path.point x) p = p
             := rfl
 
         @[simp] lemma concat_step {h : G.adj x y} {p : path G y z} {p' : path G z u} : concat (step h p) p' = step h (concat p p')
             := rfl
 
+        @[simp] lemma concat_point' {p : path G x y} : concat p (path.point y) = p
+            := by { induction p, refl, rw [concat_step,p_ih] }
+
         @[simp] lemma size_concat {p : path G x y} {p' : path G y z} : (concat p p').size = p.size + p'.size
             := by { induction p; simp [*], linarith }
 
-        @[simp] lemma all_edges_point : all_edges (point x : path G x x) = []
+        @[simp] lemma edges_point : edges (point x : path G x x) = []
             := rfl
 
-        @[simp] lemma all_edges_step {h : G.adj x y} {p : path G y z} : all_edges (step h p) = ⟨h⟩ :: all_edges p
+        @[simp] lemma all_edges_step {h : G.adj x y} {p : path G y z} : edges (step h p) = ⟨h⟩ :: edges p
             := rfl
 
-        lemma mem_edges {p : path G x y} {e : edges G} : e ∈ p.all_edges -> e.x ∈ p ∧ e.y ∈ p
+        lemma mem_edges {p : path G x y} {e : G.edges} : e ∈ p.edges -> e.x ∈ p ∧ e.y ∈ p
             := by { induction p, simp, intro hh, simp at hh, cases hh; simp [*], right, apply mem_head }
 
         lemma to_path (h : linked G x y) : nonempty (path G x y)

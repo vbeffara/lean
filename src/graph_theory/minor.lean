@@ -42,6 +42,32 @@ namespace simple_graph
         def follow (p : path G x y) : path G' (F.f x) (F.f y)
             := path.rec (λ _, path.point _) (λ _ _ _ h' _, path.concat (F.df ⟨h'⟩).p) p
 
+        @[simp] lemma follow_point : follow F (path.point x) = path.point (F.f x) := rfl
+
+        @[simp] lemma follow_step {h : G.adj x y} {p : path G y z} : follow F (path.step h p) = path.concat (F.df ⟨h⟩).p (follow F p) := rfl
+
+        lemma mem_follow {z} {p : path G x y} (h : p.size > 0) : z ∈ follow F p <-> ∃ e ∈ p.edges, z ∈ F.df e
+            := by {
+                revert h z, induction p with x' x' y' z' h' p' ih; intros h z,
+                { simp at h, contradiction },
+                { split,
+                    { intro H, simp at H, cases H,
+                        { use ⟨h'⟩, simpa },
+                        { cases p'; simp at *,
+                            { convert path.mem_tail },
+                            { cases (ih.mp H) with e he, exact ⟨e, or.inr he.1, he.2⟩ }
+                        }
+                    },
+                    { intro H, rcases H with ⟨e,H1,H2⟩, simp at H1, cases H1,
+                        { subst H1, simp, left, assumption },
+                        { cases p',
+                            { simp at H1, contradiction },
+                            { simp at ih, have ih' := ih.mpr ⟨e,H1,H2⟩, simp, right, assumption }
+                        }
+                    }
+                }
+            }
+
         lemma follow_edges {z l h} (hz : 0 < llist.size l) :
                 z ∈ follow_llist F l h <-> ∃ e ∈ path.edges_aux G l h, z ∈ F.df e
             := by { cases l with w w l, cases hz, clear hz, revert w,
