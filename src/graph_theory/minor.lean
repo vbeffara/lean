@@ -60,9 +60,9 @@ namespace simple_graph
                     },
                     { intro H, rcases H with ⟨e,H1,H2⟩, simp at H1, cases H1,
                         { subst H1, simp, left, assumption },
-                        { cases p',
+                        { simp, right, cases p',
                             { simp at H1, contradiction },
-                            { simp at ih, have ih' := ih.mpr ⟨e,H1,H2⟩, simp, right, assumption }
+                            { simp at ih, have ih' := ih.mpr ⟨e,H1,H2⟩, simp, exact ih' }
                         }
                     }
                 }
