@@ -50,19 +50,41 @@ namespace simple_graph
             := by {
                 revert h z, induction p with x' x' y' z' h' p' ih; intros h z,
                 { simp at h, contradiction },
-                { split,
-                    { intro H, simp at H, cases H,
+                { split; intro H,
+                    { simp at H, cases H,
                         { use ⟨h'⟩, simpa },
                         { cases p'; simp at *,
                             { convert path.mem_tail },
                             { cases (ih.mp H) with e he, exact ⟨e, or.inr he.1, he.2⟩ }
                         }
                     },
-                    { intro H, rcases H with ⟨e,H1,H2⟩, simp at H1, cases H1,
+                    { rcases H with ⟨e,H1,H2⟩, simp at H1, cases H1,
                         { subst H1, simp, left, assumption },
                         { simp, right, cases p',
                             { simp at H1, contradiction },
                             { simp at ih, have ih' := ih.mpr ⟨e,H1,H2⟩, simp, exact ih' }
+                        }
+                    }
+                }
+            }
+
+        lemma mem_follow' {z} {p : path G x y} : z ∈ follow F p <-> z = F.f y ∨ ∃ e ∈ p.edges, z ∈ F.df e
+            := by {
+                induction p with x' x' y' z' h' p' ih,
+                { simp },
+                { split; intro H,
+                    { rw [follow_step,path.mem_concat] at H, cases H,
+                        { right, use ⟨h'⟩, simp, exact H },
+                        { replace ih := ih.mp H, cases ih,
+                            { left, assumption },
+                            { rcases ih with ⟨e,he,h'e⟩, right, use e, exact ⟨or.inr he, h'e⟩ }
+                        }
+                    },
+                    { cases H,
+                        { simp, right, convert path.mem_tail },
+                        { rcases H with ⟨e,he,h'e⟩, rw [path.edges_step,list.mem_cons_iff] at he, cases he,
+                            { simp, subst he, left, assumption },
+                            { have H := ih.mpr (or.inr ⟨e,he,h'e⟩), simp, right, assumption }
                         }
                     }
                 }

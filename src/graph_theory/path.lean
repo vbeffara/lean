@@ -90,7 +90,7 @@ namespace simple_graph
         @[simp] lemma edges_point : edges (point x : path G x x) = []
             := rfl
 
-        @[simp] lemma all_edges_step {h : G.adj x y} {p : path G y z} : edges (step h p) = ⟨h⟩ :: edges p
+        @[simp] lemma edges_step {h : G.adj x y} {p : path G y z} : edges (step h p) = ⟨h⟩ :: edges p
             := rfl
 
         lemma mem_edges {p : path G x y} {e : G.edges} : e ∈ p.edges -> e.x ∈ p ∧ e.y ∈ p
