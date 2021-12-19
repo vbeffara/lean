@@ -109,30 +109,16 @@ namespace simple_graph
 
         lemma follow_nodup {p : path G x y} (h : p.nodup) : (follow F p).nodup
             := by {
-                induction p with x' x' y' z' h' p' ih, simp,
-                simp at h, cases h with h1 h2, replace ih := ih h2,
-                rw [follow_step, path.nodup_concat], simp, refine ⟨(F.df _).simple, ih, _⟩,
-                rintros u h3 h4,
-                have h5 : p'.size = 0 ∨ p'.size > 0 := sorry,
-                cases h5, { have h6 := path.point_of_size_0 h5, cases p', exact h4, simp at h5, contradiction },
-                have h6 := (mem_follow F h5).mp h4, clear h4 h5, rcases h6 with ⟨e,h7,h8⟩,
-                have h9 := F.disjoint h3 h8, cases h9,
+                induction p with x' x' y' z' h' p' ih; simp [path.nodup_concat],
+                refine ⟨(F.df _).simple, ih h.2, _⟩, rintros u h3 h4,
+                cases nat.eq_zero_or_pos p'.size with h5 h5, { cases p', exact h4, simp at h5, contradiction },
+                obtain ⟨e,h7,h8⟩ := (mem_follow F h5).mp h4,
+                cases path.mem_edges h7, cases F.disjoint h3 h8 with h9 h9,
+                    { exfalso, apply h.1, cases h9; subst h9; assumption },
                     {
-                        have h13 := path.mem_edges h7,
-                        have h11 : x' ∈ p' := by {
-                            cases h13, cases h9; subst h9; assumption,
-                        },
-                        contradiction
-                    },
-                    {
-                        rcases h9 with ⟨v,h9⟩, subst u,
-                        have h10 := F.endpoint h3, cases h10; simp at h10; subst v,
-                        have h13 := path.mem_edges h7,
-                        have h11 : x' ∈ p' := by {
-                            cases h13,
-                            cases F.endpoint h8 with h12 h12; rw h12; assumption
-                        },
-                        contradiction
+                        obtain ⟨v,_⟩ := h9, subst u,
+                        have h10 := F.endpoint h3, cases h10; simp at h10; subst h10,
+                        exfalso, apply h.1, cases F.endpoint h8 with h12 h12; subst h12; assumption
                     }
             }
 
