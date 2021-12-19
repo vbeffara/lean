@@ -51,6 +51,9 @@ namespace simple_graph
         @[simp] lemma size_step (p : path G x y) {h : G.adj z x} : size (step h p) = size p + 1
             := rfl
 
+        lemma point_of_size_0 {p : path G x y} (h : size p = 0) : x = y
+            := by { cases p, refl, contradiction }
+
         @[simp] lemma append_point {h : G.adj x y} : append (point x : path G x x) h = step h (point y : path G y y)
             := rfl
 
@@ -72,9 +75,6 @@ namespace simple_graph
         @[simp] lemma mem_rev {p : path G x y} : z ∈ rev p <-> z ∈ p
             := by { induction p, exact iff.rfl, simp [*], exact or.comm }
 
-        @[simp] lemma mem_concat {p1 : path G x y} {p2 : path G y z} : u ∈ (concat p1 p2) <-> u ∈ p1 ∨ u ∈ p2
-            := sorry
-
         @[simp] lemma concat_point {p : path G x y} : concat (path.point x) p = p
             := rfl
 
@@ -86,6 +86,12 @@ namespace simple_graph
 
         @[simp] lemma size_concat {p : path G x y} {p' : path G y z} : (concat p p').size = p.size + p'.size
             := by { induction p; simp [*], linarith }
+
+        @[simp] lemma mem_concat {p1 : path G x y} {p2 : path G y z} : u ∈ (concat p1 p2) <-> u ∈ p1 ∨ u ∈ p2
+            := by { induction p1; simp,
+                { refine ⟨or.inr,_⟩, intro h, cases h, convert mem_head, assumption },
+                { rw p1_ih, finish }
+            }
 
         @[simp] lemma edges_point : edges (point x : path G x x) = []
             := rfl
@@ -120,6 +126,9 @@ namespace simple_graph
 
         lemma nodup_rev {p : path G x y} : nodup p -> nodup p.rev
             := by { induction p, obviously }
+
+        lemma nodup_concat {p : path G x y} {p' : path G y z} : nodup (concat p p') <-> nodup p ∧ nodup p' ∧ (∀ u, u ∈ p ∧ u ∈ p' -> u = y)
+            := sorry
 
         @[simp] def to_list_step {h : G.adj x y} {p : path G y z} : to_list (step h p) = x :: to_list p := rfl
 

@@ -16,6 +16,8 @@ namespace simple_graph
         def mem (v : V) (e : edges G) := v = e.x ∨ v = e.y
         instance : has_mem V (edges G) := ⟨mem⟩
 
+        @[simp] lemma mem_edge {v : V} {e : edges G} : v ∈ e <-> v = e.x ∨ v = e.y := iff.rfl
+
         def flip  (e : edges G)    : edges G := ⟨G.sym e.h⟩
         def same  (e e' : edges G) : Prop    := e' = e ∨ e' = flip e
         def nsame (e e' : edges G) : Prop    := ¬ same e e'
