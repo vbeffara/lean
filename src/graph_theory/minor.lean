@@ -94,7 +94,7 @@ namespace simple_graph
 
         lemma follow_nodup {p : path G x y} (h : p.nodup) : (follow F p).nodup
             := by {
-                induction p with x' x' y' z' h' p' ih; simp [path.nodup_concat],
+                induction p with x' x' y' z' h' p' ih; simp [path.nodup_concat], rw path.nodup_step at h,
                 refine ⟨(F.df _).simple, ih h.2, _⟩, rintros u h3 h4,
                 cases nat.eq_zero_or_pos p'.size with h5 h5, { cases p', exact h4, simp at h5, contradiction },
                 obtain ⟨e,h7,h8⟩ := (mem_follow F h5).mp h4,
