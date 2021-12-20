@@ -66,6 +66,9 @@ namespace simple_graph
         @[simp] lemma size_append {p : path G x y} {h : G.adj y z} : size (append p h) = size p + 1
             := by { induction p, refl, simp [*] }
 
+        @[simp] lemma rev_point : rev (point x : path G x x) = point x
+            := rfl
+
         @[simp] lemma rev_step {h : G.adj x y} {p : path G y z} : rev (step h p) = append (rev p) (G.sym h)
             := rfl
 
@@ -84,12 +87,16 @@ namespace simple_graph
         @[simp] lemma concat_point' {p : path G x y} : concat p (path.point y) = p
             := by { induction p, refl, rw [concat_step,p_ih] }
 
+        @[simp] lemma concat_append {p : path G x y} {p' : path G y z} {h : G.adj z u} :
+                concat p (append p' h) = append (concat p p') h
+            := by { induction p; simp [*] }
+
         @[simp] lemma concat_rev {p : path G x y} {p' : path G y z} : (concat p p').rev = concat p'.rev p.rev
-            := sorry
+            := by { induction p; simp [*] }
 
         @[simp] lemma concat_assoc {p1 : path G x y} {p2 : path G y z} {p3 : path G z u} :
                 concat (concat p1 p2) p3 = concat p1 (concat p2 p3)
-            := sorry
+            := by { induction p1; simp [*] }
 
         @[simp] lemma size_concat {p : path G x y} {p' : path G y z} : (concat p p').size = p.size + p'.size
             := by { induction p; simp [*], linarith }
