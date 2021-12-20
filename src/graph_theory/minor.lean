@@ -63,7 +63,7 @@ namespace simple_graph
                             { cases (ih.mp H) with e he, exact ⟨e, or.inr he.1, he.2⟩ }
                         }
                     },
-                    { rcases H with ⟨e,H1,H2⟩, cases H1,
+                    { obtain ⟨e,H1,H2⟩ := H, cases H1,
                         { left, subst H1, exact H2 },
                         { right, cases p',
                             { simp at H1, contradiction },
@@ -107,31 +107,22 @@ namespace simple_graph
                     }
             }
 
-        -- lemma follow_append {v l h} (h') (h'' : G.adj (llist.last l) v) :
-        --         follow_llist F (llist.append v l) h = llist.concat (follow_llist F l h') (F.df ⟨h''⟩).l
-        --     := by { induction l with w w l hr,
-        --         { exact llist.concat_nil (F.df _).hy },
-        --         { revert h, rw [llist.append], intro h,
-        --             rw [follow_llist,follow_llist,hr h'.2 h'',llist.concat_assoc],
-        --             have h3 : llist.head (llist.append v l) = llist.head l := llist.head_append,
-        --             congr; exact h3 } }
+        @[simp] lemma follow_append {p : path G x y} {h : G.adj y z} : follow F (p.append h) = (follow F p).concat (F.df ⟨h⟩)
+            := by { induction p, simpa, simp [*] }
 
-        -- lemma follow_rev {l} (h h') : (follow_llist F l h).rev = follow_llist F l.rev h'
-        --     := by { induction l with v v l hr, refl,
-        --         rw [follow_llist,llist.rev_concat],
-        --             { replace hr := hr h.2 ((llist.is_path_rev G.adj G.sym).mpr h.2),
-        --                 rw [hr], revert h', rw llist.rev, intro h', rw follow_append,
-        --                 congr,
-        --                 let e : edges G := ⟨h.1⟩,
-        --                 have h4 : (F.df e).l.rev = (F.df e.flip).l, by { rw F.sym _, refl },
-        --                 convert h4; exact llist.last_rev, finish },
-        --             { rw [llist.compat,follow_head], exact (F.df _).hy } }
+        lemma follow_rev {p : path G x y} : follow F p.rev = (follow F p).rev
+            := by {
+                induction p with x' x' y' z' h' p' ih, refl,
+                rw [follow_step,path.rev_step,follow_append,ih,path.concat_rev], congr,
+                set e : edges G := ⟨h'⟩,
+                have h := F.sym e, exact (congr_arg coe h).trans rfl
+            }
 
-        -- @[simp] def sfollow (p : spath G x y) : spath G' (F.f x) (F.f y)
-        --     := ⟨follow F p.to_path, follow_simple F p.simple⟩
+        def follow_spath (p : spath G x y) : spath G' (F.f x) (F.f y)
+            := ⟨follow F p.p, follow_nodup F p.simple⟩
 
-        -- @[simp] lemma sfollow_rev (p : spath G x y) : sfollow F p.rev = (sfollow F p).rev
-        --     := by { simp only [sfollow,follow,spath.rev,path.rev], rw follow_rev }
+        lemma follow_spath_rev {p : spath G x y} : follow_spath F p.rev = (follow_spath F p).rev
+            := by { unfold spath.rev, unfold follow_spath, simp, exact follow_rev F }
     end path_embedding
 
     namespace path_embedding
@@ -139,9 +130,9 @@ namespace simple_graph
 
         def comp (F : path_embedding G G') (F' : path_embedding G' G'') : path_embedding G G'' := {
             f := ⟨F'.f ∘ F.f, injective.comp F'.f.inj' F.f.inj'⟩,
-            df := λ e, ⟨follow F' (F.df e).p, follow_nodup _ (F.df e).simple⟩,
-        --     --
-        --     sym := λ e, (F.sym e).symm ▸ (sfollow_rev F' (F.df e)),
+            df := λ e, follow_spath F' (F.df e),
+            --
+            sym := by { intro e, rewrite F.sym e, apply follow_spath_rev }
         --     --
         --     endpoint := by {
         --         intros e x h1,
