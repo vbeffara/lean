@@ -127,8 +127,13 @@ namespace simple_graph
         lemma nodup_rev {p : path G x y} : nodup p -> nodup p.rev
             := by { induction p, obviously }
 
-        lemma nodup_concat {p : path G x y} {p' : path G y z} : nodup (concat p p') <-> nodup p ∧ nodup p' ∧ (∀ u, u ∈ p ∧ u ∈ p' -> u = y)
-            := sorry
+        lemma nodup_concat {p : path G x y} {p' : path G y z} : nodup (concat p p') <-> nodup p ∧ nodup p' ∧ (∀ u, u ∈ p -> u ∈ p' -> u = y)
+            := by { induction p with _ _ _ _ _ _ ih; simp, push_neg, split,
+                { rintros ⟨⟨h1,h2⟩,h3⟩, replace ih := ih.mp h3, refine ⟨⟨h1,ih.1⟩,ih.2.1,_,ih.2.2⟩,
+                    exact false.rec _ ∘ h2 },
+                { rintros ⟨⟨h1,h2⟩,h3,h4,h5⟩, replace ih := ih.mpr ⟨h2,h3,h5⟩, refine ⟨⟨h1,_⟩,ih⟩,
+                    intro h, apply h1, convert mem_tail, exact h4 h }
+            }
 
         @[simp] def to_list_step {h : G.adj x y} {p : path G y z} : to_list (step h p) = x :: to_list p := rfl
 

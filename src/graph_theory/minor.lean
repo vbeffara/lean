@@ -72,21 +72,6 @@ namespace simple_graph
                     }
             }
 
-        lemma mem_follow' {z} {p : path G x y} : z ∈ follow F p <-> z = F.f y ∨ ∃ e ∈ p.edges, z ∈ F.df e
-            := by {
-                induction p with x' x' y' z' h' p' ih; simp, split; intro H; cases H,
-                    { right, use ⟨h'⟩, simp, exact H },
-                    { replace ih := ih.mp H, cases ih,
-                        { left, exact ih },
-                        { right, rcases ih with ⟨e,he,h'e⟩, exact ⟨e, or.inr he, h'e⟩ }
-                    },
-                    { right, convert path.mem_tail },
-                    { rcases H with ⟨e,he,h'e⟩, cases he,
-                        { left, subst he, exact h'e },
-                        { right, exact ih.mpr (or.inr ⟨e,he,h'e⟩) }
-                    }
-            }
-
         -- lemma follow_edges {z l h} (hz : 0 < llist.size l) :
         --         z ∈ follow_llist F l h <-> ∃ e ∈ path.edges_aux G l h, z ∈ F.df e
         --     := by { cases l with w w l, cases hz, clear hz, revert w,
@@ -121,23 +106,6 @@ namespace simple_graph
                         exfalso, apply h.1, cases F.endpoint h8 with h12 h12; subst h12; assumption
                     }
             }
-
-        -- lemma follow_simple {l h} (hs : llist.nodup l) : (follow_llist F l h).nodup
-        --     := by { cases l with w w l, trivial, revert w,
-        --         induction l with v v l hr; intros,
-        --             { convert (F.df _).simple, exact llist.concat_nil (F.df _).hy },
-        --         rw [follow_llist,llist.concat_nodup,follow_head],
-        --             swap, { rw [llist.compat,follow_head], exact (F.df _).hy },
-        --         refine ⟨(F.df _).simple, hr v hs.2, _⟩, rintros x ⟨h6,h7⟩, rw [llist.head],
-        --         obtain ⟨e',h8,h9⟩ := (follow_edges F _).mp h7,
-        --             swap, { rw llist.size, apply nat.succ_pos },
-        --         cases F.disjoint h6 h9 with H3 H3,
-        --             { cases path.edges_simple G h hs with _ _ h2 h1, cases h2 e' h8 H3 },
-        --             { obtain ⟨u,h11⟩ := H3, subst h11, congr,
-        --                 cases F.endpoint h6 with h12 h12, swap, exact h12,
-        --                 suffices : u ∈ (llist.cons v l), by { rw h12 at this, cases hs.1 this },
-        --                 cases path.mem_edges_aux h8 with h13 h14,
-        --                 cases F.endpoint h9 with h15 h15; rw h15; assumption } }
 
         -- lemma follow_append {v l h} (h') (h'' : G.adj (llist.last l) v) :
         --         follow_llist F (llist.append v l) h = llist.concat (follow_llist F l h') (F.df ⟨h''⟩).l
@@ -174,7 +142,6 @@ namespace simple_graph
             df := λ e, ⟨follow F' (F.df e).p, follow_nodup _ (F.df e).simple⟩,
         --     --
         --     sym := λ e, (F.sym e).symm ▸ (sfollow_rev F' (F.df e)),
-        --     nop := λ e, follow_nop F' (F.nop e),
         --     --
         --     endpoint := by {
         --         intros e x h1,
