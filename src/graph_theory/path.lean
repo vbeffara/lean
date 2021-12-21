@@ -20,11 +20,11 @@ namespace simple_graph
         def concat (p : path G x y) (p' : path G y z) : path G x z
             := path.rec (λ _, id) (λ _ _ _ h' _ ih, step h' ∘ ih) p p'
 
-        def mem (z : V) (p : path G x y) : Prop           := path.rec (eq z)      (λ u _ _ _ _ h, z = u ∨ h)          p
-        def size        (p : path G x y) : nat            := path.rec (λ _, 0)    (λ _ _ _ _ _ h, h + 1)              p
-        def rev         (p : path G x y) : path G y x     := path.rec (point)     (λ _ _ _ e _ h, append h (G.sym e)) p
-        def edges       (p : path G x y) : list (edges G) := path.rec (λ _, [])   (λ _ _ _ e _ h, ⟨e⟩ :: h)           p
-        def to_list     (p : path G x y) : list V         := path.rec (λ u, [u])  (λ u _ _ _ _ h, u :: h)             p
+        def mem (z : V) (p : path G x y) : Prop           := path.rec (eq z)      (λ u _ _ _ _ h, z = u ∨ h)           p
+        def size        (p : path G x y) : nat            := path.rec (λ _, 0)    (λ _ _ _ _ _ h, h + 1)               p
+        def rev         (p : path G x y) : path G y x     := path.rec (point)     (λ _ _ _ e _ h, append h (G.symm e)) p
+        def edges       (p : path G x y) : list (edges G) := path.rec (λ _, [])   (λ _ _ _ e _ h, ⟨e⟩ :: h)            p
+        def to_list     (p : path G x y) : list V         := path.rec (λ u, [u])  (λ u _ _ _ _ h, u :: h)              p
 
         def nodup(p : path G x y) : Prop   := p.to_list.nodup
         def init (p : path G x y) : list V := p.to_list.init
@@ -78,7 +78,7 @@ namespace simple_graph
         @[simp] lemma rev_point : rev (point x : path G x x) = point x
             := rfl
 
-        @[simp] lemma rev_step {h : G.adj x y} {p : path G y z} : rev (step h p) = append (rev p) (G.sym h)
+        @[simp] lemma rev_step {h : G.adj x y} {p : path G y z} : rev (step h p) = append (rev p) (G.symm h)
             := rfl
 
         @[simp] lemma size_rev {p : path G x y} : size (rev p) = size p
@@ -126,7 +126,25 @@ namespace simple_graph
             := by { induction p, simp, intro hh, simp at hh, cases hh; simp [*], right, apply mem_head }
 
         lemma mem_of_edges {p : path G x y} {h : 0 < p.size} : u ∈ p <-> ∃ e ∈ p.edges, u ∈ e
-            := sorry
+            := by { induction p with x' x' y' z' h' p' ih, { simp at h, contradiction },
+                split,
+                    { rw mem_step, intro h1, cases h1,
+                        { subst u, use ⟨h'⟩, simp },
+                        { cases nat.eq_zero_or_pos p'.size,
+                            { cases p', simp, right, exact h1, simp at h_1, contradiction },
+                            { obtain ⟨e',h2,h3⟩ := ih.mp h1, use e', simp [*], assumption }
+                        }
+                    },
+                    { rw mem_step, intro h1, obtain ⟨e,h2,h3⟩ := h1, simp at h2, cases h2,
+                        { subst e, simp at h3, cases h3,
+                            left, exact h3,
+                            right, subst u, exact mem_head },
+                        { cases nat.eq_zero_or_pos p'.size,
+                            { cases p', simp at h2, contradiction, simp at h_1, contradiction },
+                            { have h4 := ih.mpr ⟨e,h2,h3⟩, right, assumption, assumption }
+                        }
+                    }
+            }
 
         lemma to_path (h : linked G x y) : nonempty (path G x y)
             := by { induction h with x' y' h1 h2 ih,

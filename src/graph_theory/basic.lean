@@ -18,12 +18,10 @@ namespace simple_graph
 
         @[simp] lemma mem_edge {v : V} {e : edges G} : v ∈ e <-> v = e.x ∨ v = e.y := iff.rfl
 
-        def flip  (e : edges G)    : edges G := ⟨G.sym e.h⟩
+        def flip  (e : edges G)    : edges G := ⟨G.symm e.h⟩
         def same  (e e' : edges G) : Prop    := e' = e ∨ e' = flip e
         def nsame (e e' : edges G) : Prop    := ¬ same e e'
     end edges
-
-    @[symm] lemma simple_graph.adj.symm : ∀ {x y : V}, G.adj x y -> G.adj y x := G.sym
 
     namespace linked
         variables {x y z : V}
@@ -36,7 +34,7 @@ namespace simple_graph
 
         @[symm] lemma symm : linked G x y -> linked G y x
             := by { intro h, induction h with b c hxb hbc hbx, refl,
-                apply cons, symmetry, exact hbc, exact hbx }
+                apply cons, apply G.symm, exact hbc, exact hbx }
 
         @[trans] lemma trans : linked G x y -> linked G y z -> linked G x z
             := trans

@@ -10,12 +10,12 @@ namespace simple_graph
 
     def int_simple_graph : simple_graph ℤ := {
         adj := λ x y, y = x+1 ∨ x = y+1,
-        sym := λ _ _, or.symm
+        symm := λ _ _, or.symm
     }
 
     def line_graph (n : ℕ) : simple_graph (finset.range n) := {
         adj := λ x y, y.val = x.val + 1 ∨ x.val = y.val + 1,
-        sym := λ _ _, or.symm
+        symm := λ _ _, or.symm
     }
 
     -- def planar (G : Type) [simple_graph G] := contraction.is_minor G (ℤ×ℤ)

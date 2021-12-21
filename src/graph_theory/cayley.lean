@@ -1,4 +1,4 @@
-import tactic group_theory.subgroup
+import tactic data.finset.lattice data.set.basic
 import graph_theory.path graph_theory.metric topology.metric_space.lipschitz
 
 namespace simple_graph
@@ -97,7 +97,9 @@ namespace simple_graph
         lemma lipschitz : ∃ K : ℕ, ∀ x y : G, word_dist S2 x y <= K * word_dist S1 x y
             := begin
                 let Δ := finset.image (word_dist S2 1) S1,
-                obtain K := max_of_nonempty (nonempty.image S1.nem _), cases K, use K_w,
+                have : Δ.nonempty := finset.nonempty.image S1.nem (word_dist S2 1),
+                obtain K := finset.max_of_nonempty this,
+                cases K, use K_w,
                 intros x y, obtain p := simple_graph.shortest_path (Cay S1) x y, cases p with p hp,
                 unfold word_dist, rw <-hp, clear hp, induction p with x' x' y' z' h' p' ih, simp,
                 transitivity (Cay S2).dist x' y' + (Cay S2).dist y' z', apply simple_graph.dist_triangle,
@@ -106,7 +108,7 @@ namespace simple_graph
                     simp, use (x')⁻¹ * y', split, exact h'.2,
                     convert covariant S2 x'⁻¹, rw inv_mul_self
                 },
-                exact le_max_of_mem this K_h
+                exact finset.le_max_of_mem this K_h
             end
     end cayley
 end simple_graph
