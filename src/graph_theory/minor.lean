@@ -19,12 +19,13 @@ namespace simple_graph
     namespace path_embedding
         variables {G : simple_graph V} {G' : simple_graph V'} (F : path_embedding G G') {x y z : V}
 
-        lemma nop {e : edges G} : (F.df e).size ≠ 0
+        lemma nop {e : edges G} : 0 < (F.df e).size
             := by {
-                intro h,
+                cases nat.eq_zero_or_pos (F.df e).size, swap, assumption,
                 have h' := F.f.injective (path.point_of_size_0 h),
                 have h'' := e.h, rw h' at h'',
-                exact G.loopless e.y h''
+                have h''' := G.loopless e.y h'',
+                contradiction
             }
 
         -- lemma endpoint_init {e : edges G} : F.f x ∈ (F.df e).p.init <-> x = e.x
@@ -53,7 +54,7 @@ namespace simple_graph
 
         @[simp] lemma follow_step {h : G.adj x y} {p : path G y z} : follow F (path.step h p) = path.concat (F.df ⟨h⟩).p (follow F p) := rfl
 
-        lemma mem_follow {z} {p : path G x y} (h : p.size > 0) : z ∈ follow F p <-> ∃ e ∈ p.edges, z ∈ F.df e
+        lemma mem_follow {z} {p : path G x y} (h : 0 < p.size) : z ∈ follow F p <-> ∃ e ∈ p.edges, z ∈ F.df e
             := by {
                 revert h, induction p with x' x' y' z' h' p' ih; simp, split; intro H,
                     { cases H,
@@ -132,8 +133,17 @@ namespace simple_graph
             f := ⟨F'.f ∘ F.f, injective.comp F'.f.inj' F.f.inj'⟩,
             df := λ e, follow_spath F' (F.df e),
             --
-            sym := by { intro e, rewrite F.sym e, apply follow_spath_rev }
-        --     --
+            sym := by { intro e, rewrite F.sym e, apply follow_spath_rev },
+            --
+            endpoint := by {
+                intros e x h1,
+                apply F.endpoint,
+                obtain ⟨e',h4,h5⟩ := (mem_follow F' (nop F)).mp h1,
+                suffices : F.f x ∈ e', by {
+                    apply path.mem_of_edges.mpr, use e', exact ⟨h4,this⟩, exact (nop F)
+                },
+                exact F'.endpoint h5
+            }
         --     endpoint := by {
         --         intros e x h1,
         --         apply F.endpoint,

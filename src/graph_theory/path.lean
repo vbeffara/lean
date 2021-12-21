@@ -125,6 +125,9 @@ namespace simple_graph
         lemma mem_edges {p : path G x y} {e : G.edges} : e ∈ p.edges -> e.x ∈ p ∧ e.y ∈ p
             := by { induction p, simp, intro hh, simp at hh, cases hh; simp [*], right, apply mem_head }
 
+        lemma mem_of_edges {p : path G x y} {h : 0 < p.size} : u ∈ p <-> ∃ e ∈ p.edges, u ∈ e
+            := sorry
+
         lemma to_path (h : linked G x y) : nonempty (path G x y)
             := by { induction h with x' y' h1 h2 ih,
                 { use point x },
