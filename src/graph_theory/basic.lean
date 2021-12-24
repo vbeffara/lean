@@ -31,7 +31,7 @@ namespace simple_graph
         lemma strict (e : edges G) : e.x ≠ e.y
             := by { intro h, apply G.loopless e.x, convert e.h }
 
-        lemma same_iff (e e' : edges G) : same e e' <-> ∀ x : V, x ∈ e <-> x ∈ e'
+        lemma same_iff {e e' : edges G} : same e e' <-> ∀ x : V, x ∈ e <-> x ∈ e'
             := by { split,
                 { intros h x, cases h; subst e', exact or.comm },
                 { intro h, cases e with x y h1, cases e' with x' y' h2, simp at h,
@@ -46,10 +46,22 @@ namespace simple_graph
             }
 
         lemma same_of_ends (e e' : edges G) : e.x ∈ e' -> e.y ∈ e' -> same e e'
-            := sorry
+            := by {
+                intros h1 h2, apply same_iff.mpr, intro x, split,
+                { intro h, cases h; subst x; assumption },
+                { intro h, cases h; cases h1; cases h2,
+                    substs x, rw <-h1, left, refl,
+                    substs x, rw <-h1, left, refl,
+                    substs x, rw <-h2, right, refl,
+                    rw <-h2 at h1, have := e.strict, contradiction,
+                    rw <-h2 at h1, have := e.strict, contradiction,
+                    substs x, rw <-h2, right, refl,
+                    substs x, rw <-h1, left, refl,
+                    substs x, rw <-h2, right, refl }
+            }
 
         lemma same_of_same_ends {e e' : edges G} {x y : V} : x ≠ y -> x ∈ e -> y ∈ e -> x ∈ e' -> y ∈ e' -> same e e'
-            := sorry
+            := by { intros h h1 h2 h3 h4, apply same_iff.mpr, intro z, finish }
     end edges
 
     namespace linked
