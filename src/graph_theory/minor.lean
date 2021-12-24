@@ -141,7 +141,7 @@ namespace simple_graph
                         have h14 := F.endpoint h9.1,
                         have h15 := F.endpoint h9.2,
                         have h16 : x ≠ y, by { intro h, subst y, apply edges.strict e1, cc },
-                        left, apply edges.same_of_ends h16; assumption
+                        left, apply edges.same_of_same_ends h16; assumption
                     },
                     {
                         simp at h9,
@@ -156,7 +156,7 @@ namespace simple_graph
                         have h14 := F.endpoint h9.1,
                         have h15 := F.endpoint h9.2,
                         have h16 : x ≠ y, by { intro h, subst y, apply edges.strict e1, cc },
-                        left, apply edges.same_of_ends h16; assumption
+                        left, apply edges.same_of_same_ends h16; assumption
                     }
                 },
                 {
