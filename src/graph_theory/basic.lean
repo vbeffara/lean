@@ -23,15 +23,32 @@ namespace simple_graph
         def nsame (e e' : edges G) : Prop    := ¬ same e e'
 
         @[simp] lemma flip_x (e : edges G) : e.flip.x = e.y
-            := sorry
+            := by { cases e, refl }
 
         @[simp] lemma flip_y (e : edges G) : e.flip.y = e.x
-            := sorry
+            := by { cases e, refl }
 
         lemma strict (e : edges G) : e.x ≠ e.y
+            := by { intro h, apply G.loopless e.x, convert e.h }
+
+        lemma same_iff (e e' : edges G) : same e e' <-> ∀ x : V, x ∈ e <-> x ∈ e'
+            := by { split,
+                { intros h x, cases h; subst e', exact or.comm },
+                { intro h, cases e with x y h1, cases e' with x' y' h2, simp at h,
+                    have h3 := h x', simp at h3,
+                    have h4 := h y', simp at h4,
+                    cases h3; cases h4,
+                        substs x' y', have := G.loopless x, contradiction,
+                        substs x' y', left, refl,
+                        substs x' y', right, refl,
+                        substs x' y', have := G.loopless y, contradiction
+                }
+            }
+
+        lemma same_of_ends (e e' : edges G) : e.x ∈ e' -> e.y ∈ e' -> same e e'
             := sorry
 
-        lemma same_of_ends {e e' : edges G} {x y : V} : x ≠ y -> x ∈ e -> y ∈ e -> x ∈ e' -> y ∈ e' -> same e e'
+        lemma same_of_same_ends {e e' : edges G} {x y : V} : x ≠ y -> x ∈ e -> y ∈ e -> x ∈ e' -> y ∈ e' -> same e e'
             := sorry
     end edges
 
