@@ -107,7 +107,7 @@ namespace simple_graph
             f := ⟨F'.f ∘ F.f, injective.comp F'.f.inj' F.f.inj'⟩,
             df := λ e, follow F' (F.df e),
             --
-            nodup := sorry,
+            nodup := λ e, (follow_nodup F') (F.nodup _),
             sym := by { intro e, rewrite F.sym e, apply follow_rev },
             --
             endpoint := by {
@@ -122,7 +122,55 @@ namespace simple_graph
             --
             disjoint := by {
                 intros e e' z h1 h2,
-                sorry
+                replace h1 := (mem_follow _ (nop _)).mp h1, obtain ⟨e1,h3,h4⟩ := h1,
+                replace h2 := (mem_follow _ (nop _)).mp h2, obtain ⟨e2,h5,h6⟩ := h2,
+                have h7 := F'.disjoint h4 h6, cases h7,
+                {
+                    have h8 := path.mem_edges h3,
+                    have h9 := path.mem_edges h5,
+                    cases h7; subst e2,
+                    {
+                        have h10 := F.disjoint h8.1 h9.1,
+                        have h11 := F.disjoint h8.2 h9.2,
+                        cases h10 with h10 h10, left, assumption,
+                        cases h11 with h11 h11, left, assumption,
+                        cases h10 with x h10, rw h10 at *,
+                        cases h11 with y h11, rw h11 at *,
+                        have h12 := F.endpoint h8.1,
+                        have h13 := F.endpoint h8.2,
+                        have h14 := F.endpoint h9.1,
+                        have h15 := F.endpoint h9.2,
+                        have h16 : x ≠ y, by { intro h, subst y, apply edges.strict e1, cc },
+                        left, apply edges.same_of_ends h16; assumption
+                    },
+                    {
+                        simp at h9,
+                        have h10 := F.disjoint h8.1 h9.2,
+                        have h11 := F.disjoint h8.2 h9.1,
+                        cases h10 with h10 h10, left, assumption,
+                        cases h11 with h11 h11, left, assumption,
+                        cases h10 with x h10, rw h10 at *,
+                        cases h11 with y h11, rw h11 at *,
+                        have h12 := F.endpoint h8.1,
+                        have h13 := F.endpoint h8.2,
+                        have h14 := F.endpoint h9.1,
+                        have h15 := F.endpoint h9.2,
+                        have h16 : x ≠ y, by { intro h, subst y, apply edges.strict e1, cc },
+                        left, apply edges.same_of_ends h16; assumption
+                    }
+                },
+                {
+                    obtain ⟨y,h8⟩ := h7, subst z,
+                    replace h4 := F'.endpoint h4,
+                    replace h6 := F'.endpoint h6,
+                    replace h3 := path.mem_edges h3,
+                    replace h5 := path.mem_edges h5,
+                    have h7 : y ∈ F.df e, by { cases h4; subst h4, exact h3.1, exact h3.2 },
+                    have h8 : y ∈ F.df e', by { cases h6; subst h6, exact h5.1, exact h5.2 },
+                    have h9 := F.disjoint h7 h8, cases h9,
+                        { left, assumption },
+                        { cases h9 with x h9, subst h9, right, use x, refl }
+                }
             }
         }
 

@@ -21,6 +21,18 @@ namespace simple_graph
         def flip  (e : edges G)    : edges G := ⟨G.symm e.h⟩
         def same  (e e' : edges G) : Prop    := e' = e ∨ e' = flip e
         def nsame (e e' : edges G) : Prop    := ¬ same e e'
+
+        @[simp] lemma flip_x (e : edges G) : e.flip.x = e.y
+            := sorry
+
+        @[simp] lemma flip_y (e : edges G) : e.flip.y = e.x
+            := sorry
+
+        lemma strict (e : edges G) : e.x ≠ e.y
+            := sorry
+
+        lemma same_of_ends {e e' : edges G} {x y : V} : x ≠ y -> x ∈ e -> y ∈ e -> x ∈ e' -> y ∈ e' -> same e e'
+            := sorry
     end edges
 
     namespace linked
