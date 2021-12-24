@@ -126,24 +126,23 @@ namespace simple_graph
             := by { induction p, simp, intro hh, simp at hh, cases hh; simp [*], right, apply mem_head }
 
         lemma mem_of_edges {p : path G x y} {h : 0 < p.size} : u ∈ p <-> ∃ e ∈ p.edges, u ∈ e
-            := by { induction p with x' x' y' z' h' p' ih, { simp at h, contradiction },
-                split,
-                    { rw mem_step, intro h1, cases h1,
-                        { subst u, use ⟨h'⟩, simp },
-                        { cases nat.eq_zero_or_pos p'.size,
-                            { cases p', simp, right, exact h1, simp at h_1, contradiction },
-                            { obtain ⟨e',h2,h3⟩ := ih.mp h1, use e', simp [*], assumption }
-                        }
-                    },
-                    { rw mem_step, intro h1, obtain ⟨e,h2,h3⟩ := h1, simp at h2, cases h2,
-                        { subst e, simp at h3, cases h3,
-                            left, exact h3,
-                            right, subst u, exact mem_head },
-                        { cases nat.eq_zero_or_pos p'.size,
-                            { cases p', simp at h2, contradiction, simp at h_1, contradiction },
-                            { have h4 := ih.mpr ⟨e,h2,h3⟩, right, assumption, assumption }
-                        }
+            := by { induction p with x' x' y' z' h' p' ih, { simp at h, contradiction }, split,
+                { rw mem_step, intro h1, cases h1,
+                    { use ⟨h'⟩, simp [*] },
+                    { cases nat.eq_zero_or_pos p'.size,
+                        { cases p', simp, right, exact h1, simp at h_1, contradiction },
+                        { obtain ⟨e',h2,h3⟩ := ih.mp h1, use e', simp [*], assumption }
                     }
+                },
+                { rw mem_step, intro h1, obtain ⟨e,h2,h3⟩ := h1, simp at h2, cases h2,
+                    { subst e, simp at h3, cases h3,
+                        left, exact h3,
+                        right, subst u, exact mem_head },
+                    { cases nat.eq_zero_or_pos p'.size,
+                        { cases p', simp at h2, contradiction, simp at h_1, contradiction },
+                        { right, apply ih.mpr ⟨e,h2,h3⟩; assumption }
+                    }
+                }
             }
 
         lemma to_path (h : linked G x y) : nonempty (path G x y)
@@ -186,21 +185,4 @@ namespace simple_graph
         @[simp] lemma tail_step {h : G.adj x y} {p : path G y z} : tail (step h p) = y :: tail p
             := by { cases p; refl }
     end path
-
-    @[ext] structure spath {V : Type} (G : simple_graph V) (x y : V)
-        := (p : path G x y) (simple : path.nodup p)
-
-    namespace spath
-        variables {V : Type} {G : simple_graph V} {x y z : V}
-
-        def mem (z : V) (p : spath G x y) := z ∈ p.p
-        instance : has_mem V (spath G x y) := ⟨mem⟩
-
-        def size (p : spath G x y) := p.p.size
-
-        instance : has_coe (spath G x y) (path G x y) := ⟨spath.p⟩
-
-        def rev (p : spath G x y) : spath G y x
-            := ⟨p.p.rev, path.nodup_rev p.simple⟩
-    end spath
 end simple_graph

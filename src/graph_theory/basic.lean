@@ -32,9 +32,7 @@ namespace simple_graph
         lemma cons : G.adj x y -> linked G y z  -> linked G x z := head
         lemma tail : linked G x y  -> G.adj y z -> linked G x z := tail
 
-        @[symm] lemma symm : linked G x y -> linked G y x
-            := by { intro h, induction h with b c hxb hbc hbx, refl,
-                apply cons, apply G.symm, exact hbc, exact hbx }
+        lemma symm : symmetric (linked G) := symmetric G.symm
 
         @[trans] lemma trans : linked G x y -> linked G y z -> linked G x z
             := trans

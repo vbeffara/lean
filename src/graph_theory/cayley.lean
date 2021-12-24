@@ -57,7 +57,7 @@ namespace simple_graph
             := by { cases (path.iff_path.mp h), refine path.iff_path.mpr _, use shift_path S _ val }
 
         lemma inv : linked (Cay S) (1:G) x -> linked (Cay S) (1:G) (x⁻¹:G)
-            := by { intro h, symmetry, convert shift S x⁻¹ h; simp }
+            := by { intro h, apply linked.symm, convert shift S x⁻¹ h; simp }
 
         lemma linked_mp : linked (Cay S) (1:G) x
         := begin
@@ -74,7 +74,7 @@ namespace simple_graph
 
         theorem connected : connected (Cay S)
             := by { suffices : ∀ x, linked (Cay S) (1:G) x,
-                    { intros x y, transitivity (1:G), symmetry, apply this, apply this },
+                    { intros x y, transitivity (1:G), apply linked.symm, apply this, apply this },
                 intro, apply linked_mp }
 
         instance : connected_graph (Cay S) := ⟨connected S⟩

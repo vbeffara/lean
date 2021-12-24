@@ -7,8 +7,9 @@ namespace simple_graph
 
     structure path_embedding (G : simple_graph V) (G' : simple_graph V') :=
         (f        : V ↪ V')
-        (df       : Π e : edges G, spath G' (f e.x) (f e.y))
+        (df       : Π e : edges G, path G' (f e.x) (f e.y))
         --
+        (nodup    : ∀ e : edges G, (df e).nodup)
         (sym      : ∀ e : edges G, df e.flip = (df e).rev)
         --
         (endpoint : ∀ {e x},    f x ∈ df e              -> x ∈ e)
@@ -48,11 +49,11 @@ namespace simple_graph
         --             rw [llist.compat,hr], exact (F.df _).hy } }
 
         def follow (p : path G x y) : path G' (F.f x) (F.f y)
-            := path.rec (λ _, path.point _) (λ _ _ _ h' _, path.concat (F.df ⟨h'⟩).p) p
+            := path.rec (λ _, path.point _) (λ _ _ _ h' _, path.concat (F.df ⟨h'⟩)) p
 
         @[simp] lemma follow_point : follow F (path.point x) = path.point (F.f x) := rfl
 
-        @[simp] lemma follow_step {h : G.adj x y} {p : path G y z} : follow F (path.step h p) = path.concat (F.df ⟨h⟩).p (follow F p) := rfl
+        @[simp] lemma follow_step {h : G.adj x y} {p : path G y z} : follow F (path.step h p) = path.concat (F.df ⟨h⟩) (follow F p) := rfl
 
         lemma mem_follow {z} {p : path G x y} (h : 0 < p.size) : z ∈ follow F p <-> ∃ e ∈ p.edges, z ∈ F.df e
             := by {
@@ -73,30 +74,10 @@ namespace simple_graph
                     }
             }
 
-        -- lemma follow_edges {z l h} (hz : 0 < llist.size l) :
-        --         z ∈ follow_llist F l h <-> ∃ e ∈ path.edges_aux G l h, z ∈ F.df e
-        --     := by { cases l with w w l, cases hz, clear hz, revert w,
-        --         induction l with v v l hr; intros,
-        --         { rw [path.edges_aux,path.edges_aux,follow_llist,follow_llist,llist.concat_nil],
-        --             simp only [exists_prop, exists_eq_left, list.mem_singleton],
-        --             trivial, exact (F.df _).hy },
-        --         { rw [follow_llist,path.edges_aux,llist.mem_concat],
-        --             swap, rw [llist.compat,follow_head], exact (F.df _).hy,
-        --             split,
-        --             { intro h1, cases h1 with h1 h1,
-        --                 { exact ⟨⟨h.1⟩, or.inl rfl, h1⟩ },
-        --                 { obtain ⟨e,he1,he2⟩ := (hr _).mp h1, exact ⟨e,or.inr he1,he2⟩ } },
-        --             { rintros ⟨e,he1,he2⟩, cases he1 with he1 he1,
-        --                 { subst he1, left, assumption },
-        --                 { right, apply (hr _).mpr, exact ⟨e,he1,he2⟩ } } } }
-
-        -- lemma follow_edges' {z} {p : path G x y} (hz : 0 < p.size) : z ∈ follow F p <-> ∃ e ∈ p.all_edges, z ∈ F.df e
-        --     := follow_edges F hz
-
         lemma follow_nodup {p : path G x y} (h : p.nodup) : (follow F p).nodup
             := by {
                 induction p with x' x' y' z' h' p' ih; simp [path.nodup_concat], rw path.nodup_step at h,
-                refine ⟨(F.df _).simple, ih h.2, _⟩, rintros u h3 h4,
+                refine ⟨F.nodup _, ih h.2, _⟩, rintros u h3 h4,
                 cases nat.eq_zero_or_pos p'.size with h5 h5, { cases p', exact h4, simp at h5, contradiction },
                 obtain ⟨e,h7,h8⟩ := (mem_follow F h5).mp h4,
                 cases path.mem_edges h7, cases F.disjoint h3 h8 with h9 h9,
@@ -109,21 +90,14 @@ namespace simple_graph
             }
 
         @[simp] lemma follow_append {p : path G x y} {h : G.adj y z} : follow F (p.append h) = (follow F p).concat (F.df ⟨h⟩)
-            := by { induction p, simpa, simp [*] }
+            := by { induction p; simp [*] }
 
         lemma follow_rev {p : path G x y} : follow F p.rev = (follow F p).rev
             := by {
                 induction p with x' x' y' z' h' p' ih, refl,
                 rw [follow_step,path.rev_step,follow_append,ih,path.concat_rev], congr,
-                set e : edges G := ⟨h'⟩,
-                have h := F.sym e, exact (congr_arg coe h).trans rfl
+                set e : edges G := ⟨h'⟩, exact F.sym e
             }
-
-        def follow_spath (p : spath G x y) : spath G' (F.f x) (F.f y)
-            := ⟨follow F p.p, follow_nodup F p.simple⟩
-
-        lemma follow_spath_rev {p : spath G x y} : follow_spath F p.rev = (follow_spath F p).rev
-            := by { unfold spath.rev, unfold follow_spath, simp, exact follow_rev F }
     end path_embedding
 
     namespace path_embedding
@@ -131,9 +105,10 @@ namespace simple_graph
 
         def comp (F : path_embedding G G') (F' : path_embedding G' G'') : path_embedding G G'' := {
             f := ⟨F'.f ∘ F.f, injective.comp F'.f.inj' F.f.inj'⟩,
-            df := λ e, follow_spath F' (F.df e),
+            df := λ e, follow F' (F.df e),
             --
-            sym := by { intro e, rewrite F.sym e, apply follow_spath_rev },
+            nodup := sorry,
+            sym := by { intro e, rewrite F.sym e, apply follow_rev },
             --
             endpoint := by {
                 intros e x h1,
@@ -143,48 +118,16 @@ namespace simple_graph
                     apply path.mem_of_edges.mpr, use e', exact ⟨h4,this⟩, exact (nop F)
                 },
                 exact F'.endpoint h5
+            },
+            --
+            disjoint := by {
+                intros e e' z h1 h2,
+                sorry
             }
-        --     endpoint := by {
-        --         intros e x h1,
-        --         apply F.endpoint,
-        --         obtain ⟨e',h2,h3⟩ := (follow_edges _ (F.nop _)).mp h1,
-        --         suffices : F.f x ∈ e', by { cases path.mem_edges_aux h2, cases this; rwa this },
-        --         exact F'.endpoint h3
-        --         },
-        --     --
-        --     disjoint := by {
-        --         intros e1 e2 z h1 h2,
-        --         obtain ⟨e'1,h3,h4⟩ := (follow_edges' F' (F.nop e1)).mp h1, clear h1,
-        --         obtain ⟨e'2,h5,h6⟩ := (follow_edges' F' (F.nop e2)).mp h2, clear h2,
-        --         cases F'.disjoint h4 h6 with h7 h7,
-        --         { left, clear h4 h6,
-        --             cases path.mem_edges_aux' h3 with h3l h3r, clear h3,
-        --             cases path.mem_edges_aux' h5 with h5l h5r, clear h5,
-        --             cases h7; subst h7,
-        --             { cases F.disjoint (llist.mem_init h3l) (llist.mem_init h5l) with h10 h10, assumption,
-        --                 cases F.disjoint (llist.mem_tail h3r) (llist.mem_tail h5r) with h11 h11, assumption,
-        --                 obtain ⟨x,hx⟩ := h10, rw [hx,endpoint_init F] at h3l h5l, clear hx,
-        --                 obtain ⟨y,hy⟩ := h11, rw [hy,endpoint_tail F] at h3r h5r, clear hy,
-        --                 left, ext; cc },
-        --             { rw [edges.flip] at h5l, rw [edges.flip] at h5r,
-        --                 cases F.disjoint (llist.mem_init h3l) (llist.mem_tail h5r) with h10 h10, assumption,
-        --                 cases F.disjoint (llist.mem_tail h3r) (llist.mem_init h5l) with h11 h11, assumption,
-        --                 obtain ⟨x,hx⟩ := h10, unfold edges.y at h5r, rw [hx] at h3l h5r, clear hx,
-        --                 obtain ⟨y,hy⟩ := h11, unfold edges.x at h5l, rw [hy] at h5l h3r, clear hy,
-        --                 rw endpoint_init F at h3l h5l, rw endpoint_tail F at h3r h5r,
-        --                 right, ext; cc }
-        --         },
-        --         { obtain ⟨x,hx⟩ := h7, subst hx,
-        --             replace h3 : x ∈ F.df e1, { cases path.mem_edges h3, cases F'.endpoint h4; rw h; assumption },
-        --             replace h5 : x ∈ F.df e2, { cases path.mem_edges h5, cases F'.endpoint h6; rw h; assumption },
-        --             cases (F.disjoint h3 h5),
-        --             { exact or.inl h },
-        --             { obtain ⟨y,h⟩ := h, right, use y, rw h, refl } }
-        --         }
         }
 
-        -- theorem trans : embeds_into G G' -> embeds_into G' G'' -> embeds_into G G''
-        --     := by { intros F F', cases F, cases F', use comp F F' }
+        theorem trans : embeds_into G G' -> embeds_into G' G'' -> embeds_into G G''
+            := by { intros F F', cases F, cases F', use comp F F' }
     end path_embedding
 
     namespace contraction
