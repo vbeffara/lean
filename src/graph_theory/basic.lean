@@ -13,10 +13,9 @@ namespace simple_graph
     @[ext] structure edges (G : simple_graph V) := {x y : V} (h : G.adj x y)
 
     namespace edges
-        def mem (v : V) (e : edges G) := v = e.x ∨ v = e.y
-        instance : has_mem V (edges G) := ⟨mem⟩
+        def ends (e : edges G) : set V := { e.x, e.y }
 
-        @[simp] lemma mem_edge {v : V} {e : edges G} : v ∈ e <-> v = e.x ∨ v = e.y := iff.rfl
+        @[simp] lemma mem_edge {v : V} {e : edges G} : v ∈ e.ends <-> v = e.x ∨ v = e.y := iff.rfl
 
         def flip  (e : edges G)    : edges G := ⟨G.symm e.h⟩
         def same  (e e' : edges G) : Prop    := e' = e ∨ e' = flip e
@@ -31,7 +30,7 @@ namespace simple_graph
         lemma strict (e : edges G) : e.x ≠ e.y
             := by { intro h, apply G.loopless e.x, convert e.h }
 
-        lemma same_iff {e e' : edges G} : same e e' <-> ∀ x : V, x ∈ e <-> x ∈ e'
+        lemma same_iff {e e' : edges G} : same e e' <-> ∀ x : V, x ∈ e.ends <-> x ∈ e'.ends
             := by { split,
                 { intros h x, cases h; subst e', exact or.comm },
                 { intro h, cases e with x y h1, cases e' with x' y' h2, simp at h,
@@ -45,22 +44,25 @@ namespace simple_graph
                 }
             }
 
-        lemma same_of_ends (e e' : edges G) : e.x ∈ e' -> e.y ∈ e' -> same e e'
+        lemma same_of_ends (e e' : edges G) : e.x ∈ e'.ends -> e.y ∈ e'.ends -> same e e'
             := by {
                 intros h1 h2, apply same_iff.mpr, intro x, split,
-                { intro h, cases h; subst x; assumption },
+                { intro h, cases h,
+                    { subst x, assumption },
+                    { cases h, assumption }
+                },
                 { intro h, cases h; cases h1; cases h2,
                     substs x, rw <-h1, left, refl,
                     substs x, rw <-h1, left, refl,
-                    substs x, rw <-h2, right, refl,
+                    substs x, rw <-h2, right, exact rfl,
+                    have : e.y = e'.y := h2, rw <-this at h1, have : e.x = e.y := h1, have := e.strict, contradiction,
                     rw <-h2 at h1, have := e.strict, contradiction,
-                    rw <-h2 at h1, have := e.strict, contradiction,
-                    substs x, rw <-h2, right, refl,
-                    substs x, rw <-h1, left, refl,
-                    substs x, rw <-h2, right, refl }
+                    replace h : x = e'.y := h, substs x, replace h2 : e.y = e'.y := h2, rw <-h2, right, exact rfl,
+                    replace h : x = e'.y := h, replace h1 : e.x = e'.y := h1, substs x, rw <-h1, left, refl,
+                    replace h : x = e'.y := h, substs x, replace h2 : e.y = e'.y := h2, rw <-h2, right, exact rfl }
             }
 
-        lemma same_of_same_ends {e e' : edges G} {x y : V} : x ≠ y -> x ∈ e -> y ∈ e -> x ∈ e' -> y ∈ e' -> same e e'
+        lemma same_of_same_ends {e e' : edges G} {x y : V} : x ≠ y -> x ∈ e.ends -> y ∈ e.ends -> x ∈ e'.ends -> y ∈ e'.ends -> same e e'
             := by { intros h h1 h2 h3 h4, apply same_iff.mpr, intro z, finish }
     end edges
 

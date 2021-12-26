@@ -12,7 +12,7 @@ namespace simple_graph
         (nodup    : ∀ e : edges G, (df e).nodup)
         (sym      : ∀ e : edges G, df e.flip = (df e).rev)
         --
-        (endpoint : ∀ {e x},    f x ∈ df e              -> x ∈ e)
+        (endpoint : ∀ {e x},    f x ∈ df e              -> x ∈ e.ends)
         (disjoint : ∀ {e e' z},   z ∈ df e -> z ∈ df e' -> e.same e' ∨ ∃ x, z = f x)
 
     def embeds_into (G : simple_graph V) (G' : simple_graph V') := nonempty (path_embedding G G')
@@ -85,7 +85,8 @@ namespace simple_graph
                     {
                         obtain ⟨v,_⟩ := h9, subst u,
                         have h10 := F.endpoint h3, cases h10; simp at h10; subst h10,
-                        exfalso, apply h.1, cases F.endpoint h8 with h12 h12; subst h12; assumption
+                        exfalso, apply h.1, cases F.endpoint h8 with h12 h12,
+                        subst h12, assumption, replace h12 : v = e.y := h12, subst h12, assumption
                     }
             }
 
@@ -114,7 +115,7 @@ namespace simple_graph
                 intros e x h1,
                 apply F.endpoint,
                 obtain ⟨e',h4,h5⟩ := (mem_follow F' (nop F)).mp h1,
-                suffices : F.f x ∈ e', by {
+                suffices : F.f x ∈ e'.ends, by {
                     apply path.mem_of_edges.mpr, use e', exact ⟨h4,this⟩, exact (nop F)
                 },
                 exact F'.endpoint h5
@@ -165,8 +166,8 @@ namespace simple_graph
                     replace h6 := F'.endpoint h6,
                     replace h3 := path.mem_edges h3,
                     replace h5 := path.mem_edges h5,
-                    have h7 : y ∈ F.df e, by { cases h4; subst h4, exact h3.1, exact h3.2 },
-                    have h8 : y ∈ F.df e', by { cases h6; subst h6, exact h5.1, exact h5.2 },
+                    have h7 : y ∈ F.df e, by { cases edges.mem_edge.mp h4; subst h, exact h3.1, exact h3.2 },
+                    have h8 : y ∈ F.df e', by { cases edges.mem_edge.mp h6; subst h, exact h5.1, exact h5.2 },
                     have h9 := F.disjoint h7 h8, cases h9,
                         { left, assumption },
                         { cases h9 with x h9, subst h9, right, use x, refl }
