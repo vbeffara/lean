@@ -29,25 +29,6 @@ namespace simple_graph
                 contradiction
             }
 
-        -- lemma endpoint_init {e : edges G} : F.f x ∈ (F.df e).p.init <-> x = e.x
-        --     := sorry
-
-        -- lemma endpoint_tail {e : edges G} : F.f x ∈ (F.df e).p.tail <-> x = e.y
-        --     := sorry
-
-        -- def follow_llist : Π (l : llist V) (h : l.is_path G.adj), llist V'
-        --     | (llist.pt v)     _ := llist.pt (F.f v)
-        --     | (llist.cons v l) h := llist.concat (F.df ⟨h.1⟩) (follow_llist l h.2)
-
-        -- lemma follow_nop {l h} (hz : 0 < llist.size l) : 0 < (follow_llist F l h).size
-        --     := by { cases l, { cases hz },
-        --         { rw [follow_llist,llist.concat_size], apply nat.lt_add_right, apply F.nop } }
-
-        -- @[simp] lemma follow_head {l h} : (follow_llist F l h).head = F.f l.head
-        --     := by { induction l with v v l hr; rw follow_llist, { refl },
-        --         { rw [llist.head_concat], exact (F.df _).hx,
-        --             rw [llist.compat,hr], exact (F.df _).hy } }
-
         def follow (p : path G x y) : path G' (F.f x) (F.f y)
             := path.rec (λ _, path.point _) (λ _ _ _ h' _, path.concat (F.df ⟨h'⟩)) p
 
@@ -132,37 +113,20 @@ namespace simple_graph
                     left,
                     replace h3 := path.mem_edges h3,
                     replace h5 := path.mem_edges h5,
-                    have h'7 : e1.same e2, by { rw edges.same_iff, intro, rw h7 },
-                    cases h'7; subst e2,
-                    {
-                        have h10 := F.disjoint h3.1 h5.1,
-                        have h11 := F.disjoint h3.2 h5.2,
-                        cases h10 with h10 h10, assumption,
-                        cases h11 with h11 h11, assumption,
-                        cases h10 with x h10, rw h10 at *,
-                        cases h11 with y h11, rw h11 at *,
-                        have h12 := F.endpoint h3.1,
-                        have h13 := F.endpoint h3.2,
-                        have h14 := F.endpoint h5.1,
-                        have h15 := F.endpoint h5.2,
-                        have h16 : x ≠ y, by { intro h, subst y, apply edges.strict e1, cc },
-                        apply edges.sym2_eq; assumption
+                    replace h5 : e1.x ∈ F.df e' ∧ e1.y ∈ F.df e' := by {
+                        cases edges.same_iff.mpr h7; subst e2,
+                        exact h5, simp at h5, exact h5.symm
                     },
-                    {
-                        simp at h5,
-                        have h10 := F.disjoint h3.1 h5.2,
-                        have h11 := F.disjoint h3.2 h5.1,
-                        cases h10 with h10 h10, assumption,
-                        cases h11 with h11 h11, assumption,
-                        cases h10 with x h10, rw h10 at *,
-                        cases h11 with y h11, rw h11 at *,
-                        have h12 := F.endpoint h3.1,
-                        have h13 := F.endpoint h3.2,
-                        have h14 := F.endpoint h5.1,
-                        have h15 := F.endpoint h5.2,
-                        have h16 : x ≠ y, by { intro h, subst y, apply edges.strict e1, cc },
-                        apply edges.sym2_eq; assumption
-                    }
+                    cases F.disjoint h3.1 h5.1 with h10 h10, assumption,
+                    obtain ⟨x,h10⟩ := h10, rw h10 at *,
+                    cases F.disjoint h3.2 h5.2 with h11 h11, assumption,
+                    obtain ⟨y,h11⟩ := h11, rw h11 at *,
+                    have h12 := F.endpoint h3.1,
+                    have h13 := F.endpoint h3.2,
+                    have h14 := F.endpoint h5.1,
+                    have h15 := F.endpoint h5.2,
+                    have h16 : x ≠ y, by { intro h, subst y, apply edges.strict e1, cc },
+                    apply edges.sym2_eq; assumption
                 },
                 {
                     obtain ⟨y,h8⟩ := h7, subst z,
@@ -170,9 +134,9 @@ namespace simple_graph
                     replace h6 := F'.endpoint h6,
                     replace h3 := path.mem_edges h3,
                     replace h5 := path.mem_edges h5,
-                    have h7 : y ∈ F.df e, by { cases edges.mem_edge.mp h4; subst h, exact h3.1, exact h3.2 },
-                    have h8 : y ∈ F.df e', by { cases edges.mem_edge.mp h6; subst h, exact h5.1, exact h5.2 },
-                    have h9 := F.disjoint h7 h8, cases h9,
+                    replace h3 : y ∈ F.df e, by { cases edges.mem_edge.mp h4; subst h, exact h3.1, exact h3.2 },
+                    replace h5 : y ∈ F.df e', by { cases edges.mem_edge.mp h6; subst h, exact h5.1, exact h5.2 },
+                    cases F.disjoint h3 h5 with h9 h9,
                         { left, assumption },
                         { cases h9 with x h9, subst h9, right, use x, refl }
                 }

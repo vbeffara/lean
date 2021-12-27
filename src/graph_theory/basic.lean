@@ -19,7 +19,6 @@ namespace simple_graph
             := sym2.mem_iff
 
         def flip  (e : edges G)    : edges G := ⟨G.symm e.h⟩
-        def same  (e e' : edges G) : Prop    := e' = e ∨ e' = flip e
 
         @[simp] lemma flip_x (e : edges G) : e.flip.x = e.y
             := by { cases e, refl }
@@ -36,10 +35,14 @@ namespace simple_graph
         lemma sym2_eq {x y : V} {e e' : sym2 V} (h : x ≠ y) (h1 : x ∈ e) (h2 : y ∈ e) (h3 : x ∈ e') (h4 : y ∈ e') : e = e'
             := ((sym2.mem_and_mem_iff h).mp ⟨h1, h2⟩).trans ((sym2.mem_and_mem_iff h).mp ⟨h3, h4⟩).symm
 
-        lemma same_iff {e e' : edges G} : same e e' <-> ∀ x : V, x ∈ e.ends <-> x ∈ e'.ends
+        lemma sym2_ext_iff {z z' : sym2 V} : (∀ x, x ∈ z ↔ x ∈ z') <-> z = z'
+            := ⟨sym2.ext z z', by { intros h x, rw h }⟩
+
+        lemma same_iff {e e' : edges G} : (e' = e ∨ e' = flip e) <-> e.ends = e'.ends
             := by { split,
-                { intros h x, cases h; subst e', rw ends_flip },
-                { intro h, cases e with x y h1, cases e' with x' y' h2, simp at h,
+                { intros h, ext, cases h; subst e', rw ends_flip },
+                { intro h, rw sym2_ext_iff.symm at h,
+                    cases e with x y h1, cases e' with x' y' h2, simp at h,
                     have h3 := h x', simp at h3,
                     have h4 := h y', simp at h4,
                     cases h3; cases h4,
