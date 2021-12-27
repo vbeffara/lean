@@ -13,7 +13,7 @@ namespace simple_graph
         (sym      : ∀ e : edges G, df e.flip = (df e).rev)
         --
         (endpoint : ∀ {e x},    f x ∈ df e              -> x ∈ e.ends)
-        (disjoint : ∀ {e e' z},   z ∈ df e -> z ∈ df e' -> e.same e' ∨ ∃ x, z = f x)
+        (disjoint : ∀ {e e' z},   z ∈ df e -> z ∈ df e' -> e.ends = e'.ends ∨ ∃ x, z = f x)
 
     def embeds_into (G : simple_graph V) (G' : simple_graph V') := nonempty (path_embedding G G')
 
@@ -81,7 +81,8 @@ namespace simple_graph
                 cases nat.eq_zero_or_pos p'.size with h5 h5, { cases p', exact h4, simp at h5, contradiction },
                 obtain ⟨e,h7,h8⟩ := (mem_follow F h5).mp h4,
                 cases path.mem_edges h7, cases F.disjoint h3 h8 with h9 h9,
-                    { exfalso, apply h.1, cases h9; subst h9; assumption },
+                    { exfalso, apply h.1, apply path.mem_of_edges.mpr ⟨e,h7,_⟩, assumption,
+                        rw <-h9, exact sym2.mem_mk_left _ _ },
                     {
                         obtain ⟨v,_⟩ := h9, subst u,
                         have h10 := F.endpoint h3,
@@ -128,14 +129,16 @@ namespace simple_graph
                 replace h2 := (mem_follow _ (nop _)).mp h2, obtain ⟨e2,h5,h6⟩ := h2,
                 have h7 := F'.disjoint h4 h6, cases h7,
                 {
+                    left,
                     have h8 := path.mem_edges h3,
                     have h9 := path.mem_edges h5,
-                    cases h7; subst e2,
+                    have h'7 : e1.same e2, by { rw edges.same_iff, intro, rw h7 },
+                    cases h'7; subst e2,
                     {
                         have h10 := F.disjoint h8.1 h9.1,
                         have h11 := F.disjoint h8.2 h9.2,
-                        cases h10 with h10 h10, left, assumption,
-                        cases h11 with h11 h11, left, assumption,
+                        cases h10 with h10 h10, assumption,
+                        cases h11 with h11 h11, assumption,
                         cases h10 with x h10, rw h10 at *,
                         cases h11 with y h11, rw h11 at *,
                         have h12 := F.endpoint h8.1,
@@ -143,14 +146,14 @@ namespace simple_graph
                         have h14 := F.endpoint h9.1,
                         have h15 := F.endpoint h9.2,
                         have h16 : x ≠ y, by { intro h, subst y, apply edges.strict e1, cc },
-                        left, apply edges.same_of_same_ends h16; assumption
+                        apply edges.sym2_eq; assumption
                     },
                     {
                         simp at h9,
                         have h10 := F.disjoint h8.1 h9.2,
                         have h11 := F.disjoint h8.2 h9.1,
-                        cases h10 with h10 h10, left, assumption,
-                        cases h11 with h11 h11, left, assumption,
+                        cases h10 with h10 h10, assumption,
+                        cases h11 with h11 h11, assumption,
                         cases h10 with x h10, rw h10 at *,
                         cases h11 with y h11, rw h11 at *,
                         have h12 := F.endpoint h8.1,
@@ -158,7 +161,7 @@ namespace simple_graph
                         have h14 := F.endpoint h9.1,
                         have h15 := F.endpoint h9.2,
                         have h16 : x ≠ y, by { intro h, subst y, apply edges.strict e1, cc },
-                        left, apply edges.same_of_same_ends h16; assumption
+                        apply edges.sym2_eq; assumption
                     }
                 },
                 {

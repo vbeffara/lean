@@ -33,6 +33,13 @@ namespace simple_graph
         lemma strict (e : edges G) : e.x ≠ e.y
             := by { intro h, apply G.loopless e.x, convert e.h }
 
+        lemma sym2_eq {x y : V} {e e' : sym2 V} (h : x ≠ y) :
+                x ∈ e -> y ∈ e -> x ∈ e' -> y ∈ e' -> e = e'
+            := by { intros h1 h2 h3 h4,
+                have h5 := (sym2.mem_and_mem_iff h).mp ⟨h1,h2⟩,
+                have h6 := (sym2.mem_and_mem_iff h).mp ⟨h3,h4⟩,
+                cc }
+
         lemma same_iff {e e' : edges G} : same e e' <-> ∀ x : V, x ∈ e.ends <-> x ∈ e'.ends
             := by { split,
                 { intros h x, cases h; subst e', rw ends_flip },
@@ -46,9 +53,6 @@ namespace simple_graph
                         substs x' y', have := G.loopless y, contradiction
                 }
             }
-
-        lemma same_of_same_ends {e e' : edges G} {x y : V} : x ≠ y -> x ∈ e.ends -> y ∈ e.ends -> x ∈ e'.ends -> y ∈ e'.ends -> same e e'
-            := by { intros h h1 h2 h3 h4, apply same_iff.mpr, intro z, finish }
     end edges
 
     namespace linked
