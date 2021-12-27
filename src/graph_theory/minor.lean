@@ -125,7 +125,7 @@ namespace simple_graph
                     have h13 := F.endpoint h3.2,
                     have h14 := F.endpoint h5.1,
                     have h15 := F.endpoint h5.2,
-                    have h16 : x ≠ y, by { intro h, subst y, apply edges.strict e1, cc },
+                    have h16 : x ≠ y := by { intro h, subst y, apply edges.strict e1, cc },
                     apply edges.sym2_eq; assumption
                 },
                 {

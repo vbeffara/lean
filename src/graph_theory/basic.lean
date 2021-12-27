@@ -29,8 +29,7 @@ namespace simple_graph
         @[simp] lemma ends_flip (e : edges G) : e.flip.ends = e.ends
             := sym2.eq_swap
 
-        lemma strict (e : edges G) : e.x ≠ e.y
-            := by { intro h, apply G.loopless e.x, convert e.h }
+        lemma strict (e : edges G) : e.x ≠ e.y := G.ne_of_adj e.h
 
         lemma sym2_eq {x y : V} {e e' : sym2 V} (h : x ≠ y) (h1 : x ∈ e) (h2 : y ∈ e) (h3 : x ∈ e') (h4 : y ∈ e') : e = e'
             := ((sym2.mem_and_mem_iff h).mp ⟨h1, h2⟩).trans ((sym2.mem_and_mem_iff h).mp ⟨h3, h4⟩).symm
@@ -45,11 +44,12 @@ namespace simple_graph
                     cases e with x y h1, cases e' with x' y' h2, simp at h,
                     have h3 := h x', simp at h3,
                     have h4 := h y', simp at h4,
-                    cases h3; cases h4,
-                        substs x' y', have := G.loopless x, contradiction,
-                        substs x' y', left, refl,
-                        substs x' y', right, refl,
-                        substs x' y', have := G.loopless y, contradiction
+                    have h5 : ¬ G.adj x' x' := simple_graph.irrefl G,
+                    cases h3; cases h4; substs x' y',
+                        contradiction,
+                        left, refl,
+                        right, refl,
+                        contradiction
                 }
             }
     end edges
