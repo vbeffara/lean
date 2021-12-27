@@ -29,8 +29,6 @@ namespace simple_graph
         @[simp] lemma ends_flip (e : edges G) : e.flip.ends = e.ends
             := sym2.eq_swap
 
-        lemma strict (e : edges G) : e.x ≠ e.y := G.ne_of_adj e.h
-
         lemma sym2_eq {x y : V} {e e' : sym2 V} (h : x ≠ y) (h1 : x ∈ e) (h2 : y ∈ e) (h3 : x ∈ e') (h4 : y ∈ e') : e = e'
             := ((sym2.mem_and_mem_iff h).mp ⟨h1, h2⟩).trans ((sym2.mem_and_mem_iff h).mp ⟨h3, h4⟩).symm
 
