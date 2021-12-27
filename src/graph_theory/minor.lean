@@ -84,8 +84,9 @@ namespace simple_graph
                     { exfalso, apply h.1, cases h9; subst h9; assumption },
                     {
                         obtain ⟨v,_⟩ := h9, subst u,
-                        have h10 := F.endpoint h3, cases h10; simp at h10; subst h10,
-                        exfalso, apply h.1, cases F.endpoint h8 with h12 h12,
+                        have h10 := F.endpoint h3,
+                        cases sym2.mem_iff.mp h10 with h10 h10; simp at h10; subst h10,
+                        exfalso, apply h.1, cases sym2.mem_iff.mp (F.endpoint h8) with h12 h12,
                         subst h12, assumption, replace h12 : v = e.y := h12, subst h12, assumption
                     }
             }
