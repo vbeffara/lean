@@ -1,6 +1,7 @@
 import tactic
 import graph_theory.basic graph_theory.path
 open function
+open_locale classical
 
 namespace simple_graph
     variables {V V' V'': Type}
@@ -160,18 +161,18 @@ namespace simple_graph
         def contract : simple_graph (clusters S) := ⟨adj S, symm S⟩
 
         noncomputable def proj_path {x y : S.V} (p : path S.G x y) : path (contract S) ⟦x⟧ ⟦y⟧
-            := by {
-                induction p with x x y z ha p ih, exact path.point ⟦x⟧,
-                by_cases ⟦x⟧ = ⟦y⟧, rw h, exact ih, exact path.step ⟨x,y,h,rfl,rfl,ha⟩ ih
-            }
+            := path.rec (λ x, path.point ⟦x⟧) (λ x y z ha p ih, dite (⟦x⟧ = ⟦y⟧)
+                (λ h, by { convert ih })
+                (λ h, path.step ⟨x,y,h,rfl,rfl,ha⟩ ih)
+            ) p
 
         lemma contract_connected {S : setup} : connected S.G -> connected (contract S)
             := by {
                 intros h xx yy,
-                obtain ⟨x,hx⟩ := quot.exists_rep xx, replace hx : ⟦x⟧ = xx := hx, subst xx,
-                obtain ⟨y,hy⟩ := quot.exists_rep yy, replace hy : ⟦y⟧ = yy := hy, subst yy,
+                obtain ⟨x,hx⟩ := quot.exists_rep xx, change ⟦x⟧ = xx at hx, subst hx,
+                obtain ⟨y,hy⟩ := quot.exists_rep yy, change ⟦y⟧ = yy at hy, subst hy,
                 obtain ⟨p⟩ := path.to_path (h x y),
-                apply path.from_path ⟨proj_path S p⟩
+                exact path.from_path ⟨proj_path S p⟩
             }
 
         -- def is_minor (G G' : Type) [simple_graph G] [simple_graph G'] : Prop
