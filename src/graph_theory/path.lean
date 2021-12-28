@@ -1,5 +1,5 @@
 import tactic
-import graph_theory.basic llist
+import graph_theory.basic
 
 namespace simple_graph
     inductive path {V : Type} (G : simple_graph V) : V -> V -> Type
