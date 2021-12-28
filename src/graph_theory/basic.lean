@@ -10,11 +10,7 @@ namespace simple_graph
 
     lemma linked_of_subgraph {G₁ G₂ : simple_graph V} (sub : ∀ {x y : V}, G₁.adj x y -> G₂.adj x y)
             {x y : V} (h : linked G₁ x y) : linked G₂ x y
-        := by {
-            induction h with u z h1 h2 ih,
-            exact relation.refl_trans_gen.refl,
-            exact relation.refl_trans_gen.tail ih (sub h2)
-        }
+        := relation.refl_trans_gen.drec refl (λ _ _ _ h2 ih, tail ih (sub h2)) h
 
     class connected_graph (G : simple_graph V) := (conn : connected G)
 

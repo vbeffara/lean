@@ -160,6 +160,14 @@ namespace simple_graph
 
         def contract : simple_graph (clusters S) := ⟨adj S, symm S⟩
 
+        lemma linked_of_adj {x y : S.V} (h : (contract S).adj ⟦x⟧ ⟦y⟧) : linked S.G x y
+            := by {
+                obtain ⟨a,b,h₁,h₂,h₃,h₄⟩ := h, transitivity b, transitivity a,
+                exact linked_of_subgraph S.sub (quotient.eq.mp h₂.symm),
+                exact linked.edge h₄,
+                exact linked_of_subgraph S.sub (quotient.eq.mp h₃)
+            }
+
         noncomputable def proj_path {x y : S.V} (p : path S.G x y) : path (contract S) ⟦x⟧ ⟦y⟧
             := path.rec (λ x, path.point ⟦x⟧) (λ x y z ha p ih, dite (⟦x⟧ = ⟦y⟧)
                 (λ h, by { convert ih })
@@ -172,31 +180,25 @@ namespace simple_graph
         lemma project_linked {S : setup} {x y : S.V} (h : linked S.G x y) : linked (contract S) ⟦x⟧ ⟦y⟧
             := by { obtain ⟨p⟩ := path.to_path h, exact path.from_path ⟨proj_path S p⟩ }
 
-        lemma lift_linked {S : setup} {xx yy : clusters S} (h : linked (contract S) xx yy) (x y : S.V)
+        lemma lift_linked' {S : setup} {xx yy : clusters S} (h : linked (contract S) xx yy) (x y : S.V)
                 (hx : ⟦x⟧ = xx) (hy : ⟦y⟧ = yy) : linked S.G x y
             := by {
                 induction h with x' xx' h1 h2 ih generalizing x y,
                 { subst hy, exact linked_of_subgraph S.sub (quotient.eq.mp hx) },
-                {
-                    obtain ⟨u, hu : ⟦u⟧ = x'⟩ := quot.exists_rep x',
-                    specialize ih x u hx hu, transitivity u, exact ih, clear ih h1 hx x xx,
-                    obtain ⟨a,b,h1,h2,h3,h4⟩ := h2, substs h2 hy,
-                    transitivity a, exact linked_of_subgraph S.sub (quotient.eq.mp hu),
-                    transitivity b, swap, exact linked_of_subgraph S.sub (quotient.eq.mp h3),
-                    exact linked.edge h4
-                }
+                { obtain ⟨u, hu : ⟦u⟧ = x'⟩ := quot.exists_rep x', substs hu hx hy,
+                    transitivity u, exact ih x u rfl rfl, exact linked_of_adj S h2 }
             }
 
+        lemma lift_linked {S : setup} {x y : S.V} (h : linked (contract S) ⟦x⟧ ⟦y⟧) : linked S.G x y
+            := lift_linked' h _ _ rfl rfl
+
         lemma contract_connected_iff {S : setup} : connected S.G <-> connected (contract S)
-            := by {
-                split,
-                {
-                    intros h xx yy,
+            := {
+                mp := λ h xx yy, by {
                     obtain ⟨x, hx : ⟦x⟧ = xx⟩ := quot.exists_rep xx, subst hx,
                     obtain ⟨y, hy : ⟦y⟧ = yy⟩ := quot.exists_rep yy, subst hy,
-                    exact project_linked (h x y)
-                },
-                { intros h x y, specialize h ⟦x⟧ ⟦y⟧, exact lift_linked h x y rfl rfl }
+                    exact project_linked (h x y) },
+                mpr := λ h x y, lift_linked (h ⟦x⟧ ⟦y⟧)
             }
 
         -- def is_minor (G G' : Type) [simple_graph G] [simple_graph G'] : Prop
