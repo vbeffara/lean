@@ -148,6 +148,9 @@ namespace simple_graph
                 { cases ih, use append ih h2 }
             }
 
+        noncomputable def to_path' (h : linked G x y) : path G x y
+            := classical.choice (to_path h)
+
         lemma from_path : nonempty (path G x y) -> linked G x y
             := by { intro h, cases h with p, induction p with x' x' y' z' h' p' ih,
                 exact linked.refl,
@@ -182,5 +185,9 @@ namespace simple_graph
 
         @[simp] lemma tail_step {h : G.adj x y} {p : path G y z} : tail (step h p) = y :: tail p
             := by { cases p; refl }
+
+        def path_from_subgraph {G₁ G₂ : simple_graph V} (sub : ∀ {x y : V}, G₁.adj x y -> G₂.adj x y)
+                (p : path G₁ x y) : path G₂ x y
+            := path.rec point (λ _ _ _ h _, step $ sub h) p
     end path
 end simple_graph

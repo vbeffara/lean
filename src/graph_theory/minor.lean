@@ -166,13 +166,37 @@ namespace simple_graph
                 (λ h, path.step ⟨x,y,h,rfl,rfl,ha⟩ ih)
             ) p
 
-        lemma contract_connected {S : setup} : connected S.G -> connected (contract S)
+        noncomputable def path_in_cluster {x y : S.V} (h : ⟦x⟧ = ⟦y⟧) : path S.graph x y
+            := path.to_path' (quotient.eq.mp h)
+
+        lemma project_linked {S : setup} {x y : S.V} (h : linked S.G x y) : linked (contract S) ⟦x⟧ ⟦y⟧
+            := by { obtain ⟨p⟩ := path.to_path h, exact path.from_path ⟨proj_path S p⟩ }
+
+        lemma lift_linked {S : setup} {xx yy : clusters S} (h : linked (contract S) xx yy) (x y : S.V)
+                (hx : ⟦x⟧ = xx) (hy : ⟦y⟧ = yy) : linked S.G x y
             := by {
-                intros h xx yy,
-                obtain ⟨x,hx⟩ := quot.exists_rep xx, change ⟦x⟧ = xx at hx, subst hx,
-                obtain ⟨y,hy⟩ := quot.exists_rep yy, change ⟦y⟧ = yy at hy, subst hy,
-                obtain ⟨p⟩ := path.to_path (h x y),
-                exact path.from_path ⟨proj_path S p⟩
+                induction h with x' xx' h1 h2 ih generalizing x y,
+                { subst hy, exact linked_of_subgraph S.sub (quotient.eq.mp hx) },
+                {
+                    obtain ⟨u, hu : ⟦u⟧ = x'⟩ := quot.exists_rep x',
+                    specialize ih x u hx hu, transitivity u, exact ih, clear ih h1 hx x xx,
+                    obtain ⟨a,b,h1,h2,h3,h4⟩ := h2, substs h2 hy,
+                    transitivity a, exact linked_of_subgraph S.sub (quotient.eq.mp hu),
+                    transitivity b, swap, exact linked_of_subgraph S.sub (quotient.eq.mp h3),
+                    exact linked.edge h4
+                }
+            }
+
+        lemma contract_connected_iff {S : setup} : connected S.G <-> connected (contract S)
+            := by {
+                split,
+                {
+                    intros h xx yy,
+                    obtain ⟨x, hx : ⟦x⟧ = xx⟩ := quot.exists_rep xx, subst hx,
+                    obtain ⟨y, hy : ⟦y⟧ = yy⟩ := quot.exists_rep yy, subst hy,
+                    exact project_linked (h x y)
+                },
+                { intros h x y, specialize h ⟦x⟧ ⟦y⟧, exact lift_linked h x y rfl rfl }
             }
 
         -- def is_minor (G G' : Type) [simple_graph G] [simple_graph G'] : Prop
