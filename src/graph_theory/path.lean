@@ -2,9 +2,6 @@ import tactic
 import graph_theory.basic llist
 
 namespace simple_graph
-    structure old_path {V : Type} (G : simple_graph V) (x y) extends llist' V x y
-      := (adj : llist.is_path G.adj l)
-
     inductive path {V : Type} (G : simple_graph V) : V -> V -> Type
     | point (x : V) : path x x
     | step {x y z : V} : G.adj x y -> path y z -> path x z
@@ -12,7 +9,7 @@ namespace simple_graph
     namespace path
         variables {V : Type} {G : simple_graph V} {u x y z : V}
 
-        def from_edge (h : G.adj x y) : path G x y := step h (point y)
+        @[simp] def from_edge (h : G.adj x y) : path G x y := step h (point y)
 
         def append (p : path G x y) (h : G.adj y z) : path G x z
             := path.rec (λ _, from_edge) (λ _ _ _ h' _ ih, step h' ∘ ih) p h
@@ -43,7 +40,7 @@ namespace simple_graph
             := iff.rfl
 
         @[simp] lemma mem_step {h : G.adj x y} {p : path G y z} : u ∈ step h p <-> u = x ∨ u ∈ p
-            := iff.refl (u ∈ step h p)
+            := iff.rfl
 
         lemma mem_to_list {p : path G x y} : u ∈ p <-> u ∈ p.to_list
             := by { induction p; simp [*] }
@@ -63,7 +60,7 @@ namespace simple_graph
         lemma point_of_size_0 {p : path G x y} (h : size p = 0) : x = y
             := by { cases p, refl, contradiction }
 
-        @[simp] lemma append_point {h : G.adj x y} : append (point x : path G x x) h = step h (point y : path G y y)
+        @[simp] lemma append_point {h : G.adj x y} : append (point x : path G x x) h = from_edge h
             := rfl
 
         @[simp] lemma append_step {h₁ : G.adj u x} {p : path G x y} {h₂ : G.adj y z} : append (step h₁ p) h₂ = step h₁ (append p h₂)
@@ -113,7 +110,7 @@ namespace simple_graph
         @[simp] lemma mem_concat {p1 : path G x y} {p2 : path G y z} : u ∈ (concat p1 p2) <-> u ∈ p1 ∨ u ∈ p2
             := by { induction p1; simp,
                 { refine ⟨or.inr,_⟩, intro h, cases h, convert mem_head, assumption },
-                { rw p1_ih, finish }
+                { rw p1_ih, exact or.assoc.symm }
             }
 
         @[simp] lemma edges_point : edges (point x : path G x x) = []
@@ -125,13 +122,13 @@ namespace simple_graph
         lemma mem_edges {p : path G x y} {e : G.edges} : e ∈ p.edges -> e.x ∈ p ∧ e.y ∈ p
             := by { induction p, simp, intro hh, simp at hh, cases hh; simp [*], right, apply mem_head }
 
-        lemma mem_of_edges {p : path G x y} {h : 0 < p.size} : u ∈ p <-> ∃ e ∈ p.edges, u ∈ edges.ends e
+        lemma mem_of_edges {p : path G x y} (h : 0 < p.size) : u ∈ p <-> ∃ e ∈ p.edges, u ∈ edges.ends e
             := by { induction p with x' x' y' z' h' p' ih, { simp at h, contradiction }, split,
                 { rw mem_step, intro h1, cases h1,
                     { use ⟨h'⟩, simp [*] },
                     { cases nat.eq_zero_or_pos p'.size,
                         { cases p', simp, right, exact h1, simp at h_1, contradiction },
-                        { obtain ⟨e',h2,h3⟩ := ih.mp h1, use e', simp [*], assumption }
+                        { obtain ⟨e',h2,h3⟩ := (ih h_1).mp h1, use e', simp [*] }
                     }
                 },
                 { rw mem_step, intro h1, obtain ⟨e,h2,h3⟩ := h1, simp at h2, cases h2,
@@ -140,7 +137,7 @@ namespace simple_graph
                         right, subst u, exact mem_head },
                     { cases nat.eq_zero_or_pos p'.size,
                         { cases p', simp at h2, contradiction, simp at h_1, contradiction },
-                        { right, apply ih.mpr ⟨e,h2,h3⟩; assumption }
+                        { right, apply (ih h_1).mpr ⟨e,h2,h3⟩; assumption }
                     }
                 }
             }
@@ -163,10 +160,11 @@ namespace simple_graph
             := by { unfold nodup, simp }
 
         @[simp] lemma nodup_step {h : G.adj x y} {p : path G y z} : nodup (step h p) <-> x ∉ p ∧ nodup p
-            := by { unfold nodup, simp, intro, rw mem_to_list, }
+            := by { unfold nodup, simp, intro, rw mem_to_list }
 
         @[simp] lemma nodup_append {p : path G x y} {h : G.adj y z} : nodup (append p h) <-> nodup p ∧ z ∉ p
-            := by { induction p, { simp, exact ne_comm }, { split; finish } }
+            := by { induction p, { simp, exact ne_comm }, { simp, push_neg, rw [p_ih,and_assoc,and_assoc],
+                finish } }
 
         lemma nodup_rev {p : path G x y} : nodup p -> nodup p.rev
             := by { induction p, obviously }

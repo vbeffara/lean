@@ -22,11 +22,8 @@ namespace simple_graph
 
         lemma nop {e : edges G} : 0 < (F.df e).size
             := by {
-                cases nat.eq_zero_or_pos (F.df e).size, swap, assumption,
-                have h' := F.f.injective (path.point_of_size_0 h),
-                have h'' := e.h, rw h' at h'',
-                have h''' := G.loopless e.y h'',
-                contradiction
+                cases nat.eq_zero_or_pos (F.df e).size, swap, exact h, exfalso,
+                exact G.ne_of_adj e.h (F.f.injective (path.point_of_size_0 h))
             }
 
         def follow (p : path G x y) : path G' (F.f x) (F.f y)
@@ -62,14 +59,14 @@ namespace simple_graph
                 cases nat.eq_zero_or_pos p'.size with h5 h5, { cases p', exact h4, simp at h5, contradiction },
                 obtain ⟨e,h7,h8⟩ := (mem_follow F h5).mp h4,
                 cases path.mem_edges h7, cases F.disjoint h3 h8 with h9 h9,
-                    { exfalso, apply h.1, apply path.mem_of_edges.mpr ⟨e,h7,_⟩, assumption,
+                    { exfalso, apply h.1, apply (path.mem_of_edges h5).mpr ⟨e,h7,_⟩,
                         rw <-h9, exact sym2.mem_mk_left _ _ },
                     {
                         obtain ⟨v,_⟩ := h9, subst u,
                         have h10 := F.endpoint h3,
                         cases sym2.mem_iff.mp h10 with h10 h10; simp at h10; subst h10,
-                        exfalso, apply h.1, cases sym2.mem_iff.mp (F.endpoint h8) with h12 h12,
-                        subst h12, assumption, replace h12 : v = e.y := h12, subst h12, assumption
+                        exfalso, apply h.1, cases sym2.mem_iff.mp (F.endpoint h8) with h12 h12;
+                        subst h12, exact left, exact right
                     }
             }
 
@@ -95,13 +92,8 @@ namespace simple_graph
             sym := by { intro e, rewrite F.sym e, apply follow_rev },
             --
             endpoint := by {
-                intros e x h1,
-                apply F.endpoint,
-                obtain ⟨e',h4,h5⟩ := (mem_follow F' (nop F)).mp h1,
-                suffices : F.f x ∈ e'.ends, by {
-                    apply path.mem_of_edges.mpr, use e', exact ⟨h4,this⟩, exact (nop F)
-                },
-                exact F'.endpoint h5
+                intros e x h1, obtain ⟨e',h4,h5⟩ := (mem_follow F' (nop F)).mp h1,
+                exact F.endpoint ((path.mem_of_edges (nop _)).mpr ⟨e',h4,F'.endpoint h5⟩)
             },
             --
             disjoint := by {
@@ -110,23 +102,23 @@ namespace simple_graph
                 replace h2 := (mem_follow _ (nop _)).mp h2, obtain ⟨e2,h5,h6⟩ := h2,
                 have h7 := F'.disjoint h4 h6, cases h7,
                 {
-                    left,
+                    left, clear h4 h6,
                     replace h3 := path.mem_edges h3,
                     replace h5 := path.mem_edges h5,
                     replace h5 : e1.x ∈ F.df e' ∧ e1.y ∈ F.df e' := by {
                         cases edges.same_iff.mpr h7; subst e2,
                         exact h5, simp at h5, exact h5.symm
-                    },
-                    cases F.disjoint h3.1 h5.1 with h10 h10, assumption,
-                    obtain ⟨x,h10⟩ := h10, rw h10 at *,
-                    cases F.disjoint h3.2 h5.2 with h11 h11, assumption,
-                    obtain ⟨y,h11⟩ := h11, rw h11 at *,
+                    }, clear h7,
+                    cases F.disjoint h3.1 h5.1 with h10 h10, exact h10,
+                    obtain ⟨x,h10⟩ := h10, rw h10 at h3 h5,
+                    cases F.disjoint h3.2 h5.2 with h11 h11, exact h11,
+                    obtain ⟨y,h11⟩ := h11, rw h11 at h3 h5,
                     have h12 := F.endpoint h3.1,
                     have h13 := F.endpoint h3.2,
                     have h14 := F.endpoint h5.1,
                     have h15 := F.endpoint h5.2,
-                    have h16 : x ≠ y := by { intro h, subst y, apply G'.ne_of_adj e1.h, cc },
-                    apply edges.sym2_eq; assumption
+                    have h16 : x ≠ y := by { intro h, apply G'.ne_of_adj e1.h, convert congr_arg F.f h },
+                    exact edges.sym2_eq h16 h12 h13 h14 h15
                 },
                 {
                     obtain ⟨y,h8⟩ := h7, subst z,
@@ -137,8 +129,8 @@ namespace simple_graph
                     replace h3 : y ∈ F.df e, by { cases edges.mem_edge.mp h4; subst h, exact h3.1, exact h3.2 },
                     replace h5 : y ∈ F.df e', by { cases edges.mem_edge.mp h6; subst h, exact h5.1, exact h5.2 },
                     cases F.disjoint h3 h5 with h9 h9,
-                        { left, assumption },
-                        { cases h9 with x h9, subst h9, right, use x, refl }
+                        { left, exact h9 },
+                        { obtain ⟨x,h9⟩ := h9, subst h9, right, use x, refl }
                 }
             }
         }
@@ -148,67 +140,39 @@ namespace simple_graph
     end path_embedding
 
     namespace contraction
-        -- structure chunks {V : Type} (G : simple_graph V) :=
-        --     (rel : V -> V -> Prop)
-        --     (eqv : equivalence rel)
-        --     (cmp : ∀ x y, rel x y -> linked G x y)
+        structure setup :=
+            {V : Type}
+            (G : simple_graph V)
+            (graph : simple_graph V)
+            (sub : ∀ {x y : V}, graph.adj x y -> G.adj x y)
 
-        -- variables {V : Type} {G : simple_graph V} (C : chunks G)
+        variables (S : setup)
 
-        -- instance chunked_setoid (C : chunks G) : setoid V := ⟨C.rel,C.eqv⟩
+        instance contraction_setoid : setoid S.V := ⟨S.graph.linked,simple_graph.linked.equiv⟩
 
-        -- def adj (x y : V) := ∃ x' y', C.rel x x' ∧ C.rel y y' ∧ G.adj x' y'
+        def clusters := quotient (contraction.contraction_setoid S)
 
-        -- @[symm] lemma rel_symm (x y : V) : C.rel x y -> C.rel y x
-        --     := by { apply C.eqv.2.1 }
+        def adj (x y : clusters S) := ∃ x' y' : S.V, x ≠ y ∧ ⟦x'⟧ = x ∧ ⟦y'⟧ = y ∧ S.G.adj x' y'
 
-        -- @[symm] lemma adj_symm (x y : V) : adj C x y -> adj C y x
-        --     := by { rintros ⟨x',y',h1,h2,h3⟩, exact ⟨y',x',h2,h1,G.sym h3⟩ }
+        @[symm] lemma symm (x y : clusters S) : adj S x y -> adj S y x
+            := by { rintro ⟨x',y',h0,h1,h2,h3⟩, exact ⟨y',x',h0.symm,h2,h1,S.G.symm h3⟩ }
 
-        -- lemma adj_lift1 {a₁ a₂ b₁ b₂ : V} {h₁ : C.rel b₁ a₁} {h₂ : C.rel b₂ a₂} : adj C a₁ a₂ -> adj C b₁ b₂
-        --     := by { rintros ⟨x',y',h1,h2,h3⟩, exact ⟨x', y', ⟨(C.eqv).2.2 h₁ h1, (C.eqv).2.2 h₂ h2, h3⟩⟩ }
+        def contract : simple_graph (clusters S) := ⟨adj S, symm S⟩
 
-        -- lemma adj_lift : ∀ (a₁ a₂ b₁ b₂ : V), C.rel b₁ a₁ → C.rel b₂ a₂ → adj C a₁ a₂ = adj C b₁ b₂
-        --     := by { intros a₁ a₂ b₁ b₂ h1 h2, apply iff_iff_eq.mp, split,
-        --             { apply adj_lift1; assumption },
-        --             { intro h, apply adj_lift1, symmetry, assumption, symmetry, assumption, assumption } }
+        noncomputable def proj_path {x y : S.V} (p : path S.G x y) : path (contract S) ⟦x⟧ ⟦y⟧
+            := by {
+                induction p with x x y z ha p ih, exact path.point ⟦x⟧,
+                by_cases ⟦x⟧ = ⟦y⟧, rw h, exact ih, exact path.step ⟨x,y,h,rfl,rfl,ha⟩ ih
+            }
 
-        -- def contract C : simple_graph (quotient (chunked_setoid C)) :=
-        -- {
-        --     adj := quotient.lift₂ (adj G) (adj_lift G),
-        --     sym := λ x y, quotient.induction_on₂ x y (adj_symm G)
-        -- }
-
-        -- def proj_llist : llist G -> llist (contract G) := llist.map (λ x, ⟦x⟧)
-
-        -- lemma proj_head {l : llist G} : (proj_llist G l).head = ⟦l.head⟧
-        --     := llist.head_map
-
-        -- lemma proj_last {l : llist G} : (proj_llist G l).last = ⟦l.last⟧
-        --     := llist.last_map
-
-        -- lemma proj_adj {x y : G} : simple_graph.adj x y -> @simple_graph.adj (contract G) _ ⟦x⟧ ⟦y⟧
-        --     := λ h, exists.intro x (exists.intro y ⟨quotient.eq.mp rfl,quotient.eq.mp rfl,h⟩)
-
-        -- lemma proj_is_path {l : llist G} : llist.is_path simple_graph.adj l -> llist.is_path simple_graph.adj (proj_llist G l)
-        --     := by { induction l,
-        --         { intro, trivial },
-        --         { intro h, rw [proj_llist,llist.map,llist.is_path,llist.head_map], exact ⟨proj_adj G h.1, l_ih h.2⟩ } }
-
-        -- def proj_path {x y} (p : path G x y) : path (contract G) ⟦x⟧ ⟦y⟧
-        --     := {
-        --         l := proj_llist G p.l,
-        --         hx := by { rw [proj_head,p.hx] },
-        --         hy := by { rw [proj_last,p.hy], },
-        --         adj := proj_is_path _ p.adj
-        --     }
-
-        -- lemma contract_connected {C : chunked G} (h : connected G) : connected (contract G)
-        --     := by {
-        --         intro xbar, obtain ⟨x,hx⟩ := quot.exists_rep xbar, subst hx,
-        --         intro ybar, obtain ⟨y,hy⟩ := quot.exists_rep ybar, subst hy,
-        --         have h' := h x y, induction h', refl,
-        --         exact linked.tail _ h'_ih (proj_adj _ h'_ᾰ_1) }
+        lemma contract_connected {S : setup} : connected S.G -> connected (contract S)
+            := by {
+                intros h xx yy,
+                obtain ⟨x,hx⟩ := quot.exists_rep xx, replace hx : ⟦x⟧ = xx := hx, subst xx,
+                obtain ⟨y,hy⟩ := quot.exists_rep yy, replace hy : ⟦y⟧ = yy := hy, subst yy,
+                obtain ⟨p⟩ := path.to_path (h x y),
+                apply path.from_path ⟨proj_path S p⟩
+            }
 
         -- def is_minor (G G' : Type) [simple_graph G] [simple_graph G'] : Prop
         --     := ∃ C : chunked G', by exactI embeds_into G (contract G')
