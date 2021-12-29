@@ -20,15 +20,19 @@ namespace simple_graph
     namespace contraction
         variables {S : setup}
 
-        def adj (x y : clusters S) := ∃ x' y' : S.V, x ≠ y ∧ ⟦x'⟧ = x ∧ ⟦y'⟧ = y ∧ S.G.adj x' y'
+        def adj (x y : clusters S) := x ≠ y ∧ ∃ x' y' : S.V, ⟦x'⟧ = x ∧ ⟦y'⟧ = y ∧ S.G.adj x' y'
 
         @[symm] lemma symm (x y : clusters S) : adj x y -> adj y x
-            := by { rintro ⟨x',y',h0,h1,h2,h3⟩, exact ⟨y',x',h0.symm,h2,h1,S.G.symm h3⟩ }
+            := by { rintro ⟨h0,x',y',h1,h2,h3⟩, exact ⟨h0.symm,y',x',h2,h1,S.G.symm h3⟩ }
 
         def contract (S : setup) : simple_graph (clusters S) := ⟨adj, symm⟩
 
+        lemma proj_adj (x y : S.V) (h : S.G.adj x y) : ⟦x⟧ = ⟦y⟧ ∨ (contract S).adj ⟦x⟧ ⟦y⟧
+            := by { by_cases h' : ⟦x⟧ = ⟦y⟧, left, exact h',
+                right, split, exact h', refine ⟨x,y,rfl,rfl,h⟩ }
+
         lemma linked_of_adj {x y : S.V} (h : (contract S).adj ⟦x⟧ ⟦y⟧) : linked S.G x y
-            := by { obtain ⟨a,b,h₁,h₂,h₃,h₄⟩ := h, transitivity b, transitivity a,
+            := by { obtain ⟨h₁,a,b,h₂,h₃,h₄⟩ := h, transitivity b, transitivity a,
                 exact linked_of_subgraph S.sub (quotient.eq.mp h₂.symm),
                 exact linked.edge h₄,
                 exact linked_of_subgraph S.sub (quotient.eq.mp h₃) }
@@ -36,7 +40,7 @@ namespace simple_graph
         noncomputable def proj_path {x y : S.V} (p : path S.G x y) : path (contract S) ⟦x⟧ ⟦y⟧
             := path.rec (λ x, path.point ⟦x⟧) (λ x y z ha p ih, dite (⟦x⟧ = ⟦y⟧)
                 (λ h, by { convert ih })
-                (λ h, path.step ⟨x,y,h,rfl,rfl,ha⟩ ih)
+                (λ h, path.step ⟨h,x,y,rfl,rfl,ha⟩ ih)
             ) p
 
         lemma project_linked {S : setup} {x y : S.V} (h : linked S.G x y) : linked (contract S) ⟦x⟧ ⟦y⟧
