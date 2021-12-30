@@ -27,9 +27,8 @@ namespace simple_graph
 
         def contract (S : setup) : simple_graph (clusters S) := ⟨adj, symm⟩
 
-        lemma proj_adj (x y : S.V) (h : S.G.adj x y) : ⟦x⟧ = ⟦y⟧ ∨ (contract S).adj ⟦x⟧ ⟦y⟧
-            := by { by_cases h' : ⟦x⟧ = ⟦y⟧, left, exact h',
-                right, split, exact h', refine ⟨x,y,rfl,rfl,h⟩ }
+        lemma proj_adj {x y : S.V} (h : S.G.adj x y) : ⟦x⟧ = ⟦y⟧ ∨ (contract S).adj ⟦x⟧ ⟦y⟧
+            := dite (⟦x⟧ = ⟦y⟧) or.inl (λ h', or.inr ⟨h',x,y,rfl,rfl,h⟩)
 
         lemma linked_of_adj {x y : S.V} (h : (contract S).adj ⟦x⟧ ⟦y⟧) : linked S.G x y
             := by { obtain ⟨h₁,a,b,h₂,h₃,h₄⟩ := h, transitivity b, transitivity a,
@@ -43,8 +42,9 @@ namespace simple_graph
                 (λ h, path.step ⟨h,x,y,rfl,rfl,ha⟩ ih)
             ) p
 
-        lemma project_linked {S : setup} {x y : S.V} (h : linked S.G x y) : linked (contract S) ⟦x⟧ ⟦y⟧
-            := by { obtain ⟨p⟩ := path.to_path h, exact path.from_path ⟨proj_path p⟩ }
+        lemma project_linked {x y : S.V} (h : linked S.G x y) : linked (contract S) ⟦x⟧ ⟦y⟧
+            := relation.refl_trans_gen.rec relation.refl_trans_gen.refl
+                (λ _ _ _ h₂ ih, or.cases_on (proj_adj h₂) (λ h', h' ▸ ih) ih.tail) h
 
         lemma lift_linked' {S : setup} {xx yy : clusters S} (h : linked (contract S) xx yy) (x y : S.V)
                 (hx : ⟦x⟧ = xx) (hy : ⟦y⟧ = yy) : linked S.G x y
