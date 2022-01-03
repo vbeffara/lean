@@ -8,11 +8,9 @@ namespace simple_graph
 
     namespace path3
         open path3
-        variables {V : Type} {G : simple_graph V} {u x y z : V} {p : path3 G x y} {h : G.adj y z}
+        variables {V : Type} {G : simple_graph V} {u x y z : V} {p : path3 G x y} {h : G.adj y z} {h' : G.adj u x}
 
         @[simp] def from_edge (h : G.adj x y) : path3 G x y := step point h
-
-        def append (p : path3 G x y) (h : G.adj y z) : path3 G x z := p.step h
 
         def cons (p : path3 G y z) (h : G.adj x y) : path3 G x z
             := path3.rec (from_edge h) (λ _ _ _ h ih, ih.step h) p
@@ -29,40 +27,21 @@ namespace simple_graph
         instance : has_mem    V (path3 G x y) := ⟨mem⟩
         instance : has_sizeof   (path3 G x y) := ⟨size⟩
 
-        @[simp] lemma mem_point   :   u ∈ (point : path3 G x x) <-> u = x := iff.rfl
-        @[simp] lemma size_point  :  size (point : path3 G x x)  =  0     := rfl
-        @[simp] lemma nodup_point : nodup (point : path3 G x x)           := trivial
+        @[simp] lemma cons_point   :   cons (point : path3 G z z) h  = from_edge h := rfl
+        @[simp] lemma mem_point    :    u ∈ (point : path3 G x x)   <-> u = x      := iff.rfl
+        @[simp] lemma size_point   :   size (point : path3 G x x)    =  0          := rfl
+        @[simp] lemma nodup_point  :  nodup (point : path3 G x x)                  := trivial
 
-        @[simp] lemma mem_step     :     u ∈ p.step h <-> u ∈ p ∨ u = z   := iff.rfl
-        @[simp] lemma size_step    : (p.step h).size   =  p.size + 1      := rfl
-        @[simp] lemma nodup_step   : (p.step h).nodup <-> p.nodup ∧ z ∉ p := iff.rfl
+        @[simp] lemma cons_step    : cons (p.step h) h'  =  step (p.cons h') h := rfl
+        @[simp] lemma mem_step     :       u ∈ p.step h <-> u ∈ p ∨ u = z      := iff.rfl
+        @[simp] lemma size_step    :    (p.step h).size  =  p.size + 1         := rfl
+        @[simp] lemma nodup_step   :   (p.step h).nodup <-> p.nodup ∧ z ∉ p    := iff.rfl
 
-        -- @[simp] lemma mem_point : z ∈ (point x : path G x x) <-> z = x
-        --     := iff.rfl
+        lemma mem_tail : y ∈ p := by { cases p, exact rfl, right, refl }
+        lemma mem_head : x ∈ p := by { induction p, exact rfl, left, assumption }
 
-        -- @[simp] lemma mem_step {h : G.adj x y} {p : path G y z} : u ∈ step h p <-> u = x ∨ u ∈ p
-        --     := iff.rfl
-
-        -- lemma mem_head {p : path G x y} : x ∈ p
-        --     := by { cases p, exact rfl, simp }
-
-        -- lemma mem_tail {p : path G x y} : y ∈ p
-        --     := by { induction p, exact rfl, simp, right, assumption }
-
-        -- @[simp] lemma size_point : size (point x : path G x x) = 0
-        --     := rfl
-
-        -- @[simp] lemma size_step (p : path G x y) {h : G.adj z x} : size (step h p) = size p + 1
-        --     := rfl
-
-        -- lemma point_of_size_0 {p : path G x y} (h : size p = 0) : x = y
-        --     := by { cases p, refl, contradiction }
-
-        -- @[simp] lemma append_point {h : G.adj x y} : append (point x : path G x x) h = from_edge h
-        --     := rfl
-
-        -- @[simp] lemma append_step {h₁ : G.adj u x} {p : path G x y} {h₂ : G.adj y z} : append (step h₁ p) h₂ = step h₁ (append p h₂)
-        --     := rfl
+        lemma point_of_size_0 {p : path3 G x y} (h : p.size = 0) : x = y
+            := by { cases p, refl, contradiction }
 
         -- @[simp] lemma mem_append {p : path G x y} {h : G.adj y z} : u ∈ append p h <-> u ∈ p ∨ u = z
         --     := by { induction p; simp [*], exact or.assoc.symm }
