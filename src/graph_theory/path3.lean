@@ -68,21 +68,14 @@ namespace simple_graph
             := by { induction p; simp, intro h, cases h; simp[*], left, exact mem_tail }
 
         lemma mem_of_edges (h : 0 < p.size) : u ∈ p <-> ∃ e ∈ p.edges, u ∈ edges.ends e
-            := by { induction p with a b p ha ih, { simp at h, contradiction }, clear h, split; simp,
-                { intro h1, cases h1,
-                    { cases nat.eq_zero_or_pos p.size,
-                        { cases p, simp, left, exact h1, simp at h, contradiction },
-                        { obtain ⟨e,h2,h3⟩ := (ih h).mp h1, use e, simp at h3, simp [*] }
-                    },
-                    { use ⟨ha⟩, simp [*] }
-                },
-                { split,
-                    { intro h1, cases h1, left, exact h1.symm ▸ mem_tail, right, exact h1 },
-                    { intros e he h1, cases nat.eq_zero_or_pos p.size,
-                        { cases p; simp at *; contradiction },
-                        { left, simp at ih, exact (ih h).mpr ⟨e,he,h1⟩ }
-                    }
-                }
+            := by { induction p with a b p ha ih, { simp at h, contradiction }, clear h,
+                cases nat.eq_zero_or_pos p.size, { cases p, simp, simp at h, contradiction },
+                specialize ih h, clear h, simp at ih, split; simp,
+                    { intro h1, cases h1,
+                        { obtain ⟨e,h2,h3⟩ := ih.mp h1, exact ⟨e, or.inr h2, h3⟩ },
+                        exact ⟨⟨ha⟩, or.inl rfl, or.inr h1⟩ },
+                    exact ⟨(λ h, or.cases_on h (λ h, or.inl (h.symm ▸ mem_tail)) (λ h, or.inr h)),
+                        (λ e he h1, or.inl (ih.mpr ⟨e,he,h1⟩))⟩,
             }
 
         -- lemma to_path (h : linked G x y) : nonempty (path G x y)
