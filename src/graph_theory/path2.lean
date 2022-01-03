@@ -214,9 +214,6 @@ namespace simple_graph
     --                 intro h, apply h1, convert mem_tail, exact h4 h }
     --         }
 
-    --     @[simp] lemma init_step {h : G.adj x y} {p : path G y z} : init (step h p) = x :: init p
-    --         := by { cases p; refl }
-
     --     @[simp] lemma tail_step {h : G.adj x y} {p : path G y z} : tail (step h p) = y :: tail p
     --         := by { cases p; refl }
 
