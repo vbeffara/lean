@@ -9,38 +9,37 @@ namespace simple_graph
         symm := λ _ _, or.symm
     }
 
-    lemma interval_adj {n : ℕ} {x y : (finset.range n)} : (interval n).adj x y <-> ∃ i < n-1,
-            (x.val = i ∧ y.val = i+1) ∨ (x.val = i+1 ∧ y.val = i)
-        := by {
-            split,
-            {
-                intro h, cases x with x hx, cases y with y hy, cases h; simp at h; subst h,
-                { use x, simp at hy, simp, exact nat.lt_pred_iff.mpr hy },
-                { use y, simp at hx, simp, exact nat.lt_pred_iff.mpr hx }
-            },
-            {
-                rintros ⟨i,h₁,h₂⟩, cases h₂; cases h₂; subst i,
-                { left, exact h₂_right },
-                { right, exact h₂_left }
+    namespace interval
+        variables {n : ℕ} {x y : finset.range n} {motive : finset.range n -> finset.range n -> Prop}
+
+        @[simp] def from_nat {i : ℕ} (h : i < n) : finset.range n := ⟨i,finset.mem_range.mpr h⟩
+
+        lemma adj : (interval n).adj x y <-> ∃ i < n-1, (x.val = i ∧ y.val = i+1) ∨ (x.val = i+1 ∧ y.val = i)
+            := {
+                mp := by { intro h, cases x with x hx, cases y with y hy, cases h; simp at h; subst h,
+                    { use x, simp at hy, simp, exact nat.lt_pred_iff.mpr hy },
+                    { use y, simp at hx, simp, exact nat.lt_pred_iff.mpr hx } },
+                mpr := by { rintros ⟨i,h₁,h₂⟩, cases h₂; cases h₂; subst i,
+                    { left, exact h₂_right }, { right, exact h₂_left } }
             }
-        }
+
+        lemma unnamed (h : ∀ i, ∀ (h : i<n-1), motive (from_nat $ nat.lt_of_lt_pred h) (from_nat $ nat.lt_pred_iff.mp h))
+                    (h' : symmetric motive) : ∀ x y, (interval n).adj x y -> motive x y
+            := by {
+                rintros ⟨x,hx⟩ ⟨y,hy⟩ h'', rcases adj.mp h'' with ⟨i,h1,h2⟩, specialize h i h1,
+                cases h2; cases h2, { convert h }, { convert h' h }
+            }
+    end interval
 
     structure path2 := {n : nat} (p : interval n →g G)
 
     namespace path2
-        def foo (x y : V) : nat -> V | 0 := x | _ := y
-
         def from_edge {x y : V} (h : G.adj x y) : path2 G
         := {
             n := 2,
             p := {
-                to_fun := λ i, foo x y (i.val : nat),
-                map_rel' := by {
-                    intros a b hab, replace hab := interval_adj.mp hab,
-                    rcases hab with ⟨i,h₁,h₂⟩, cases h₂; cases h₂; subst i,
-                    { simp at h₁ h₂_right ⊢, rw [h₂_right,h₁], simp [foo], exact h },
-                    { simp at h₁ h₂_left ⊢, rw [h₂_left,h₁], simp [foo], symmetry, exact h },
-                }
+                to_fun := λ i, if i.val=0 then x else y,
+                map_rel' := interval.unnamed (λ i hi, by { simp at hi, simp [hi,h] }) (λ _ _, adj_symm G)
             }
         }
 
