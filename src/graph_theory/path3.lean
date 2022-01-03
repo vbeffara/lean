@@ -67,25 +67,23 @@ namespace simple_graph
         lemma mem_edges : e ∈ p.edges -> e.x ∈ p ∧ e.y ∈ p
             := by { induction p; simp, intro h, cases h; simp[*], left, exact mem_tail }
 
-        -- lemma mem_of_edges {p : path G x y} (h : 0 < p.size) : u ∈ p <-> ∃ e ∈ p.edges, u ∈ edges.ends e
-        --     := by { induction p with x' x' y' z' h' p' ih, { simp at h, contradiction }, split,
-        --         { rw mem_step, intro h1, cases h1,
-        --             { use ⟨h'⟩, simp [*] },
-        --             { cases nat.eq_zero_or_pos p'.size,
-        --                 { cases p', simp, right, exact h1, simp at h_1, contradiction },
-        --                 { obtain ⟨e',h2,h3⟩ := (ih h_1).mp h1, use e', simp [*] }
-        --             }
-        --         },
-        --         { rw mem_step, intro h1, obtain ⟨e,h2,h3⟩ := h1, simp at h2, cases h2,
-        --             { subst e, simp at h3, cases h3,
-        --                 left, exact h3,
-        --                 right, subst u, exact mem_head },
-        --             { cases nat.eq_zero_or_pos p'.size,
-        --                 { cases p', simp at h2, contradiction, simp at h_1, contradiction },
-        --                 { right, apply (ih h_1).mpr ⟨e,h2,h3⟩; assumption }
-        --             }
-        --         }
-        --     }
+        lemma mem_of_edges (h : 0 < p.size) : u ∈ p <-> ∃ e ∈ p.edges, u ∈ edges.ends e
+            := by { induction p with a b p ha ih, { simp at h, contradiction }, clear h, split; simp,
+                { intro h1, cases h1,
+                    { cases nat.eq_zero_or_pos p.size,
+                        { cases p, simp, left, exact h1, simp at h, contradiction },
+                        { obtain ⟨e,h2,h3⟩ := (ih h).mp h1, use e, simp at h3, simp [*] }
+                    },
+                    { use ⟨ha⟩, simp [*] }
+                },
+                { split,
+                    { intro h1, cases h1, left, exact h1.symm ▸ mem_tail, right, exact h1 },
+                    { intros e he h1, cases nat.eq_zero_or_pos p.size,
+                        { cases p; simp at *; contradiction },
+                        { left, simp at ih, exact (ih h).mpr ⟨e,he,h1⟩ }
+                    }
+                }
+            }
 
         -- lemma to_path (h : linked G x y) : nonempty (path G x y)
         --     := by { induction h with x' y' h1 h2 ih,
