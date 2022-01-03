@@ -78,32 +78,31 @@ namespace simple_graph
                         (λ e he h1, or.inl (ih.mpr ⟨e,he,h1⟩))⟩,
             }
 
-        -- lemma to_path (h : linked G x y) : nonempty (path G x y)
-        --     := by { induction h with x' y' h1 h2 ih,
-        --         { use point x },
-        --         { cases ih, use append ih h2 }
-        --     }
+        lemma to_path (h : linked G x y) : nonempty (path3 G x y)
+            := by { induction h with a b h1 h2 ih, use point, cases ih, use ih.step h2 }
 
-        -- noncomputable def to_path' (h : linked G x y) : path G x y
-        --     := classical.choice (to_path h)
+        lemma to_path_2 (h : linked G x y) : ∃ p : path3 G x y, true
+            := by { induction h with a b h1 h2 ih, use point, cases ih, use ih_w.step h2 }
 
-        -- lemma from_path : nonempty (path G x y) -> linked G x y
-        --     := by { intro h, cases h with p, induction p with x' x' y' z' h' p' ih,
-        --         exact linked.refl,
-        --         transitivity y', exact linked.edge h', exact ih }
+        noncomputable def to_path' (h : linked G x y) : path3 G x y
+            := classical.choice (to_path h)
 
-        -- lemma iff_path : linked G x y <-> nonempty (path G x y)
-        --     := ⟨to_path, from_path⟩
+        noncomputable def to_path_2' (h : linked G x y) : path3 G x y
+            := classical.some (to_path_2 h)
 
-        -- @[simp] lemma nodup_point : nodup (point x : path G x x)
-        --     := by { unfold nodup, simp }
+        lemma from_path : nonempty (path3 G x y) -> linked G x y
+            := by { intro h, cases h with p, induction p with a b h1 h2 ih, refl, exact ih.tail h2 }
 
-        -- @[simp] lemma nodup_append {p : path G x y} {h : G.adj y z} : nodup (append p h) <-> nodup p ∧ z ∉ p
-        --     := by { induction p, { simp, exact ne_comm }, { simp, push_neg, rw [p_ih,and_assoc,and_assoc],
-        --         finish } }
+        lemma iff_path : linked G x y <-> nonempty (path3 G x y) := ⟨to_path, from_path⟩
 
-        -- lemma nodup_rev {p : path G x y} : nodup p -> nodup p.rev
-        --     := by { induction p, obviously }
+        @[simp] lemma nodup_cons : nodup (cons p h') <-> u ∉ p ∧ nodup p
+            := by { induction p with a b h1 h2 ih, simp, exact ne_comm,
+                simp, push_neg, split,
+                { rintros ⟨h1,h2,h3⟩, have h4 := ih.mp h1, exact ⟨⟨h4.1,h2.symm⟩,h4.2,h3⟩ },
+                { rintros ⟨⟨h1,h2⟩,h3,h4⟩, exact ⟨ih.mpr ⟨h1,h3⟩,h2.symm,h4⟩ }
+            }
+
+        lemma nodup_rev : nodup p -> nodup p.rev := by { induction p, obviously }
 
         -- lemma nodup_concat {p : path G x y} {p' : path G y z} : nodup (concat p p') <-> nodup p ∧ nodup p' ∧ (∀ u, u ∈ p -> u ∈ p' -> u = y)
         --     := by { induction p with _ _ _ _ _ _ ih; simp, push_neg, split,
