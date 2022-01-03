@@ -8,7 +8,7 @@ namespace simple_graph
 
     namespace path3
         open path3
-        variables {V : Type} {G : simple_graph V} {u v x y z : V}
+        variables {V : Type} {G : simple_graph V} {u v x y z : V} {e : edges G}
         variables {p : path3 G x y} {p' : path3 G y z} {h : G.adj y z} {h' : G.adj u x} {h'' : G.adj z v}
 
         @[simp] def from_edge (h : G.adj x y) : path3 G x y := step point h
@@ -22,7 +22,7 @@ namespace simple_graph
         def mem (z : V) (p : path3 G x y) : Prop           := path3.rec (z=x) (λ _ u _ _ h, h ∨ z=u)           p
         def size        (p : path3 G x y) : ℕ              := path3.rec 0     (λ _ _ _ _ l, l+1)               p
         def rev         (p : path3 G x y) : path3 G y x    := path3.rec point (λ _ _ _ h q, q.cons (G.symm h)) p
-        def edges       (p : path3 G x y) : list (edges G) := path3.rec []    (λ _ _ _ d e, e.append [⟨d⟩])    p
+        def edges       (p : path3 G x y) : list (edges G) := path3.rec []    (λ _ _ _ d e, ⟨d⟩ :: e)          p
         def nodup       (p : path3 G x y) : Prop           := path3.rec true  (λ _ u q _ e, e ∧ ¬(mem u q))    p
 
         instance : has_mem    V (path3 G x y) := ⟨mem⟩
@@ -41,6 +41,7 @@ namespace simple_graph
         @[simp] lemma mem_step    :           u ∈ p.step h <-> u ∈ p ∨ u = z          := iff.rfl
         @[simp] lemma size_step   :        (p.step h).size  =  p.size + 1             := rfl
         @[simp] lemma rev_step    :         rev (p.step h)  =  cons p.rev (G.symm h)  := rfl
+        @[simp] lemma edges_step  :       edges (p.step h)  =  ⟨h⟩ :: edges p         := rfl
         @[simp] lemma nodup_step  :       (p.step h).nodup <-> p.nodup ∧ z ∉ p        := iff.rfl
 
         lemma mem_tail : y ∈ p := by { cases p, exact rfl, right, refl }
@@ -63,11 +64,8 @@ namespace simple_graph
         @[simp] lemma mem_concat : u ∈ concat p p' <-> u ∈ p ∨ u ∈ p'
             := by { induction p'; simp [*,or_assoc], exact ⟨or.inl,(λ h, or.cases_on h id (λ h, h.symm ▸ mem_tail))⟩ }
 
-        -- @[simp] lemma edges_step {h : G.adj x y} {p : path G y z} : edges (step h p) = ⟨h⟩ :: edges p
-        --     := rfl
-
-        -- lemma mem_edges {p : path G x y} {e : G.edges} : e ∈ p.edges -> e.x ∈ p ∧ e.y ∈ p
-        --     := by { induction p, simp, intro hh, simp at hh, cases hh; simp [*], right, apply mem_head }
+        lemma mem_edges : e ∈ p.edges -> e.x ∈ p ∧ e.y ∈ p
+            := by { induction p; simp, intro h, cases h; simp[*], left, exact mem_tail }
 
         -- lemma mem_of_edges {p : path G x y} (h : 0 < p.size) : u ∈ p <-> ∃ e ∈ p.edges, u ∈ edges.ends e
         --     := by { induction p with x' x' y' z' h' p' ih, { simp at h, contradiction }, split,
