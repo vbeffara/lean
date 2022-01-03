@@ -79,16 +79,12 @@ namespace simple_graph
             }
 
         lemma to_path (h : linked G x y) : nonempty (path3 G x y)
-            := by { induction h with a b h1 h2 ih, use point, cases ih, use ih.step h2 }
-
-        lemma to_path_2 (h : linked G x y) : ∃ p : path3 G x y, true
-            := by { induction h with a b h1 h2 ih, use point, cases ih, use ih_w.step h2 }
+            := by { induction h with _ _ _ h2 ih, use point, cases ih, use ih.step h2 }
 
         noncomputable def to_path'   (h : linked G x y) : path3 G x y := classical.choice (to_path h)
-        noncomputable def to_path_2' (h : linked G x y) : path3 G x y := classical.some (to_path_2 h)
 
         lemma from_path : nonempty (path3 G x y) -> linked G x y
-            := by { intro h, cases h with p, induction p with a b h1 h2 ih, refl, exact ih.tail h2 }
+            := by { intro h, cases h with p, induction p with _ _ _ h2 ih, refl, exact ih.tail h2 }
 
         lemma iff_path : linked G x y <-> nonempty (path3 G x y) := ⟨to_path, from_path⟩
 
