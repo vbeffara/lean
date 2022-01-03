@@ -21,7 +21,7 @@ namespace simple_graph
         := well_founded.min_mem _ _ (dists_ne_empty _)
 
     @[simp] lemma dist_self : dist G x x = 0
-        := le_antisymm (upper_bound G (path.point x)) (zero_le _)
+        := le_antisymm (upper_bound G path.point) (zero_le _)
 
     lemma dist_triangle : dist G x z ≤ dist G x y + dist G y z
         := by { choose f g using @shortest_path, rw [<-(g G x y),<-(g G y z),<-path.size_concat],

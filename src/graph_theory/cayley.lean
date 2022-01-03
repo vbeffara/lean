@@ -43,11 +43,10 @@ namespace simple_graph
         ⟩
 
         def shift_path (p : path (Cay S) x y) : path (Cay S) (a*x : G) (a*y : G)
-            := path.rec (λ x', path.point (a * x'))
-                        (λ _ _ _ h' _, path.step (shift_adj S h')) p
+            := path.rec path.point (λ _ _ _ h2 ih, ih.step (shift_adj S h2)) p
 
-        @[simp] lemma shift_path_step (h : (Cay S).adj x y) (p : path (Cay S) y z)
-        : shift_path S a (path.step h p) = path.step (shift_adj S h) (shift_path S a p)
+        @[simp] lemma shift_path_step (p : path (Cay S) x y) (h : (Cay S).adj y z)
+                : shift_path S a (p.step h) = (shift_path S a p).step (shift_adj S h)
             := rfl
 
         @[simp] lemma size_shift_path (p : path (Cay S) x y) : (shift_path S a p).size = p.size
@@ -101,13 +100,11 @@ namespace simple_graph
                 obtain K := finset.max_of_nonempty this,
                 cases K, use K_w,
                 intros x y, obtain p := simple_graph.shortest_path (Cay S1) x y, cases p with p hp,
-                unfold word_dist, rw <-hp, clear hp, induction p with x' x' y' z' h' p' ih, simp,
-                transitivity (Cay S2).dist x' y' + (Cay S2).dist y' z', apply simple_graph.dist_triangle,
-                simp, rw [mul_add,add_comm,mul_one], apply add_le_add ih,
-                have : (Cay S2).dist x' y' ∈ Δ, by {
-                    simp, use (x')⁻¹ * y', split, exact h'.2,
-                    convert covariant S2 x'⁻¹, rw inv_mul_self
-                },
+                unfold word_dist, rw <-hp, clear hp, induction p with a b h1 h2 ih, simp,
+                transitivity (Cay S2).dist x a + (Cay S2).dist a b, apply simple_graph.dist_triangle,
+                simp, rw [mul_add,mul_one], apply add_le_add ih,
+                have : (Cay S2).dist a b ∈ Δ,
+                    by { simp, use a⁻¹ * b, split, exact h2.2, convert covariant S2 a⁻¹, group },
                 exact finset.le_max_of_mem this K_h
             end
     end cayley

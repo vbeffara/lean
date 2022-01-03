@@ -2,31 +2,31 @@ import tactic
 import graph_theory.basic
 
 namespace simple_graph
-    inductive path3 {V : Type} (G : simple_graph V) (x : V) : V -> Type
-    | point : path3 x
-    | step {y z : V} : path3 y -> G.adj y z -> path3 z
+    inductive path {V : Type} (G : simple_graph V) (x : V) : V -> Type
+    | point : path x
+    | step {y z : V} : path y -> G.adj y z -> path z
 
-    namespace path3
-        open path3
+    namespace path
+        open path
         variables {V : Type} {G : simple_graph V} {u v x y z : V} {e : edges G}
-        variables {p : path3 G x y} {p' : path3 G y z} {h : G.adj y z} {h' : G.adj u x} {h'' : G.adj z v}
+        variables {p : path G x y} {p' : path G y z} {h : G.adj y z} {h' : G.adj u x} {h'' : G.adj z v}
 
-        @[simp] def from_edge : G.adj x y -> path3 G x y := step point
+        @[simp] def from_edge : G.adj x y -> path G x y := step point
 
-        def cons (p : path3 G y z) (h : G.adj x y) : path3 G x z
-            := path3.rec (from_edge h) (λ _ _ _ h ih, ih.step h) p
+        def cons (p : path G y z) (h : G.adj x y) : path G x z
+            := path.rec (from_edge h) (λ _ _ _ h ih, ih.step h) p
 
-        def concat (p : path3 G x y) (p' : path3 G y z) : path3 G x z
-            := path3.rec p (λ _ _ _ h q, q.step h) p'
+        def concat (p : path G x y) (p' : path G y z) : path G x z
+            := path.rec p (λ _ _ _ h q, q.step h) p'
 
-        def mem (z : V) (p : path3 G x y) : Prop           := path3.rec (z=x) (λ _ u _ _ h, h ∨ z=u)           p
-        def size        (p : path3 G x y) : ℕ              := path3.rec 0     (λ _ _ _ _ l, l+1)               p
-        def rev         (p : path3 G x y) : path3 G y x    := path3.rec point (λ _ _ _ h q, q.cons (G.symm h)) p
-        def edges       (p : path3 G x y) : list (edges G) := path3.rec []    (λ _ _ _ d e, ⟨d⟩ :: e)          p
-        def nodup       (p : path3 G x y) : Prop           := path3.rec true  (λ _ u q _ e, e ∧ ¬(mem u q))    p
+        def mem (z : V) (p : path G x y) : Prop           := path.rec (z=x) (λ _ u _ _ h, h ∨ z=u)           p
+        def size        (p : path G x y) : ℕ              := path.rec 0     (λ _ _ _ _ l, l+1)               p
+        def rev         (p : path G x y) : path G y x    := path.rec point (λ _ _ _ h q, q.cons (G.symm h)) p
+        def edges       (p : path G x y) : list (edges G) := path.rec []    (λ _ _ _ d e, ⟨d⟩ :: e)          p
+        def nodup       (p : path G x y) : Prop           := path.rec true  (λ _ u q _ e, e ∧ ¬(mem u q))    p
 
-        instance : has_mem    V (path3 G x y) := ⟨mem⟩
-        instance : has_sizeof   (path3 G x y) := ⟨size⟩
+        instance : has_mem    V (path G x y) := ⟨mem⟩
+        instance : has_sizeof   (path G x y) := ⟨size⟩
 
         @[simp] lemma cons_point   :         cons point h  =  from_edge h := rfl
         @[simp] lemma concat_point :       concat p point  =  p           := rfl
@@ -45,7 +45,7 @@ namespace simple_graph
         @[simp] lemma nodup_step  :       (p.step h).nodup <-> p.nodup ∧ z ∉ p        := iff.rfl
 
         lemma mem_tail : y ∈ p := by { cases p, exact rfl, exact or.inr rfl }
-        lemma mem_head : x ∈ p := path3.rec rfl (λ _ _ _ _, or.inl) p
+        lemma mem_head : x ∈ p := path.rec rfl (λ _ _ _ _, or.inl) p
 
         lemma point_of_size_0 : p.size = 0 -> x = y := by { intro h, cases p, refl, contradiction }
 
@@ -57,9 +57,9 @@ namespace simple_graph
         @[simp] lemma concat_step'  : concat (step point h') p  =  cons p h'             := by { induction p, obviously }
         @[simp] lemma concat_cons   :    concat (p.cons h') p'  =  cons (concat p p') h' := by { induction p', obviously }
         @[simp] lemma concat_rev    :        rev (concat p p')  =  concat p'.rev p.rev   := by { induction p', obviously }
-        @[simp] lemma concat_size   :       size (concat p p')  =  p.size + p'.size      := by { induction p'; simp [*,add_assoc] }
+        @[simp] lemma size_concat   :       size (concat p p')  =  p.size + p'.size      := by { induction p'; simp [*,add_assoc] }
 
-        @[simp] lemma concat_assoc {p'' : path3 G z u} : concat (concat p p') p'' = concat p (concat p' p'') := by { induction p''; simp [*] }
+        @[simp] lemma concat_assoc {p'' : path G z u} : concat (concat p p') p'' = concat p (concat p' p'') := by { induction p''; simp [*] }
 
         @[simp] lemma mem_concat : u ∈ concat p p' <-> u ∈ p ∨ u ∈ p'
             := by { induction p'; simp [*,or_assoc], exact ⟨or.inl,(λ h, or.cases_on h id (λ h, h.symm ▸ mem_tail))⟩ }
@@ -78,15 +78,15 @@ namespace simple_graph
                         (λ e he h1, or.inl (ih.mpr ⟨e,he,h1⟩))⟩,
             }
 
-        lemma to_path (h : linked G x y) : nonempty (path3 G x y)
+        lemma to_path (h : linked G x y) : nonempty (path G x y)
             := by { induction h with _ _ _ h2 ih, use point, cases ih, use ih.step h2 }
 
-        noncomputable def to_path'   (h : linked G x y) : path3 G x y := classical.choice (to_path h)
+        noncomputable def to_path'   (h : linked G x y) : path G x y := classical.choice (to_path h)
 
-        lemma from_path : nonempty (path3 G x y) -> linked G x y
+        lemma from_path : nonempty (path G x y) -> linked G x y
             := by { intro h, cases h with p, induction p with _ _ _ h2 ih, refl, exact ih.tail h2 }
 
-        lemma iff_path : linked G x y <-> nonempty (path3 G x y) := ⟨to_path, from_path⟩
+        lemma iff_path : linked G x y <-> nonempty (path G x y) := ⟨to_path, from_path⟩
 
         @[simp] lemma nodup_cons : nodup (cons p h') <-> u ∉ p ∧ nodup p
             := by { induction p with a b h1 h2 ih, simp, exact ne_comm,
@@ -106,7 +106,7 @@ namespace simple_graph
                     intro h5, apply h3, rw h4 b h5 (or.inr rfl), exact mem_head } }
 
         def path_from_subgraph {G₁ G₂ : simple_graph V} (sub : ∀ {x y : V}, G₁.adj x y -> G₂.adj x y)
-                (p : path3 G₁ x y) : path3 G₂ x y
-            := path3.rec point (λ _ _ _ h q, q.step (sub h)) p
-    end path3
+                (p : path G₁ x y) : path G₂ x y
+            := path.rec point (λ _ _ _ h q, q.step (sub h)) p
+    end path
 end simple_graph

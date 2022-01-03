@@ -37,10 +37,9 @@ namespace simple_graph
                 exact linked_of_subgraph S.sub (quotient.eq.mp h₃) }
 
         noncomputable def proj_path {x y : S.V} (p : path S.G x y) : path (contract S) ⟦x⟧ ⟦y⟧
-            := path.rec (λ x, path.point ⟦x⟧) (λ x y z ha p ih, dite (⟦x⟧ = ⟦y⟧)
-                (λ h, by { convert ih })
-                (λ h, path.step ⟨h,x,y,rfl,rfl,ha⟩ ih)
-            ) p
+            := path.rec path.point (λ a b _ h2 ih, dite (⟦a⟧ = ⟦b⟧)
+                (λ h, by { rw <-h, exact ih }) (λ h, ih.step ⟨h,a,b,rfl,rfl,h2⟩)) p
+
 
         lemma project_linked {x y : S.V} (h : linked S.G x y) : linked (contract S) ⟦x⟧ ⟦y⟧
             := relation.refl_trans_gen.rec relation.refl_trans_gen.refl
