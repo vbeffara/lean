@@ -33,6 +33,7 @@ namespace simple_graph
         @[simp] lemma mem_point    :      u ∈ (point : path3 G x x)   <-> u = x       := iff.rfl
         @[simp] lemma size_point   :     size (point : path3 G x x)    =  0           := rfl
         @[simp] lemma rev_point    :      rev (point : path3 G x x)    =  point       := rfl
+        @[simp] lemma edges_point  :    edges (point : path3 G x x)    =  []          := rfl
         @[simp] lemma nodup_point  :    nodup (point : path3 G x x)                   := trivial
 
         @[simp] lemma cons_step   :     cons (p.step h) h'  =  step (p.cons h') h     := rfl
@@ -54,25 +55,13 @@ namespace simple_graph
         @[simp] lemma concat_point' :           concat point p  =  p                     := by { induction p; simp [*] }
         @[simp] lemma concat_step'  : concat (step point h') p  =  cons p h'             := by { induction p; simp [*] }
         @[simp] lemma concat_cons   :    concat (p.cons h') p'  =  cons (concat p p') h' := by { induction p'; simp [*] }
+        @[simp] lemma concat_rev    :        rev (concat p p')  =  concat p'.rev p.rev   := by { induction p'; simp [*] }
+        @[simp] lemma concat_size   :       size (concat p p')  =  p.size + p'.size      := by { induction p'; simp [*,add_assoc] }
 
-        -- @[simp] lemma concat_rev {p : path G x y} {p' : path G y z} : (concat p p').rev = concat p'.rev p.rev
-        --     := by { induction p; simp [*] }
+        @[simp] lemma concat_assoc {p'' : path3 G z u} : concat (concat p p') p'' = concat p (concat p' p'') := by { induction p''; simp [*] }
 
-        -- @[simp] lemma concat_assoc {p1 : path G x y} {p2 : path G y z} {p3 : path G z u} :
-        --         concat (concat p1 p2) p3 = concat p1 (concat p2 p3)
-        --     := by { induction p1; simp [*] }
-
-        -- @[simp] lemma size_concat {p : path G x y} {p' : path G y z} : (concat p p').size = p.size + p'.size
-        --     := by { induction p; simp [*], linarith }
-
-        -- @[simp] lemma mem_concat {p1 : path G x y} {p2 : path G y z} : u ∈ (concat p1 p2) <-> u ∈ p1 ∨ u ∈ p2
-        --     := by { induction p1; simp,
-        --         { refine ⟨or.inr,_⟩, intro h, cases h, convert mem_head, assumption },
-        --         { rw p1_ih, exact or.assoc.symm }
-        --     }
-
-        -- @[simp] lemma edges_point : edges (point x : path G x x) = []
-        --     := rfl
+        @[simp] lemma mem_concat : u ∈ concat p p' <-> u ∈ p ∨ u ∈ p'
+            := by { induction p'; simp [*,or_assoc], exact ⟨or.inl,(λ h, or.cases_on h id (λ h, h.symm ▸ mem_tail))⟩ }
 
         -- @[simp] lemma edges_step {h : G.adj x y} {p : path G y z} : edges (step h p) = ⟨h⟩ :: edges p
         --     := rfl
