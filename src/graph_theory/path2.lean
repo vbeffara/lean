@@ -55,29 +55,15 @@ namespace simple_graph
     --     def size        (p : path G x y) : nat            := path.rec (λ _, 0)    (λ _ _ _ _ _ h, h + 1)               p
     --     def rev         (p : path G x y) : path G y x     := path.rec (point)     (λ _ _ _ e _ h, append h (G.symm e)) p
     --     def edges       (p : path G x y) : list (edges G) := path.rec (λ _, [])   (λ _ _ _ e _ h, ⟨e⟩ :: h)            p
-    --     def to_list     (p : path G x y) : list V         := path.rec (λ u, [u])  (λ u _ _ _ _ h, u :: h)              p
-
-    --     def nodup(p : path G x y) : Prop   := p.to_list.nodup
-    --     def init (p : path G x y) : list V := p.to_list.init
-    --     def tail (p : path G x y) : list V := p.to_list.tail
 
     --     instance : has_mem    V (path G x y) := ⟨mem⟩
     --     instance : has_sizeof   (path G x y) := ⟨size⟩
-
-    --     @[simp] lemma to_list_point : to_list (point x : path G x x) = [x]
-    --         := rfl
-
-    --     @[simp] lemma to_list_step (p : path G x y) {h : G.adj z x} : to_list (step h p) = z :: p.to_list
-    --         := rfl
 
     --     @[simp] lemma mem_point : z ∈ (point x : path G x x) <-> z = x
     --         := iff.rfl
 
     --     @[simp] lemma mem_step {h : G.adj x y} {p : path G y z} : u ∈ step h p <-> u = x ∨ u ∈ p
     --         := iff.rfl
-
-    --     lemma mem_to_list {p : path G x y} : u ∈ p <-> u ∈ p.to_list
-    --         := by { induction p; simp [*] }
 
     --     lemma mem_head {p : path G x y} : x ∈ p
     --         := by { cases p, exact rfl, simp }
@@ -196,9 +182,6 @@ namespace simple_graph
     --     @[simp] lemma nodup_point : nodup (point x : path G x x)
     --         := by { unfold nodup, simp }
 
-    --     @[simp] lemma nodup_step {h : G.adj x y} {p : path G y z} : nodup (step h p) <-> x ∉ p ∧ nodup p
-    --         := by { unfold nodup, simp, intro, rw mem_to_list }
-
     --     @[simp] lemma nodup_append {p : path G x y} {h : G.adj y z} : nodup (append p h) <-> nodup p ∧ z ∉ p
     --         := by { induction p, { simp, exact ne_comm }, { simp, push_neg, rw [p_ih,and_assoc,and_assoc],
     --             finish } }
@@ -213,9 +196,6 @@ namespace simple_graph
     --             { rintros ⟨⟨h1,h2⟩,h3,h4,h5⟩, replace ih := ih.mpr ⟨h2,h3,h5⟩, refine ⟨⟨h1,_⟩,ih⟩,
     --                 intro h, apply h1, convert mem_tail, exact h4 h }
     --         }
-
-    --     @[simp] lemma tail_step {h : G.adj x y} {p : path G y z} : tail (step h p) = y :: tail p
-    --         := by { cases p; refl }
 
     --     def path_from_subgraph {G₁ G₂ : simple_graph V} (sub : ∀ {x y : V}, G₁.adj x y -> G₂.adj x y)
     --             (p : path G₁ x y) : path G₂ x y

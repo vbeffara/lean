@@ -8,7 +8,7 @@ namespace simple_graph
 
     namespace path3
         open path3
-        variables {V : Type} {G : simple_graph V} {u x y z : V} (p : path3 G x y) {h : G.adj y z}
+        variables {V : Type} {G : simple_graph V} {u x y z : V} {p : path3 G x y} {h : G.adj y z}
 
         @[simp] def from_edge (h : G.adj x y) : path3 G x y := step point h
 
@@ -24,37 +24,24 @@ namespace simple_graph
         def size        (p : path3 G x y) : ℕ              := path3.rec 0     (λ _ _ _ _ l, l+1)               p
         def rev         (p : path3 G x y) : path3 G y x    := path3.rec point (λ _ _ _ h q, q.cons (G.symm h)) p
         def edges       (p : path3 G x y) : list (edges G) := path3.rec []    (λ _ _ _ d e, e.append [⟨d⟩])    p
-        def to_list     (p : path3 G x y) : list V         := path3.rec [x]   (λ _ u _ _ e, u :: e)            p
         def nodup       (p : path3 G x y) : Prop           := path3.rec true  (λ _ u q _ e, e ∧ ¬(mem u q))    p
 
         instance : has_mem    V (path3 G x y) := ⟨mem⟩
         instance : has_sizeof   (path3 G x y) := ⟨size⟩
 
-        @[simp] lemma mem_point     : u ∈ (point : path3 G x x) <-> u = x := iff.rfl
-        @[simp] lemma to_list_point : to_list (point : path3 G x x) = [x] := rfl
-        @[simp] lemma nodup_point   : nodup (point : path3 G x x)         := trivial
+        @[simp] lemma mem_point   :   u ∈ (point : path3 G x x) <-> u = x := iff.rfl
+        @[simp] lemma size_point  :  size (point : path3 G x x)  =  0     := rfl
+        @[simp] lemma nodup_point : nodup (point : path3 G x x)           := trivial
 
-        @[simp] lemma mem_step     : u ∈ p.step h <-> u ∈ p ∨ u = z        := iff.rfl
-        @[simp] lemma to_list_step : to_list (p.step h) = z :: (to_list p) := rfl
-        @[simp] lemma nodup_step   : nodup (p.step h) <-> nodup p ∧ z ∉ p  := iff.rfl
-
-        -- def init (p : path G x y) : list V := p.to_list.init
-        -- def tail (p : path G x y) : list V := p.to_list.tail
-
-        -- @[simp] lemma to_list_point : to_list (point x : path G x x) = [x]
-        --     := rfl
-
-        -- @[simp] lemma to_list_step (p : path G x y) {h : G.adj z x} : to_list (step h p) = z :: p.to_list
-        --     := rfl
+        @[simp] lemma mem_step     :     u ∈ p.step h <-> u ∈ p ∨ u = z   := iff.rfl
+        @[simp] lemma size_step    : (p.step h).size   =  p.size + 1      := rfl
+        @[simp] lemma nodup_step   : (p.step h).nodup <-> p.nodup ∧ z ∉ p := iff.rfl
 
         -- @[simp] lemma mem_point : z ∈ (point x : path G x x) <-> z = x
         --     := iff.rfl
 
         -- @[simp] lemma mem_step {h : G.adj x y} {p : path G y z} : u ∈ step h p <-> u = x ∨ u ∈ p
         --     := iff.rfl
-
-        -- lemma mem_to_list {p : path G x y} : u ∈ p <-> u ∈ p.to_list
-        --     := by { induction p; simp [*] }
 
         -- lemma mem_head {p : path G x y} : x ∈ p
         --     := by { cases p, exact rfl, simp }
@@ -173,9 +160,6 @@ namespace simple_graph
         -- @[simp] lemma nodup_point : nodup (point x : path G x x)
         --     := by { unfold nodup, simp }
 
-        -- @[simp] lemma nodup_step {h : G.adj x y} {p : path G y z} : nodup (step h p) <-> x ∉ p ∧ nodup p
-        --     := by { unfold nodup, simp, intro, rw mem_to_list }
-
         -- @[simp] lemma nodup_append {p : path G x y} {h : G.adj y z} : nodup (append p h) <-> nodup p ∧ z ∉ p
         --     := by { induction p, { simp, exact ne_comm }, { simp, push_neg, rw [p_ih,and_assoc,and_assoc],
         --         finish } }
@@ -190,9 +174,6 @@ namespace simple_graph
         --         { rintros ⟨⟨h1,h2⟩,h3,h4,h5⟩, replace ih := ih.mpr ⟨h2,h3,h5⟩, refine ⟨⟨h1,_⟩,ih⟩,
         --             intro h, apply h1, convert mem_tail, exact h4 h }
         --     }
-
-        -- @[simp] lemma tail_step {h : G.adj x y} {p : path G y z} : tail (step h p) = y :: tail p
-        --     := by { cases p; refl }
 
         -- def path_from_subgraph {G₁ G₂ : simple_graph V} (sub : ∀ {x y : V}, G₁.adj x y -> G₂.adj x y)
         --         (p : path G₁ x y) : path G₂ x y
