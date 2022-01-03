@@ -50,13 +50,13 @@ namespace simple_graph
         lemma point_of_size_0 : p.size = 0 -> x = y := by { intro h, cases p, refl, contradiction }
 
         @[simp] lemma mem_cons      :            v ∈ p.cons h' <-> v = u ∨ v ∈ p         := by { induction p; simp [*,or.assoc] }
-        @[simp] lemma size_cons     :         size (p.cons h')  =  size p + 1            := by { induction p; simp [*] }
-        @[simp] lemma size_rev      :             size (rev p)  =  size p                := by { induction p; simp [*] }
+        @[simp] lemma size_cons     :         size (p.cons h')  =  size p + 1            := by { induction p, obviously }
+        @[simp] lemma size_rev      :             size (rev p)  =  size p                := by { induction p, obviously }
         @[simp] lemma mem_rev       :                z ∈ rev p <-> z ∈ p                 := by { induction p; simp [*,or.comm] }
-        @[simp] lemma concat_point' :           concat point p  =  p                     := by { induction p; simp [*] }
-        @[simp] lemma concat_step'  : concat (step point h') p  =  cons p h'             := by { induction p; simp [*] }
-        @[simp] lemma concat_cons   :    concat (p.cons h') p'  =  cons (concat p p') h' := by { induction p'; simp [*] }
-        @[simp] lemma concat_rev    :        rev (concat p p')  =  concat p'.rev p.rev   := by { induction p'; simp [*] }
+        @[simp] lemma concat_point' :           concat point p  =  p                     := by { induction p, obviously }
+        @[simp] lemma concat_step'  : concat (step point h') p  =  cons p h'             := by { induction p, obviously }
+        @[simp] lemma concat_cons   :    concat (p.cons h') p'  =  cons (concat p p') h' := by { induction p', obviously }
+        @[simp] lemma concat_rev    :        rev (concat p p')  =  concat p'.rev p.rev   := by { induction p', obviously }
         @[simp] lemma concat_size   :       size (concat p p')  =  p.size + p'.size      := by { induction p'; simp [*,add_assoc] }
 
         @[simp] lemma concat_assoc {p'' : path3 G z u} : concat (concat p p') p'' = concat p (concat p' p'') := by { induction p''; simp [*] }
@@ -84,11 +84,8 @@ namespace simple_graph
         lemma to_path_2 (h : linked G x y) : ∃ p : path3 G x y, true
             := by { induction h with a b h1 h2 ih, use point, cases ih, use ih_w.step h2 }
 
-        noncomputable def to_path' (h : linked G x y) : path3 G x y
-            := classical.choice (to_path h)
-
-        noncomputable def to_path_2' (h : linked G x y) : path3 G x y
-            := classical.some (to_path_2 h)
+        noncomputable def to_path'   (h : linked G x y) : path3 G x y := classical.choice (to_path h)
+        noncomputable def to_path_2' (h : linked G x y) : path3 G x y := classical.some (to_path_2 h)
 
         lemma from_path : nonempty (path3 G x y) -> linked G x y
             := by { intro h, cases h with p, induction p with a b h1 h2 ih, refl, exact ih.tail h2 }
@@ -104,16 +101,16 @@ namespace simple_graph
 
         lemma nodup_rev : nodup p -> nodup p.rev := by { induction p, obviously }
 
-        -- lemma nodup_concat {p : path G x y} {p' : path G y z} : nodup (concat p p') <-> nodup p ∧ nodup p' ∧ (∀ u, u ∈ p -> u ∈ p' -> u = y)
-        --     := by { induction p with _ _ _ _ _ _ ih; simp, push_neg, split,
-        --         { rintros ⟨⟨h1,h2⟩,h3⟩, replace ih := ih.mp h3, refine ⟨⟨h1,ih.1⟩,ih.2.1,_,ih.2.2⟩,
-        --             exact false.rec _ ∘ h2 },
-        --         { rintros ⟨⟨h1,h2⟩,h3,h4,h5⟩, replace ih := ih.mpr ⟨h2,h3,h5⟩, refine ⟨⟨h1,_⟩,ih⟩,
-        --             intro h, apply h1, convert mem_tail, exact h4 h }
-        --     }
+        lemma nodup_concat : nodup (concat p p') <-> nodup p ∧ nodup p' ∧ (∀ u, u ∈ p -> u ∈ p' -> u = y)
+            := by { induction p' with a b q h2 ih; simp, push_neg, split,
+                { rintros ⟨h1,h2,h3⟩, replace ih := ih.mp h1, refine ⟨ih.1,⟨ih.2.1,h3⟩,λ u h4 h5, _⟩,
+                    cases h5, exact ih.2.2 u h4 h5, subst h5, contradiction },
+                { rintros ⟨h1,⟨h2,h3⟩,h4⟩, refine ⟨ih.mpr ⟨h1,h2,_⟩,_,h3⟩,
+                    intros u h5 h6, refine h4 u h5 (or.inl h6),
+                    intro h5, specialize h4 b h5 (or.inr rfl), subst b, apply h3, exact mem_head } }
 
-        -- def path_from_subgraph {G₁ G₂ : simple_graph V} (sub : ∀ {x y : V}, G₁.adj x y -> G₂.adj x y)
-        --         (p : path G₁ x y) : path G₂ x y
-        --     := path.rec point (λ _ _ _ h _, step $ sub h) p
+        def path_from_subgraph {G₁ G₂ : simple_graph V} (sub : ∀ {x y : V}, G₁.adj x y -> G₂.adj x y)
+                (p : path3 G₁ x y) : path3 G₂ x y
+            := path3.rec point (λ a b _ h q, q.step (sub h)) p
     end path3
 end simple_graph
