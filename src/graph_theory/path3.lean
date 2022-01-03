@@ -8,7 +8,8 @@ namespace simple_graph
 
     namespace path3
         open path3
-        variables {V : Type} {G : simple_graph V} {u v x y z : V} {p : path3 G x y} {h : G.adj y z} {h' : G.adj u x}
+        variables {V : Type} {G : simple_graph V} {u v x y z : V}
+        variables {p : path3 G x y} {p' : path3 G y z} {h : G.adj y z} {h' : G.adj u x} {h'' : G.adj z v}
 
         @[simp] def from_edge (h : G.adj x y) : path3 G x y := step point h
 
@@ -27,44 +28,32 @@ namespace simple_graph
         instance : has_mem    V (path3 G x y) := ⟨mem⟩
         instance : has_sizeof   (path3 G x y) := ⟨size⟩
 
-        @[simp] lemma cons_point  :  cons (point : path3 G z z) h  =  from_edge h := rfl
-        @[simp] lemma mem_point   :   u ∈ (point : path3 G x x)   <-> u = x       := iff.rfl
-        @[simp] lemma size_point  :  size (point : path3 G x x)    =  0           := rfl
-        @[simp] lemma rev_point   :   rev (point : path3 G x x)    =  point       := rfl
-        @[simp] lemma nodup_point : nodup (point : path3 G x x)                   := trivial
+        @[simp] lemma cons_point   :     cons (point : path3 G z z) h  =  from_edge h := rfl
+        @[simp] lemma concat_point : concat p (point : path3 G y y)    =  p           := rfl
+        @[simp] lemma mem_point    :      u ∈ (point : path3 G x x)   <-> u = x       := iff.rfl
+        @[simp] lemma size_point   :     size (point : path3 G x x)    =  0           := rfl
+        @[simp] lemma rev_point    :      rev (point : path3 G x x)    =  point       := rfl
+        @[simp] lemma nodup_point  :    nodup (point : path3 G x x)                   := trivial
 
-        @[simp] lemma cons_step  : cons (p.step h) h'  =  step (p.cons h') h    := rfl
-        @[simp] lemma mem_step   :       u ∈ p.step h <-> u ∈ p ∨ u = z         := iff.rfl
-        @[simp] lemma size_step  :    (p.step h).size  =  p.size + 1            := rfl
-        @[simp] lemma rev_step   :     rev (p.step h)  =  cons p.rev (G.symm h) := rfl
-        @[simp] lemma nodup_step :   (p.step h).nodup <-> p.nodup ∧ z ∉ p       := iff.rfl
+        @[simp] lemma cons_step   :     cons (p.step h) h'  =  step (p.cons h') h     := rfl
+        @[simp] lemma concat_step : concat p (p'.step h'')  =  step (concat p p') h'' := rfl
+        @[simp] lemma mem_step    :           u ∈ p.step h <-> u ∈ p ∨ u = z          := iff.rfl
+        @[simp] lemma size_step   :        (p.step h).size  =  p.size + 1             := rfl
+        @[simp] lemma rev_step    :         rev (p.step h)  =  cons p.rev (G.symm h)  := rfl
+        @[simp] lemma nodup_step  :       (p.step h).nodup <-> p.nodup ∧ z ∉ p        := iff.rfl
 
         lemma mem_tail : y ∈ p := by { cases p, exact rfl, right, refl }
         lemma mem_head : x ∈ p := by { induction p, exact rfl, left, assumption }
 
-        lemma point_of_size_0 {p : path3 G x y} (h : p.size = 0) : x = y := by { cases p, refl, contradiction }
+        lemma point_of_size_0 : p.size = 0 -> x = y := by { intro h, cases p, refl, contradiction }
 
-        lemma mem_cons  :    v ∈ p.cons h' <-> v = u ∨ v ∈ p := by { induction p; simp [*,or.assoc] }
-        lemma size_cons : size (p.cons h')  =  size p + 1    := by { induction p; simp [*] }
-
-        -- @[simp] lemma size_rev {p : path G x y} : size (rev p) = size p
-        --     := by { induction p, refl, simp [*] }
-
-        -- @[simp] lemma mem_rev {p : path G x y} : z ∈ rev p <-> z ∈ p
-        --     := by { induction p, exact iff.rfl, simp [*], exact or.comm }
-
-        -- @[simp] lemma concat_point {p : path G x y} : concat (path.point x) p = p
-        --     := rfl
-
-        -- @[simp] lemma concat_step {h : G.adj x y} {p : path G y z} {p' : path G z u} : concat (step h p) p' = step h (concat p p')
-        --     := rfl
-
-        -- @[simp] lemma concat_point' {p : path G x y} : concat p (path.point y) = p
-        --     := by { induction p, refl, rw [concat_step,p_ih] }
-
-        -- @[simp] lemma concat_append {p : path G x y} {p' : path G y z} {h : G.adj z u} :
-        --         concat p (append p' h) = append (concat p p') h
-        --     := by { induction p; simp [*] }
+        @[simp] lemma mem_cons      :            v ∈ p.cons h' <-> v = u ∨ v ∈ p         := by { induction p; simp [*,or.assoc] }
+        @[simp] lemma size_cons     :         size (p.cons h')  =  size p + 1            := by { induction p; simp [*] }
+        @[simp] lemma size_rev      :             size (rev p)  =  size p                := by { induction p; simp [*] }
+        @[simp] lemma mem_rev       :                z ∈ rev p <-> z ∈ p                 := by { induction p; simp [*,or.comm] }
+        @[simp] lemma concat_point' :           concat point p  =  p                     := by { induction p; simp [*] }
+        @[simp] lemma concat_step'  : concat (step point h') p  =  cons p h'             := by { induction p; simp [*] }
+        @[simp] lemma concat_cons   :    concat (p.cons h') p'  =  cons (concat p p') h' := by { induction p'; simp [*] }
 
         -- @[simp] lemma concat_rev {p : path G x y} {p' : path G y z} : (concat p p').rev = concat p'.rev p.rev
         --     := by { induction p; simp [*] }
