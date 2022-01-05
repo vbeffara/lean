@@ -27,25 +27,26 @@ namespace simple_graph
 
         @[simp] def mem (z : V) : Π {y : V}, path G x y -> Prop
             | _ point   := z = x
-            | y (p · h) := mem p ∨ z = y
+            | y (p · _) := mem p ∨ z = y
 
         instance : has_mem V (path G x y) := ⟨λ z, mem z⟩
 
-        def size        (p : path G x y) : ℕ              := path.rec 0     (λ _ _ _ _ l, l+1)               p
+        @[simp] def size : Π {y : V}, path G x y -> ℕ
+            | _ point   := 0
+            | _ (p · _) := size p + 1
+
+        instance : has_sizeof   (path G x y) := ⟨size⟩
+
         def rev         (p : path G x y) : path G y x     := path.rec point (λ _ _ _ h q, cons (G.symm h) q) p
         def edges       (p : path G x y) : list (edges G) := path.rec []    (λ _ _ _ d e, ⟨d⟩ :: e)          p
         def nodup       (p : path G x y) : Prop           := path.rec true  (λ _ u q _ e, e ∧ ¬(mem u q))    p
 
-        instance : has_sizeof   (path G x y) := ⟨size⟩
-
         @[simp] lemma mem_point    :   u ∈ (@point _ G x) <-> u = x       := iff.rfl
-        @[simp] lemma size_point   :  size (@point _ G x)  =  0           := rfl
         @[simp] lemma rev_point    :   rev (@point _ G x)  =  point       := rfl
         @[simp] lemma edges_point  : edges (@point _ G x)  =  []          := rfl
         @[simp] lemma nodup_point  : nodup (@point _ G x)                 := trivial
 
         @[simp] lemma mem_step    :            u ∈ (p · h) <-> u ∈ p ∨ u = z    := iff.rfl
-        @[simp] lemma size_step   :           size (p · h)  =  size p + 1       := rfl
         @[simp] lemma rev_step    :            rev (p · h)  =  h.symm :: p.rev  := rfl
         @[simp] lemma edges_step  :          edges (p · h)  =  ⟨h⟩ :: edges p   := rfl
         @[simp] lemma nodup_step  :          nodup (p · h) <-> nodup p ∧ z ∉ p  := iff.rfl
