@@ -84,16 +84,6 @@ namespace simple_graph
                         (λ e he h1, or.inl (ih.mpr ⟨e,he,h1⟩))⟩,
             }
 
-        lemma to_path (h : linked G x y) : nonempty (path G x y)
-            := by { induction h with _ _ _ h2 ih, use point, cases ih, use ih.step h2 }
-
-        noncomputable def to_path'   (h : linked G x y) : path G x y := classical.choice (to_path h)
-
-        lemma from_path : nonempty (path G x y) -> linked G x y
-            := by { intro h, cases h with p, induction p with _ _ _ h2 ih, refl, exact ih.tail h2 }
-
-        lemma iff_path : linked G x y <-> nonempty (path G x y) := ⟨to_path, from_path⟩
-
         @[simp] lemma nodup_cons : nodup (cons h' p) <-> u ∉ p ∧ nodup p
             := by { induction p with a b h1 h2 ih, simp, exact ne_comm,
                 simp, push_neg, split,
@@ -115,4 +105,40 @@ namespace simple_graph
             | _ point   := point
             | _ (p · h) := path_from_subgraph p · sub h
     end path
+
+    variables {V : Type} {G : simple_graph V}
+
+    def linked (G : simple_graph V)    := relation.refl_trans_gen G.adj
+    def connected (G : simple_graph V) := ∀ x y, linked G x y
+
+    lemma linked_of_subgraph {G₁ G₂ : simple_graph V} (sub : ∀ {x y : V}, G₁.adj x y -> G₂.adj x y)
+            {x y : V} (h : linked G₁ x y) : linked G₂ x y
+        := relation.refl_trans_gen.drec relation.refl_trans_gen.refl (λ _ _ _ h2 ih, ih.tail (sub h2)) h
+
+    class connected_graph (G : simple_graph V) := (conn : connected G)
+
+    namespace linked
+        open relation.refl_trans_gen
+        variables {x y z : V}
+
+        lemma edge : G.adj x y                 -> linked G x y := single
+        lemma cons : G.adj x y -> linked G y z -> linked G x z := head
+        lemma tail : linked G x y -> G.adj y z -> linked G x z := tail
+
+        @[refl]  lemma refl  : linked G x x                                 := refl
+        @[symm]  lemma symm  : linked G x y -> linked G y x                 := λ h, symmetric G.symm h
+        @[trans] lemma trans : linked G x y -> linked G y z -> linked G x z := trans
+
+        lemma equiv : equivalence (linked G) := ⟨@refl _ _, @symm _ _, @trans _ _⟩
+
+        lemma to_path (h : linked G x y) : nonempty (path G x y)
+            := by { induction h with _ _ _ h2 ih, use path.point, cases ih, use ih.step h2 }
+
+        noncomputable def to_path'   (h : linked G x y) : path G x y := classical.choice (to_path h)
+
+        lemma from_path : nonempty (path G x y) -> linked G x y
+            := by { intro h, cases h with p, induction p with _ _ _ h2 ih, refl, exact ih.tail h2 }
+
+        lemma iff_path : linked G x y <-> nonempty (path G x y) := ⟨to_path, from_path⟩
+    end linked
 end simple_graph

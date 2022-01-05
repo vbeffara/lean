@@ -9,7 +9,7 @@ namespace simple_graph
 
     lemma dists_ne_empty : (dists G x y).nonempty
         := by { apply set.range_nonempty_iff_nonempty.mpr,
-            apply path.iff_path.mp, apply connected_graph.conn }
+            apply linked.iff_path.mp, apply connected_graph.conn }
 
     noncomputable def dist (x y : V)
         := well_founded.min nat.lt_wf (dists G x y) (dists_ne_empty _)

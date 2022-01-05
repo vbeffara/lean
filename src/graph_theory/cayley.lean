@@ -56,7 +56,7 @@ namespace simple_graph
             := by { induction p, refl, simp [*] }
 
         lemma shift (h : linked (Cay S) x y) : linked (Cay S) (a*x : G) (a*y : G)
-            := by { cases (path.iff_path.mp h), refine path.iff_path.mpr _, use shift_path S _ val }
+            := by { cases (linked.iff_path.mp h), refine linked.iff_path.mpr _, use shift_path S _ val }
 
         lemma inv : linked (Cay S) (1:G) x -> linked (Cay S) (1:G) (x⁻¹:G)
             := by { intro h, apply linked.symm, convert shift S x⁻¹ h; simp }
