@@ -11,7 +11,7 @@ namespace simple_graph
     namespace path
         open path
         variables {V : Type} {G : simple_graph V} {u v x y z : V} {e : edge G}
-        variables {p : path G x y} {p' : path G y z} {h : G.adj y z} {h' : G.adj u x} {h'' : G.adj z v}
+        variables {p : path G x y} {p' : path G y z} {p'' : path G z u} {h : G.adj y z} {h' : G.adj u x} {h'' : G.adj z v}
 
         @[simp] def cons (h : G.adj x y) : Π {z : V}, path G y z -> path G x z
             | _ point    := point · h
@@ -49,24 +49,23 @@ namespace simple_graph
             | _ point   := true
             | y (p · _) := nodup p ∧ y ∉ p
 
-        @[simp] lemma mem_step    :            u ∈ (p · h) <-> u ∈ p ∨ u = z    := iff.rfl
-
         lemma mem_tail : y ∈ p := by { cases p, exact rfl, exact or.inr rfl }
         lemma mem_head : x ∈ p := path.rec rfl (λ _ _ _ _, or.inl) p
 
         lemma point_of_size_0 : p.size = 0 -> x = y := by { intro h, cases p, refl, contradiction }
 
-        @[simp] lemma mem_cons      :              v ∈ h' :: p <-> v = u ∨ v ∈ p         := by { induction p, simpa, simp[*,or_assoc] }
-        @[simp] lemma size_cons     :         size (cons h' p)  =  size p + 1            := by { induction p, obviously }
-        @[simp] lemma size_rev      :             size (rev p)  =  size p                := by { induction p, obviously }
-        @[simp] lemma mem_rev       :                z ∈ rev p <-> z ∈ p                 := by { induction p; simp [*,or.comm] }
-        @[simp] lemma concat_point' :           concat point p  =  p                     := by { induction p, obviously }
-        @[simp] lemma concat_step'  : concat (step point h') p  =  cons h' p             := by { induction p, obviously }
-        @[simp] lemma concat_cons   :    concat (cons h' p) p'  =  cons h' (concat p p') := by { induction p', obviously }
-        @[simp] lemma concat_rev    :        rev (concat p p')  =  concat p'.rev p.rev   := by { induction p', obviously }
-        @[simp] lemma size_concat   :       size (concat p p')  =  p.size + p'.size      := by { induction p'; simp [*,add_assoc] }
-
-        @[simp] lemma concat_assoc {p'' : path G z u} : concat (concat p p') p'' = concat p (concat p' p'') := by { induction p''; simp [*] }
+        @[simp] lemma mem_point    : u ∈ (@point _ G x) <-> u = x            := iff.rfl
+        @[simp] lemma mem_step     :        u ∈ (p · h) <-> u ∈ p ∨ u = z    := iff.rfl
+        @[simp] lemma mem_cons     :        v ∈ h' :: p <-> v = u ∨ v ∈ p    := by { induction p; simp[*,or_assoc] }
+        @[simp] lemma size_cons    :     size (h' :: p)  =  size p + 1       := by { induction p, obviously }
+        @[simp] lemma size_rev     :       size (rev p)  =  size p           := by { induction p, obviously }
+        @[simp] lemma mem_rev      :          z ∈ rev p <-> z ∈ p            := by { induction p; simp [*,or.comm] }
+        @[simp] lemma concat_point :         point ++ p  =  p                := by { induction p, obviously }
+        @[simp] lemma concat_step  :  (point · h') ++ p  =  h' :: p          := by { induction p, obviously }
+        @[simp] lemma concat_cons  :    (h' :: p) ++ p'  =  h' :: (p ++ p')  := by { induction p', obviously }
+        @[simp] lemma concat_rev   :      rev (p ++ p')  =  rev p' ++ rev p  := by { induction p', obviously }
+        @[simp] lemma size_concat  :     size (p ++ p')  =  size p + size p' := by { induction p'; simp [*,add_assoc] }
+        @[simp] lemma concat_assoc :   (p ++ p') ++ p''  =  p ++ (p' ++ p'') := by { induction p''; simp [*] }
 
         @[simp] lemma mem_concat : u ∈ concat p p' <-> u ∈ p ∨ u ∈ p'
             := by { induction p'; simp [*,or_assoc], exact ⟨or.inl,(λ h, or.cases_on h id (λ h, h.symm ▸ mem_tail))⟩ }
@@ -76,7 +75,7 @@ namespace simple_graph
 
         lemma mem_of_edges (h : 0 < p.size) : u ∈ p <-> ∃ e ∈ p.edges, u ∈ edge.ends e
             := by { induction p with a b p ha ih, { simp at h, contradiction }, clear h,
-                cases nat.eq_zero_or_pos p.size, { cases p, simpa, simp at h, contradiction },
+                cases nat.eq_zero_or_pos p.size, { cases p, simp, simp at h, contradiction },
                 specialize ih h, clear h, simp at ih, split; simp,
                     { intro h1, cases h1,
                         { obtain ⟨e,h2,h3⟩ := ih.mp h1, exact ⟨e, or.inr h2, h3⟩ },
@@ -105,7 +104,7 @@ namespace simple_graph
         lemma nodup_rev : nodup p -> nodup p.rev := by { induction p; simp, obviously }
 
         lemma nodup_concat : nodup (concat p p') <-> nodup p ∧ nodup p' ∧ (∀ u, u ∈ p -> u ∈ p' -> u = y)
-            := by { induction p' with a b q h2 ih; simp, intros a b c d, exact d, push_neg, split,
+            := by { induction p' with a b q h2 ih; simp, push_neg, split,
                 { rintros ⟨h1,h2,h3⟩, replace ih := ih.mp h1, refine ⟨ih.1,⟨ih.2.1,h3⟩,λ u h4 h5, _⟩,
                     cases h5, exact ih.2.2 u h4 h5, rw h5 at h4, contradiction },
                 { rintros ⟨h1,⟨h2,h3⟩,h4⟩, refine ⟨ih.mpr ⟨h1,h2,_⟩,_,h3⟩,
