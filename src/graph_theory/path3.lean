@@ -35,19 +35,20 @@ namespace simple_graph
             | _ point   := 0
             | _ (p · _) := size p + 1
 
-        instance : has_sizeof   (path G x y) := ⟨size⟩
+        instance : has_sizeof (path G x y) := ⟨size⟩
 
-        def rev         (p : path G x y) : path G y x     := path.rec point (λ _ _ _ h q, cons (G.symm h) q) p
+        @[simp] def rev : Π {y : V}, path G x y -> path G y x
+            | _ point   := point
+            | _ (p · h) := h.symm :: rev p
+
         def edges       (p : path G x y) : list (edges G) := path.rec []    (λ _ _ _ d e, ⟨d⟩ :: e)          p
         def nodup       (p : path G x y) : Prop           := path.rec true  (λ _ u q _ e, e ∧ ¬(mem u q))    p
 
         @[simp] lemma mem_point    :   u ∈ (@point _ G x) <-> u = x       := iff.rfl
-        @[simp] lemma rev_point    :   rev (@point _ G x)  =  point       := rfl
         @[simp] lemma edges_point  : edges (@point _ G x)  =  []          := rfl
         @[simp] lemma nodup_point  : nodup (@point _ G x)                 := trivial
 
         @[simp] lemma mem_step    :            u ∈ (p · h) <-> u ∈ p ∨ u = z    := iff.rfl
-        @[simp] lemma rev_step    :            rev (p · h)  =  h.symm :: p.rev  := rfl
         @[simp] lemma edges_step  :          edges (p · h)  =  ⟨h⟩ :: edges p   := rfl
         @[simp] lemma nodup_step  :          nodup (p · h) <-> nodup p ∧ z ∉ p  := iff.rfl
 
