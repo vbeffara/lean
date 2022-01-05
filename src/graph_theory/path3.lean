@@ -45,13 +45,13 @@ namespace simple_graph
             | _ point   := []
             | _ (p · h) := ⟨h⟩ :: edges p
 
-        def nodup       (p : path G x y) : Prop           := path.rec true  (λ _ u q _ e, e ∧ ¬(mem u q))    p
+        @[simp] def nodup : Π {y : V}, path G x y -> Prop
+            | _ point   := true
+            | y (p · _) := nodup p ∧ y ∉ p
 
         @[simp] lemma mem_point    :   u ∈ (@point _ G x) <-> u = x       := iff.rfl
-        @[simp] lemma nodup_point  : nodup (@point _ G x)                 := trivial
 
         @[simp] lemma mem_step    :            u ∈ (p · h) <-> u ∈ p ∨ u = z    := iff.rfl
-        @[simp] lemma nodup_step  :          nodup (p · h) <-> nodup p ∧ z ∉ p  := iff.rfl
 
         lemma mem_tail : y ∈ p := by { cases p, exact rfl, exact or.inr rfl }
         lemma mem_head : x ∈ p := path.rec rfl (λ _ _ _ _, or.inl) p
