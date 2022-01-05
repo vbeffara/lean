@@ -3,6 +3,8 @@ import combinatorics.simple_graph.basic
 open relation.refl_trans_gen function
 
 namespace simple_graph
+    def adj.symm {V : Type} {G : simple_graph V} := G.symm
+
     variables {V V': Type} {G : simple_graph V} {G' : simple_graph V'}
 
     def linked (G : simple_graph V) (x y : V) := relation.refl_trans_gen G.adj x y
