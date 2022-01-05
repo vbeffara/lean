@@ -32,24 +32,24 @@ namespace simple_graph
 
         lemma linked_of_adj (h : (contract S).adj ⟦x⟧ ⟦y⟧) : linked G x y
             := by { obtain ⟨h₁,a,b,h₂,h₃,h₄⟩ := h, transitivity b, transitivity a,
-                exact linked_of_subgraph S.sub (quotient.eq.mp h₂.symm),
+                exact linked.linked_of_subgraph S.sub (quotient.eq.mp h₂.symm),
                 exact linked.edge h₄,
-                exact linked_of_subgraph S.sub (quotient.eq.mp h₃) }
+                exact linked.linked_of_subgraph S.sub (quotient.eq.mp h₃) }
 
         noncomputable def proj_path : Π {y : V}, path G x y -> path (contract S) ⟦x⟧ ⟦y⟧
             | _ point                 := point
             | z (p · (h : G.adj y z)) := dite (⟦y⟧ = ⟦z⟧) (λ h, by { rw <-h, exact proj_path p })
                                                           (λ h', proj_path p · ⟨h',_,_,rfl,rfl,h⟩)
 
-        lemma project_linked (h : linked G x y) : linked (contract S) ⟦x⟧ ⟦y⟧
-            := by { induction h with a b h1 h2 ih, exact relation.refl_trans_gen.refl,
-                cases proj_adj h2, exact h ▸ ih, exact ih.tail h }
+        lemma project_linked : linked G x y -> linked (contract S) ⟦x⟧ ⟦y⟧
+            := by { intro h, cases h with p, induction p with a b h1 h2 ih, refl,
+                cases proj_adj h2, exact h ▸ ih, exact ih.step h }
 
-        lemma lift_linked' {xx yy : clusters S} (h : linked (contract S) xx yy) (x y : V)
-                (hx : ⟦x⟧ = xx) (hy : ⟦y⟧ = yy) : linked G x y
+        lemma lift_linked' {xx yy : clusters S} : linked (contract S) xx yy ->
+                ∀ (x y : V) (hx : ⟦x⟧ = xx) (hy : ⟦y⟧ = yy), linked G x y
             := by {
-                induction h with x' xx' h1 h2 ih generalizing x y,
-                { subst hy, exact linked_of_subgraph S.sub (quotient.eq.mp hx) },
+                intro h, cases h with p, induction p with x' xx' h1 h2 ih; intros x y hx hy,
+                { subst hy, exact linked.linked_of_subgraph S.sub (quotient.eq.mp hx) },
                 { obtain ⟨u, hu : ⟦u⟧ = x'⟩ := quot.exists_rep x', substs hu hx hy,
                     transitivity u, exact ih x u rfl rfl, exact linked_of_adj h2 }
             }

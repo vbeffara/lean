@@ -55,24 +55,22 @@ namespace simple_graph
         @[simp] lemma size_shift_path (p : path (Cay S) x y) : (shift_path S a p).size = p.size
             := by { induction p, refl, simp [*] }
 
-        lemma shift (h : linked (Cay S) x y) : linked (Cay S) (a*x : G) (a*y : G)
-            := by { cases (linked.iff_path.mp h), refine linked.iff_path.mpr _, use shift_path S _ val }
+        lemma shift : linked (Cay S) x y -> linked (Cay S) (a*x : G) (a*y : G)
+            := by { intro h, cases h with p, use shift_path S _ p }
 
         lemma inv : linked (Cay S) (1:G) x -> linked (Cay S) (1:G) (x⁻¹:G)
-            := by { intro h, apply linked.symm, convert shift S x⁻¹ h; simp }
+            := by { intro h, symmetry, convert shift S x⁻¹ h; simp }
 
         lemma linked_mp : linked (Cay S) (1:G) x
-        := begin
-            have h : x ∈ subgroup.closure (coe S.els) := by { rw S.gen, trivial },
-            apply subgroup.closure_induction,
-            { exact h, },
-            { intros, apply linked.edge,
-                split, { intro h, rw <-h at H, exact S.irr H },
-                change 1⁻¹ * x_1 ∈ S, rwa [one_inv,one_mul] },
-            { refl },
-            { intros u v h1 h2, refine linked.trans h1 _, convert shift _ u h2, rw mul_one, },
-            { intros, apply inv, assumption },
-        end
+            := by { apply subgroup.closure_induction,
+                { rw S.gen, trivial },
+                { intros, apply linked.edge, split,
+                    { intro h, rw <-h at H, exact S.irr H },
+                    { convert H, group } },
+                { refl },
+                { intros u v h1 h2, refine linked.trans h1 _, convert shift _ u h2, rw mul_one, },
+                { intros, apply inv, assumption },
+            }
 
         theorem connected : connected (Cay S)
             := by { suffices : ∀ x, linked (Cay S) (1:G) x,
