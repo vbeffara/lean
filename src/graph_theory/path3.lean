@@ -13,12 +13,13 @@ namespace simple_graph
 
         @[simp] def from_edge : G.adj x y -> path G x y := step point
 
-        @[simp] def cons : Π {z : V}, path G y z -> G.adj x y -> path G x z
+        @[simp] def cons : Π {z : V}, path G y z -> G.adj x y -> path G x z -- TODO: cons h p instead
             | _ point h       := step point h
             | _ (step p h') h := step (cons p h) h'
 
-        def concat (p : path G x y) (p' : path G y z) : path G x z
-            := path.rec p (λ _ _ _ h q, q.step h) p'
+        @[simp] def concat (p : path G x y) : Π {z : V}, path G y z -> path G x z
+            | _ point       := p
+            | _ (step p' h) := step (concat p') h
 
         def mem (z : V) (p : path G x y) : Prop           := path.rec (z=x) (λ _ u _ _ h, h ∨ z=u)           p
         def size        (p : path G x y) : ℕ              := path.rec 0     (λ _ _ _ _ l, l+1)               p
@@ -29,14 +30,12 @@ namespace simple_graph
         instance : has_mem    V (path G x y) := ⟨mem⟩
         instance : has_sizeof   (path G x y) := ⟨size⟩
 
-        @[simp] lemma concat_point :       concat p point  =  p           := rfl
         @[simp] lemma mem_point    :   u ∈ (@point _ G x) <-> u = x       := iff.rfl
         @[simp] lemma size_point   :  size (@point _ G x)  =  0           := rfl
         @[simp] lemma rev_point    :   rev (@point _ G x)  =  point       := rfl
         @[simp] lemma edges_point  : edges (@point _ G x)  =  []          := rfl
         @[simp] lemma nodup_point  : nodup (@point _ G x)                 := trivial
 
-        @[simp] lemma concat_step : concat p (p'.step h'')  =  step (concat p p') h'' := rfl
         @[simp] lemma mem_step    :           u ∈ p.step h <-> u ∈ p ∨ u = z          := iff.rfl
         @[simp] lemma size_step   :        (p.step h).size  =  p.size + 1             := rfl
         @[simp] lemma rev_step    :         rev (p.step h)  =  cons p.rev (G.symm h)  := rfl
