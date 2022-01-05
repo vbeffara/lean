@@ -7,8 +7,8 @@ namespace simple_graph
 
     variables {V V': Type} {G : simple_graph V} {G' : simple_graph V'}
 
-    def linked (G : simple_graph V) (x y : V) := relation.refl_trans_gen G.adj x y
-    def connected (G : simple_graph V)        := ∀ x y, linked G x y
+    def linked (G : simple_graph V)    := relation.refl_trans_gen G.adj
+    def connected (G : simple_graph V) := ∀ x y, linked G x y
 
     lemma linked_of_subgraph {G₁ G₂ : simple_graph V} (sub : ∀ {x y : V}, G₁.adj x y -> G₂.adj x y)
             {x y : V} (h : linked G₁ x y) : linked G₂ x y
