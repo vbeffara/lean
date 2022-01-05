@@ -57,11 +57,11 @@ namespace simple_graph
 
         instance : connected_graph (Cay S) := ⟨connected S⟩
 
-        noncomputable def word_dist : G -> G -> ℕ := simple_graph.dist (Cay S)
+        noncomputable def word_dist : G -> G -> ℕ := (Cay S).dist
 
-        lemma covariant : word_dist S (a*x) (a*y) = word_dist S x y
-            := by { unfold word_dist simple_graph.dist, congr' 1, funext ℓ, rw [eq_iff_iff],
-                let dists : G -> G -> set ℕ := dists (Cay S),
+        lemma covariant : (Cay S).dist (a*x) (a*y) = (Cay S).dist x y
+            := by { unfold simple_graph.dist, congr' 1, funext ℓ, rw [eq_iff_iff],
+                let dists := dists (Cay S),
                 have h2 : ∀ x y a ℓ, dists x y ℓ -> dists (a*x) (a*y) ℓ
                     := by { intros x y a ℓ h, cases h with p, use shift_path S a p, simpa },
                 exact ⟨λ h, inv_mul_cancel_left a x ▸ inv_mul_cancel_left a y ▸ h2 (a*x) (a*y) a⁻¹ ℓ h,
@@ -72,13 +72,13 @@ namespace simple_graph
         variables {G : Type} [group G] (S1 S2 : genset G)
         open finset
 
-        lemma lipschitz : ∃ K : ℕ, ∀ x y : G, word_dist S2 x y <= K * word_dist S1 x y
+        lemma lipschitz : ∃ K : ℕ, ∀ x y : G, (Cay S2).dist x y <= K * (Cay S1).dist x y
             := begin
-                set Δ := finset.image (word_dist S2 1) S1.els,
-                have : Δ.nonempty := finset.nonempty.image S1.nem (word_dist S2 1),
+                set Δ := finset.image ((Cay S2).dist 1) S1.els,
+                have : Δ.nonempty := finset.nonempty.image S1.nem ((Cay S2).dist 1),
                 obtain K := finset.max_of_nonempty this, cases K, use K_w,
                 intros x y, obtain p := simple_graph.shortest_path (Cay S1) x y, cases p with p hp,
-                unfold word_dist, rw <-hp, clear hp, induction p with a b h1 h2 ih, rw dist_self, exact rfl.ge,
+                rw <-hp, clear hp, induction p with a b h1 h2 ih, rw dist_self, exact rfl.ge,
                 transitivity (Cay S2).dist x a + (Cay S2).dist a b, apply simple_graph.dist_triangle,
                 dsimp, rw [mul_add,mul_one], apply add_le_add ih,
                 suffices : (Cay S2).dist a b ∈ Δ, by exact finset.le_max_of_mem this K_h,
