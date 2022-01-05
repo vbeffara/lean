@@ -10,7 +10,7 @@ namespace simple_graph
 
     namespace path
         open path
-        variables {V : Type} {G : simple_graph V} {u v x y z : V} {e : edge G}
+        variables {V : Type} {G G₁ G₂ : simple_graph V} {u v x y z : V} {e : edge G}
         variables {p : path G x y} {p' : path G y z} {p'' : path G z u} {h : G.adj y z} {h' : G.adj u x} {h'' : G.adj z v}
 
         @[simp] def cons (h : G.adj x y) : Π {z : V}, path G y z -> path G x z
@@ -49,11 +49,6 @@ namespace simple_graph
             | _ point   := true
             | y (p · _) := nodup p ∧ y ∉ p
 
-        lemma mem_tail : y ∈ p := by { cases p, exact rfl, exact or.inr rfl }
-        lemma mem_head : x ∈ p := path.rec rfl (λ _ _ _ _, or.inl) p
-
-        lemma point_of_size_0 : p.size = 0 -> x = y := by { intro h, cases p, refl, contradiction }
-
         @[simp] lemma mem_point    : u ∈ (@point _ G x) <-> u = x            := iff.rfl
         @[simp] lemma mem_step     :        u ∈ (p · h) <-> u ∈ p ∨ u = z    := iff.rfl
         @[simp] lemma mem_cons     :        v ∈ h' :: p <-> v = u ∨ v ∈ p    := by { induction p; simp[*,or_assoc] }
@@ -66,6 +61,11 @@ namespace simple_graph
         @[simp] lemma concat_rev   :      rev (p ++ p')  =  rev p' ++ rev p  := by { induction p', obviously }
         @[simp] lemma size_concat  :     size (p ++ p')  =  size p + size p' := by { induction p'; simp [*,add_assoc] }
         @[simp] lemma concat_assoc :   (p ++ p') ++ p''  =  p ++ (p' ++ p'') := by { induction p''; simp [*] }
+
+        lemma mem_tail : y ∈ p := by { cases p, exact rfl, exact or.inr rfl }
+        lemma mem_head : x ∈ p := by { induction p, simp, left, exact p_ih }
+
+        lemma point_of_size_0 : p.size = 0 -> x = y := by { intro h, cases p, refl, contradiction }
 
         @[simp] lemma mem_concat : u ∈ concat p p' <-> u ∈ p ∨ u ∈ p'
             := by { induction p'; simp [*,or_assoc], exact ⟨or.inl,(λ h, or.cases_on h id (λ h, h.symm ▸ mem_tail))⟩ }
@@ -111,8 +111,8 @@ namespace simple_graph
                     intros u h5 h6, refine h4 u h5 (or.inl h6),
                     intro h5, apply h3, rw h4 b h5 (or.inr rfl), exact mem_head } }
 
-        def path_from_subgraph {G₁ G₂ : simple_graph V} (sub : ∀ {x y : V}, G₁.adj x y -> G₂.adj x y)
-                (p : path G₁ x y) : path G₂ x y
-            := path.rec point (λ _ _ _ h q, q.step (sub h)) p
+        def path_from_subgraph (sub : ∀ {x y}, G₁.adj x y -> G₂.adj x y) : Π {y : V}, path G₁ x y -> path G₂ x y
+            | _ point   := point
+            | _ (p · h) := path_from_subgraph p · sub h
     end path
 end simple_graph

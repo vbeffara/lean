@@ -18,7 +18,8 @@ namespace simple_graph
     end contraction
 
     namespace contraction
-        variables {S : setup}
+        variables {S : setup} {x y : S.V}
+        open path
 
         def adj (x y : clusters S) := x ≠ y ∧ ∃ x' y' : S.V, ⟦x'⟧ = x ∧ ⟦y'⟧ = y ∧ S.G.adj x' y'
 
@@ -27,25 +28,25 @@ namespace simple_graph
 
         def contract (S : setup) : simple_graph (clusters S) := ⟨adj, symm⟩
 
-        lemma proj_adj {x y : S.V} (h : S.G.adj x y) : ⟦x⟧ = ⟦y⟧ ∨ (contract S).adj ⟦x⟧ ⟦y⟧
+        lemma proj_adj (h : S.G.adj x y) : ⟦x⟧ = ⟦y⟧ ∨ (contract S).adj ⟦x⟧ ⟦y⟧
             := dite (⟦x⟧ = ⟦y⟧) or.inl (λ h', or.inr ⟨h',x,y,rfl,rfl,h⟩)
 
-        lemma linked_of_adj {x y : S.V} (h : (contract S).adj ⟦x⟧ ⟦y⟧) : linked S.G x y
+        lemma linked_of_adj (h : (contract S).adj ⟦x⟧ ⟦y⟧) : linked S.G x y
             := by { obtain ⟨h₁,a,b,h₂,h₃,h₄⟩ := h, transitivity b, transitivity a,
                 exact linked_of_subgraph S.sub (quotient.eq.mp h₂.symm),
                 exact linked.edge h₄,
                 exact linked_of_subgraph S.sub (quotient.eq.mp h₃) }
 
-        noncomputable def proj_path {x y : S.V} (p : path S.G x y) : path (contract S) ⟦x⟧ ⟦y⟧
-            := path.rec path.point (λ a b _ h2 ih, dite (⟦a⟧ = ⟦b⟧)
-                (λ h, by { rw <-h, exact ih }) (λ h, ih.step ⟨h,a,b,rfl,rfl,h2⟩)) p
+        noncomputable def proj_path : Π {y : S.V}, path S.G x y -> path (contract S) ⟦x⟧ ⟦y⟧
+            | _ point                   := point
+            | z (p · (h : S.G.adj y z)) := dite (⟦y⟧ = ⟦z⟧) (λ h, by { rw <-h, exact proj_path p })
+                                                            (λ h', proj_path p · ⟨h',_,_,rfl,rfl,h⟩)
 
-
-        lemma project_linked {x y : S.V} (h : linked S.G x y) : linked (contract S) ⟦x⟧ ⟦y⟧
+        lemma project_linked (h : linked S.G x y) : linked (contract S) ⟦x⟧ ⟦y⟧
             := relation.refl_trans_gen.rec relation.refl_trans_gen.refl
                 (λ _ _ _ h₂ ih, or.cases_on (proj_adj h₂) (λ h', h' ▸ ih) ih.tail) h
 
-        lemma lift_linked' {S : setup} {xx yy : clusters S} (h : linked (contract S) xx yy) (x y : S.V)
+        lemma lift_linked' {xx yy : clusters S} (h : linked (contract S) xx yy) (x y : S.V)
                 (hx : ⟦x⟧ = xx) (hy : ⟦y⟧ = yy) : linked S.G x y
             := by {
                 induction h with x' xx' h1 h2 ih generalizing x y,
@@ -54,10 +55,10 @@ namespace simple_graph
                     transitivity u, exact ih x u rfl rfl, exact linked_of_adj h2 }
             }
 
-        lemma lift_linked {S : setup} {x y : S.V} (h : linked (contract S) ⟦x⟧ ⟦y⟧) : linked S.G x y
+        lemma lift_linked (h : linked (contract S) ⟦x⟧ ⟦y⟧) : linked S.G x y
             := lift_linked' h _ _ rfl rfl
 
-        lemma contract_connected_iff {S : setup} : connected S.G <-> connected (contract S)
+        lemma contract_connected_iff : connected S.G <-> connected (contract S)
             := {
                 mp := λ h xx yy, by {
                     obtain ⟨x, hx : ⟦x⟧ = xx⟩ := quot.exists_rep xx, subst hx,

@@ -18,6 +18,7 @@ namespace simple_graph
 
     namespace path_embedding
         variables {G : simple_graph V} {G' : simple_graph V'} (F : path_embedding G G') {x y z : V}
+        open path
 
         lemma nop {e : edge G} : 0 < (F.df e).size
             := by {
@@ -25,8 +26,9 @@ namespace simple_graph
                 exact G.ne_of_adj e.h (F.f.injective (path.point_of_size_0 h))
             }
 
-        def follow (p : path G x y) : path G' (F.f x) (F.f y)
-            := path.rec path.point (λ a b q h q', q'.concat (F.df ⟨h⟩)) p
+        def follow : Π {y : V}, path G x y -> path G' (F.f x) (F.f y)
+            | _ point   := point
+            | _ (p · h) := follow p ++ F.df ⟨h⟩
 
         @[simp] lemma follow_point : follow F (path.point : path G x x) = path.point := rfl
 

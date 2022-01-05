@@ -32,21 +32,16 @@ namespace simple_graph
             := ((sym2.mem_and_mem_iff h).mp ⟨h1, h2⟩).trans ((sym2.mem_and_mem_iff h).mp ⟨h3, h4⟩).symm
 
         lemma sym2_ext_iff {z z' : sym2 V} : (∀ x, x ∈ z ↔ x ∈ z') <-> z = z'
-            := ⟨sym2.ext z z', by { intros h x, rw h }⟩
+            := ⟨sym2.ext z z', λ h _, iff_of_eq (congr_arg _ h)⟩
 
         lemma same_iff : (e' = e ∨ e' = flip e) <-> e.ends = e'.ends
             := by { split,
                 { intros h, ext, cases h; subst e', rw ends_flip },
                 { intro h, rw sym2_ext_iff.symm at h,
                     cases e with x y h1, cases e' with x' y' h2, simp at h,
-                    have h3 := h x', simp at h3,
-                    have h4 := h y', simp at h4,
+                    have h3 := h x', simp at h3, have h4 := h y', simp at h4, clear h,
                     have h5 := G.loopless x',
-                    cases h3; cases h4; substs x' y',
-                        contradiction,
-                        left, refl,
-                        right, refl,
-                        contradiction
+                    cases h3; cases h4; substs x' y', contradiction, left, refl, right, refl, contradiction
                 }
             }
     end edge
