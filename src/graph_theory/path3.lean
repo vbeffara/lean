@@ -10,7 +10,7 @@ namespace simple_graph
 
     namespace path
         open path
-        variables {V : Type} {G : simple_graph V} {u v x y z : V} {e : edges G}
+        variables {V : Type} {G : simple_graph V} {u v x y z : V} {e : edge G}
         variables {p : path G x y} {p' : path G y z} {h : G.adj y z} {h' : G.adj u x} {h'' : G.adj z v}
 
         @[simp] def cons (h : G.adj x y) : Π {z : V}, path G y z -> path G x z
@@ -41,15 +41,16 @@ namespace simple_graph
             | _ point   := point
             | _ (p · h) := h.symm :: rev p
 
-        def edges       (p : path G x y) : list (edges G) := path.rec []    (λ _ _ _ d e, ⟨d⟩ :: e)          p
+        @[simp] def edges : Π {y : V}, path G x y -> list (edge G)
+            | _ point   := []
+            | _ (p · h) := ⟨h⟩ :: edges p
+
         def nodup       (p : path G x y) : Prop           := path.rec true  (λ _ u q _ e, e ∧ ¬(mem u q))    p
 
         @[simp] lemma mem_point    :   u ∈ (@point _ G x) <-> u = x       := iff.rfl
-        @[simp] lemma edges_point  : edges (@point _ G x)  =  []          := rfl
         @[simp] lemma nodup_point  : nodup (@point _ G x)                 := trivial
 
         @[simp] lemma mem_step    :            u ∈ (p · h) <-> u ∈ p ∨ u = z    := iff.rfl
-        @[simp] lemma edges_step  :          edges (p · h)  =  ⟨h⟩ :: edges p   := rfl
         @[simp] lemma nodup_step  :          nodup (p · h) <-> nodup p ∧ z ∉ p  := iff.rfl
 
         lemma mem_tail : y ∈ p := by { cases p, exact rfl, exact or.inr rfl }
@@ -75,7 +76,7 @@ namespace simple_graph
         lemma mem_edges : e ∈ p.edges -> e.x ∈ p ∧ e.y ∈ p
             := by { induction p; simp, intro h, cases h; simp[*], left, exact mem_tail }
 
-        lemma mem_of_edges (h : 0 < p.size) : u ∈ p <-> ∃ e ∈ p.edges, u ∈ edges.ends e
+        lemma mem_of_edges (h : 0 < p.size) : u ∈ p <-> ∃ e ∈ p.edges, u ∈ edge.ends e
             := by { induction p with a b p ha ih, { simp at h, contradiction }, clear h,
                 cases nat.eq_zero_or_pos p.size, { cases p, simp, simp at h, contradiction },
                 specialize ih h, clear h, simp at ih, split; simp,

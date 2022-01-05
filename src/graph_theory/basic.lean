@@ -16,23 +16,23 @@ namespace simple_graph
 
     class connected_graph (G : simple_graph V) := (conn : connected G)
 
-    @[ext] structure edges (G : simple_graph V) := {x y : V} (h : G.adj x y)
+    @[ext] structure edge (G : simple_graph V) := {x y : V} (h : G.adj x y)
 
-    namespace edges
-        def ends (e : edges G) : sym2 V := ⟦( e.x, e.y )⟧
+    namespace edge
+        def ends (e : edge G) : sym2 V := ⟦( e.x, e.y )⟧
 
-        @[simp] lemma mem_edge {v : V} {e : edges G} : v ∈ e.ends <-> v = e.x ∨ v = e.y
+        @[simp] lemma mem_edge {v : V} {e : edge G} : v ∈ e.ends <-> v = e.x ∨ v = e.y
             := sym2.mem_iff
 
-        def flip  (e : edges G)    : edges G := ⟨G.symm e.h⟩
+        def flip  (e : edge G) : edge G := ⟨G.symm e.h⟩
 
-        @[simp] lemma flip_x (e : edges G) : e.flip.x = e.y
+        @[simp] lemma flip_x (e : edge G) : e.flip.x = e.y
             := by { cases e, refl }
 
-        @[simp] lemma flip_y (e : edges G) : e.flip.y = e.x
+        @[simp] lemma flip_y (e : edge G) : e.flip.y = e.x
             := by { cases e, refl }
 
-        @[simp] lemma ends_flip (e : edges G) : e.flip.ends = e.ends
+        @[simp] lemma ends_flip (e : edge G) : e.flip.ends = e.ends
             := sym2.eq_swap
 
         lemma sym2_eq {x y : V} {e e' : sym2 V} (h : x ≠ y) (h1 : x ∈ e) (h2 : y ∈ e) (h3 : x ∈ e') (h4 : y ∈ e') : e = e'
@@ -41,7 +41,7 @@ namespace simple_graph
         lemma sym2_ext_iff {z z' : sym2 V} : (∀ x, x ∈ z ↔ x ∈ z') <-> z = z'
             := ⟨sym2.ext z z', by { intros h x, rw h }⟩
 
-        lemma same_iff {e e' : edges G} : (e' = e ∨ e' = flip e) <-> e.ends = e'.ends
+        lemma same_iff {e e' : edge G} : (e' = e ∨ e' = flip e) <-> e.ends = e'.ends
             := by { split,
                 { intros h, ext, cases h; subst e', rw ends_flip },
                 { intro h, rw sym2_ext_iff.symm at h,
@@ -56,7 +56,7 @@ namespace simple_graph
                         contradiction
                 }
             }
-    end edges
+    end edge
 
     namespace linked
         variables {x y z : V}
