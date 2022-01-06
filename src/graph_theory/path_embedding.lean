@@ -49,23 +49,22 @@ namespace simple_graph
                     }
             }
 
-        lemma follow_nodup {p : mypath G x y} (h : p.nodup) : (follow F p).nodup := sorry
-            -- := by {
-            --     induction p with a b q h1 ih; simp [mypath.nodup_concat], simp at h,
-            --     refine ⟨ih h.1, F.nodup _, _⟩, rintros u h3 h4,
-            --     cases nat.eq_zero_or_pos q.size with h5 h5, { cases q, exact h3, simp at h5, contradiction },
-            --     obtain ⟨e,h7,h8⟩ := (mem_follow F h5).mp h3,
-            --     cases mypath.mem_edges h7, cases F.disjoint h4 h8 with h9 h9,
-            --         { exfalso, apply h.2, apply (mypath.mem_of_edges h5).mpr ⟨e,h7,_⟩,
-            --             rw <-h9, exact sym2.mem_mk_right _ _ },
-            --         {
-            --             obtain ⟨v,_⟩ := h9, subst u,
-            --             have h10 := F.endpoint h4,
-            --             cases sym2.mem_iff.mp h10 with h10 h10; simp at h10; subst h10,
-            --             exfalso, apply h.2, cases sym2.mem_iff.mp (F.endpoint h8) with h12 h12;
-            --             subst h12, exact left, exact right
-            --         }
-            -- }
+        lemma follow_nodup {p : mypath G x y} (h : p.nodup) : (follow F p).nodup
+            := by {
+                induction p with u u v w h p ih; simp, simp at h, apply nodup_concat.mpr,
+
+                refine ⟨F.nodup _, ih h.2, _⟩, rintros z h3 h4,
+                cases nat.eq_zero_or_pos p.length with h5 h5, { cases p, simp at h4, exact h4, simp at h5, contradiction },
+                obtain ⟨e,h7,h8⟩ := (mem_follow F h5).mp h4,
+                cases mypath.mem_edges h7, cases F.disjoint h3 h8 with h9 h9,
+                    { exfalso, apply h.1, apply (mypath.mem_of_edges h5).mpr ⟨e,h7,_⟩, rw <-h9, exact sym2.mem_mk_left _ _ },
+                    {
+                        obtain ⟨v,_⟩ := h9, subst z, have h10 := F.endpoint h3,
+                        cases sym2.mem_iff.mp h10 with h10 h10; simp at h10; subst h10,
+                        exfalso, apply h.1, cases sym2.mem_iff.mp (F.endpoint h8) with h12 h12;
+                        subst h12, exact left, exact right
+                    }
+            }
 
         @[simp] lemma follow_cons {p : mypath G y z} {h : G.adj x y} : follow F (p.cons h) = (F.df ⟨h⟩).concat (follow F p) := sorry
             -- := by { induction p; simp [*] }

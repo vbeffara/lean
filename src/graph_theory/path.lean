@@ -78,7 +78,7 @@ namespace simple_graph
         lemma nodup_rev : nodup p -> nodup p.rev := sorry
             -- := by { induction p; simp, obviously }
 
-        lemma nodup_concat : nodup (concat p p') <-> nodup p ∧ nodup p' ∧ (∀ u, u ∈ p -> u ∈ p' -> u = y) := sorry
+        lemma nodup_concat : nodup (append p p') <-> nodup p ∧ nodup p' ∧ (∀ u, u ∈ p -> u ∈ p' -> u = y) := sorry
             -- := by { induction p' with a b q h2 ih; simp, push_neg, split,
             --     { rintros ⟨h1,h2,h3⟩, replace ih := ih.mp h1, refine ⟨ih.1,⟨ih.2.1,h3⟩,λ u h4 h5, _⟩,
             --         cases h5, exact ih.2.2 u h4 h5, rw h5 at h4, contradiction },
