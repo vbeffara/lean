@@ -3,7 +3,8 @@ import combinatorics.simple_graph.connectivity
 import graph_theory.basic
 
 namespace simple_graph
-    variables {V : Type}
+    variables {V : Type} {G G₁ G₂ : simple_graph V} {u v x y z : V} {e : step G}
+    variables {p : walk G x y} {p' : walk G y z} {p'' : walk G z u} {h : G.adj y z} {h' : G.adj u x} {h'' : G.adj z v}
 
     namespace walk
         infixr ` :: ` := cons
@@ -13,10 +14,7 @@ namespace simple_graph
     namespace mypath
         open mypath walk
 
-        variables {G G₁ G₂ : simple_graph V} {u v x y z : V} {e : edge G}
-        variables {p : walk G x y} {p' : walk G y z} {p'' : walk G z u} {h : G.adj y z} {h' : G.adj u x} {h'' : G.adj z v}
-
-        @[simp] def myedges : Π {x y : V}, walk G x y -> list (edge G)
+        @[simp] def myedges : Π {x y : V}, walk G x y -> list (step G)
             | _ _ nil             := []
             | _ _ (walk.cons h p) := ⟨h⟩ :: myedges p
 
@@ -28,7 +26,7 @@ namespace simple_graph
                 { specialize ih h', exact ⟨or.inr ih.1, or.inr ih.2⟩ }
             }
 
-        lemma mem_of_edges (h : 0 < p.length) : u ∈ p.support <-> ∃ e ∈ myedges p, u ∈ edge.ends e
+        lemma mem_of_edges (h : 0 < p.length) : u ∈ p.support <-> ∃ e ∈ myedges p, u ∈ step.ends e
             := by { induction p with u u v w h p ih, { simp at h, contradiction }, clear h,
                 cases nat.eq_zero_or_pos (length p), { cases p, simp, simp at h_1, contradiction },
                 specialize ih h_1, clear h_1, simp at ih, split; simp,
@@ -55,8 +53,6 @@ namespace simple_graph
             | _ _ (walk.cons h p) := walk.cons (sub h) (path_from_subgraph p)
     end mypath
 
-    variables {G : simple_graph V} {x y z : V}
-
     def linked    (G : simple_graph V) (x y : V) := nonempty (walk G x y)
     def connected (G : simple_graph V)           := ∀ x y, linked G x y
 
@@ -69,8 +65,8 @@ namespace simple_graph
         @[symm]  lemma symm  : linked G x y -> linked G y x                 := λ h, h.cases_on (λ p, nonempty.intro p.reverse)
         @[trans] lemma trans : linked G x y -> linked G y z -> linked G x z := λ h₁ h₂, h₁.cases_on (λ p₁, h₂.cases_on (λ p₂, nonempty.intro (p₁ ++ p₂)))
 
-        lemma edge : G.adj x y                 -> linked G x y := λ h, ⟨walk.cons h walk.nil⟩
-        lemma cons : G.adj x y -> linked G y z -> linked G x z := λ h h', trans (edge h) h'
+        lemma step : G.adj x y                 -> linked G x y := λ h, ⟨walk.cons h walk.nil⟩
+        lemma cons : G.adj x y -> linked G y z -> linked G x z := λ h h', trans (step h) h'
 
         lemma equiv : equivalence (linked G) := ⟨@refl _ _, @symm _ _, @trans _ _⟩
 

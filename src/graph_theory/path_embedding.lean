@@ -6,10 +6,10 @@ namespace simple_graph
 
     structure path_embedding (G : simple_graph V) (G' : simple_graph V') :=
         (f        : V ↪ V')
-        (df       : Π e : edge G, walk G' (f e.x) (f e.y))
+        (df       : Π e : step G, walk G' (f e.x) (f e.y))
         --
-        (nodup    : ∀ e : edge G, (df e).support.nodup)
-        (sym      : ∀ e : edge G, df e.flip = (df e).reverse)
+        (nodup    : ∀ e : step G, (df e).support.nodup)
+        (sym      : ∀ e : step G, df e.flip = (df e).reverse)
         --
         (endpoint : ∀ {e x},    f x ∈ (df e).support                        -> x ∈ e.ends)
         (disjoint : ∀ {e e' z},   z ∈ (df e).support -> z ∈ (df e').support -> e.ends = e'.ends ∨ ∃ x, z = f x)
@@ -21,7 +21,7 @@ namespace simple_graph
         variables {x y z : V} {p : walk G x y} {p' : walk G y z}
         open mypath walk
 
-        lemma nop {e : edge G} : 0 < (F.df e).length
+        lemma nop {e : step G} : 0 < (F.df e).length
             := by {
                 cases nat.eq_zero_or_pos (F.df e).length, swap, exact h, exfalso,
                 exact G.ne_of_adj e.h (F.f.injective (mypath.point_of_size_0 h))
@@ -99,7 +99,7 @@ namespace simple_graph
                     replace h3 := mypath.mem_edges h3,
                     replace h5 := mypath.mem_edges h5,
                     replace h5 : e1.x ∈ (F.df e').support ∧ e1.y ∈ (F.df e').support := by {
-                        cases edge.same_iff.mpr h7; subst e2,
+                        cases step.same_iff.mpr h7; subst e2,
                         exact h5, simp at h5, exact h5.symm
                     }, clear h7,
                     cases F.disjoint h3.1 h5.1 with h10 h10, exact h10,
@@ -111,7 +111,7 @@ namespace simple_graph
                     have h14 := F.endpoint h5.1,
                     have h15 := F.endpoint h5.2,
                     have h16 : x ≠ y := by { intro h, apply G'.ne_of_adj e1.h, convert congr_arg F.f h },
-                    exact edge.sym2_eq h16 h12 h13 h14 h15
+                    exact step.sym2_eq h16 h12 h13 h14 h15
                 },
                 {
                     obtain ⟨y,h8⟩ := h7, subst z,
@@ -119,8 +119,8 @@ namespace simple_graph
                     replace h6 := F'.endpoint h6,
                     replace h3 := mypath.mem_edges h3,
                     replace h5 := mypath.mem_edges h5,
-                    replace h3 : y ∈ (F.df e).support, by { cases edge.mem_edge.mp h4; subst h, exact h3.1, exact h3.2 },
-                    replace h5 : y ∈ (F.df e').support, by { cases edge.mem_edge.mp h6; subst h, exact h5.1, exact h5.2 },
+                    replace h3 : y ∈ (F.df e).support, by { simp at h4, cases h4; subst h4, exact h3.1, exact h3.2 },
+                    replace h5 : y ∈ (F.df e').support, by { simp at h6, cases h6; subst h6, exact h5.1, exact h5.2 },
                     cases F.disjoint h3 h5 with h9 h9,
                         { left, exact h9 },
                         { obtain ⟨x,h9⟩ := h9, subst h9, right, use x, refl }

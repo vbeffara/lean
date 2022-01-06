@@ -34,7 +34,7 @@ namespace simple_graph
         lemma linked_of_adj (h : (contract S).adj ⟦x⟧ ⟦y⟧) : linked G x y
             := by { obtain ⟨h₁,a,b,h₂,h₃,h₄⟩ := h, transitivity b, transitivity a,
                 exact linked.linked_of_subgraph S.sub (quotient.eq.mp h₂.symm),
-                exact linked.edge h₄,
+                exact linked.step h₄,
                 exact linked.linked_of_subgraph S.sub (quotient.eq.mp h₃) }
 
         noncomputable def proj_path : Π {x y : V}, walk G x y -> walk (contract S) ⟦x⟧ ⟦y⟧
