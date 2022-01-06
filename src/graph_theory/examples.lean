@@ -17,10 +17,4 @@ namespace simple_graph
         adj := λ x y, y.val = x.val + 1 ∨ x.val = y.val + 1,
         symm := λ _ _, or.symm
     }
-
-    -- def planar (G : Type) [simple_graph G] := contraction.is_minor G (ℤ×ℤ)
-
-    -- def colorable (n : nat) (G : Type) [simple_graph G] := nonempty (hom G (K' n))
-
-    -- theorem four_color {G : Type} [simple_graph G] : planar G -> colorable 4 G := sorry
 end simple_graph

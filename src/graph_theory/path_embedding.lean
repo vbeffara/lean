@@ -30,6 +30,9 @@ namespace simple_graph
             | _ _ nil        := nil
             | _ _ (cons h p) := F.df ⟨h⟩ ++ follow p
 
+        @[simp] lemma follow_append {p : mypath G x y} {p' : mypath G y z} : follow F (p ++ p') = follow F p ++ follow F p'
+            := by { induction p, refl, simp [*], }
+
         lemma mem_follow {z} {p : mypath G x y} (h : 0 < p.size) : z ∈ follow F p <-> ∃ e ∈ p.myedges, z ∈ F.df e
             := by {
                 revert h, induction p with u u v w h p ih; simp, split; intro H,
@@ -66,11 +69,8 @@ namespace simple_graph
                     }
             }
 
-        @[simp] lemma follow_cons {p : mypath G y z} {h : G.adj x y} : follow F (p.cons h) = (F.df ⟨h⟩).concat (follow F p) := sorry
-            -- := by { induction p; simp [*] }
-
-        lemma follow_rev {p : mypath G x y} : follow F p.rev = (follow F p).rev := sorry
-            -- := by { induction p with a b q h1 ih; simp [*], congr, exact F.sym ⟨h1⟩ }
+        lemma follow_rev {p : mypath G x y} : follow F p.rev = (follow F p).rev
+            := by { induction p with u u v w h p ih, refl, simp [ih.symm], congr, exact F.sym ⟨h⟩ }
     end path_embedding
 
     namespace path_embedding
