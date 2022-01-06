@@ -33,29 +33,24 @@ namespace simple_graph
             | _ _ nil             := []
             | _ _ (walk.cons h p) := ⟨h⟩ :: myedges p
 
-        @[simp] lemma mem_point    : u ∈ (@point _ G x) <-> u = x            := list.mem_singleton
         @[simp] lemma mem_point'   :   u ∈ (@nil _ G x) <-> u = x            := list.mem_singleton
-        @[simp] lemma mem_step     :        u ∈ (p · h) <-> u ∈ p ∨ u = z    := sorry
-        @[simp] lemma mem_cons     :      v ∈ cons h' p <-> v = u ∨ v ∈ p    := sorry
-        @[simp] lemma size_cons    :     size (h' :: p)  =  size p + 1       := sorry
-        @[simp] lemma size_rev     :       size (rev p)  =  size p           := sorry
-        @[simp] lemma mem_rev      :          z ∈ rev p <-> z ∈ p            := sorry
-        @[simp] lemma concat_point :         point ++ p  =  p                := sorry
-        -- @[simp] lemma concat_step  :  (point · h') ++ p  =  h' :: p          := sorry
-        @[simp] lemma concat_cons  :    (h' :: p) ++ p'  =  h' :: (p ++ p')  := sorry
-        @[simp] lemma concat_rev   :      rev (p ++ p')  =  rev p' ++ rev p  := sorry
-        @[simp] lemma size_concat  :     size (p ++ p')  =  size p + size p' := sorry
-        @[simp] lemma concat_assoc :   (p ++ p') ++ p''  =  p ++ (p' ++ p'') := sorry
+        @[simp] lemma size_rev     :       size (rev p)  =  size p           := length_reverse p
+        @[simp] lemma concat_rev   :      rev (p ++ p')  =  rev p' ++ rev p  := reverse_append p p'
+        @[simp] lemma size_concat  :     size (p ++ p')  =  size p + size p' := length_append p p'
+        @[simp] lemma concat_assoc :   (p ++ p') ++ p''  =  p ++ (p' ++ p'') := (append_assoc p p' p'').symm
 
-        lemma mem_tail : y ∈ p := sorry -- by { cases p, exact rfl, exact or.inr rfl }
-        lemma mem_head : x ∈ p := sorry -- by { induction p, simp, left, exact p_ih }
+        lemma mem_tail : y ∈ p := end_mem_support _
+        lemma mem_head : x ∈ p := start_mem_support _
 
         lemma point_of_size_0 : p.size = 0 -> x = y := by { intro h, cases p, refl, contradiction }
 
         @[simp] lemma mem_concat : u ∈ append p p' <-> u ∈ p ∨ u ∈ p' := mem_support_append_iff p p'
 
-        lemma mem_edges : e ∈ p.myedges -> e.x ∈ p ∧ e.y ∈ p := sorry
-            -- := by { induction p; simp, intro h, cases h; simp[*], left, exact mem_tail }
+        lemma mem_edges : e ∈ p.myedges -> e.x ∈ p ∧ e.y ∈ p
+            := by { induction p with u u v w h p ih; simp, intro h', cases h',
+                { subst e, split, exact mem_head, right, exact mem_head },
+                { specialize ih h', exact ⟨or.inr ih.1, or.inr ih.2⟩ }
+            }
 
         lemma mem_of_edges (h : 0 < p.size) : u ∈ p <-> ∃ e ∈ p.myedges, u ∈ edge.ends e := sorry
             -- := by { induction p with a b p ha ih, { simp at h, contradiction }, clear h,
