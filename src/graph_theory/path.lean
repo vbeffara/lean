@@ -17,8 +17,6 @@ namespace simple_graph
         variables {G G₁ G₂ : simple_graph V} {u v x y z : V} {e : edge G}
         variables {p : mypath G x y} {p' : mypath G y z} {p'' : mypath G z u} {h : G.adj y z} {h' : G.adj u x} {h'' : G.adj z v}
 
-        @[simp] def cons   (h : G.adj x y) (p : mypath G y z)     := p.cons h
-        @[simp] def concat (p : mypath G x y) (p' : mypath G y z) := p.append p'
         @[simp] def mem    (z : V) (p : mypath G x y)             := z ∈ p.support
         @[simp] def size   (p : mypath G x y)                     := p.length
         @[simp] def rev    (p : mypath G x y)                     := walk.reverse p
