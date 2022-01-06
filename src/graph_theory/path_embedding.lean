@@ -11,13 +11,14 @@ namespace simple_graph
         (nodup    : ∀ e : edge G, (df e).support.nodup)
         (sym      : ∀ e : edge G, df e.flip = (df e).reverse)
         --
-        (endpoint : ∀ {e x},    f x ∈ df e              -> x ∈ e.ends)
-        (disjoint : ∀ {e e' z},   z ∈ df e -> z ∈ df e' -> e.ends = e'.ends ∨ ∃ x, z = f x)
+        (endpoint : ∀ {e x},    f x ∈ (df e).support                        -> x ∈ e.ends)
+        (disjoint : ∀ {e e' z},   z ∈ (df e).support -> z ∈ (df e').support -> e.ends = e'.ends ∨ ∃ x, z = f x)
 
     def embeds_into (G : simple_graph V) (G' : simple_graph V') := nonempty (path_embedding G G')
 
     namespace path_embedding
-        variables {G : simple_graph V} {G' : simple_graph V'} (F : path_embedding G G') {x y z : V}
+        variables {G : simple_graph V} {G' : simple_graph V'} (F : path_embedding G G')
+        variables {x y z : V} {p : walk G x y} {p' : walk G y z}
         open mypath walk
 
         lemma nop {e : edge G} : 0 < (F.df e).length
@@ -30,21 +31,21 @@ namespace simple_graph
             | _ _ nil        := nil
             | _ _ (cons h p) := F.df ⟨h⟩ ++ follow p
 
-        @[simp] lemma follow_append {p : walk G x y} {p' : walk G y z} : follow F (p ++ p') = follow F p ++ follow F p'
+        @[simp] lemma follow_append : follow F (p ++ p') = follow F p ++ follow F p'
             := by { induction p, refl, simp [*,append_assoc] }
 
-        lemma mem_follow {z} {p : walk G x y} (h : 0 < length p) : z ∈ follow F p <-> ∃ e ∈ mypath.myedges p, z ∈ F.df e
+        lemma mem_follow {z} (h : 0 < length p) : z ∈ (follow F p).support <-> ∃ e ∈ mypath.myedges p, z ∈ (F.df e).support
             := by {
                 revert h, induction p with u u v w h p ih; simp, split; intro H,
                     { cases H,
                         { exact ⟨⟨h⟩,or.inl rfl,H⟩ },
                         { cases p,
-                            { simp at *, convert mem_tail, simp, apply list.mem_singleton.mp, exact H },
+                            { simp at *, rw H, exact mem_tail },
                             { simp at ih H, obtain ⟨e,h1,h2⟩ := ih.mp H, refine ⟨e,or.inr h1,h2⟩ },
                         }
                     },
                     { obtain ⟨e,H1,H2⟩ := H, cases H1,
-                        { left, exact H1 ▸ H2 },
+                        { left, subst H1, exact H2 },
                         { right, cases p,
                             { simp at H1, contradiction },
                             { refine (ih _).mpr ⟨e,H1,H2⟩, simp }
@@ -97,7 +98,7 @@ namespace simple_graph
                     left, clear h4 h6,
                     replace h3 := mypath.mem_edges h3,
                     replace h5 := mypath.mem_edges h5,
-                    replace h5 : e1.x ∈ F.df e' ∧ e1.y ∈ F.df e' := by {
+                    replace h5 : e1.x ∈ (F.df e').support ∧ e1.y ∈ (F.df e').support := by {
                         cases edge.same_iff.mpr h7; subst e2,
                         exact h5, simp at h5, exact h5.symm
                     }, clear h7,
@@ -118,8 +119,8 @@ namespace simple_graph
                     replace h6 := F'.endpoint h6,
                     replace h3 := mypath.mem_edges h3,
                     replace h5 := mypath.mem_edges h5,
-                    replace h3 : y ∈ F.df e, by { cases edge.mem_edge.mp h4; subst h, exact h3.1, exact h3.2 },
-                    replace h5 : y ∈ F.df e', by { cases edge.mem_edge.mp h6; subst h, exact h5.1, exact h5.2 },
+                    replace h3 : y ∈ (F.df e).support, by { cases edge.mem_edge.mp h4; subst h, exact h3.1, exact h3.2 },
+                    replace h5 : y ∈ (F.df e').support, by { cases edge.mem_edge.mp h6; subst h, exact h5.1, exact h5.2 },
                     cases F.disjoint h3 h5 with h9 h9,
                         { left, exact h9 },
                         { obtain ⟨x,h9⟩ := h9, subst h9, right, use x, refl }

@@ -5,8 +5,6 @@ import graph_theory.basic
 namespace simple_graph
     variables {V : Type}
 
-    instance (G : simple_graph V) (x y : V) : has_mem V (walk G x y) := ⟨λ z p, z ∈ p.support⟩
-
     namespace walk
         infixr ` :: ` := cons
         infix  ` ++ ` := append
@@ -22,7 +20,7 @@ namespace simple_graph
             | _ _ nil             := []
             | _ _ (walk.cons h p) := ⟨h⟩ :: myedges p
 
-        @[simp] lemma mem_concat : u ∈ (p ++ p') <-> u ∈ p ∨ u ∈ p' := mem_support_append_iff p p'
+        @[simp] lemma mem_concat : u ∈ (p ++ p').support <-> u ∈ p.support ∨ u ∈ p'.support := mem_support_append_iff p p'
 
         lemma mem_tail : y ∈ p.support := end_mem_support _
         lemma mem_head : x ∈ p.support := start_mem_support _
