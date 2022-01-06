@@ -52,7 +52,7 @@ namespace simple_graph
                     }
             }
 
-        lemma follow_nodup {p : mypath G x y} (h : p.nodup) : (follow F p).support.nodup
+        lemma follow_nodup {p : mypath G x y} (h : p.support.nodup) : (follow F p).support.nodup
             := by {
                 induction p with u u v w h p ih; simp, simp at h, apply nodup_concat.mpr,
 

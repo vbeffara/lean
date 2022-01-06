@@ -19,8 +19,6 @@ namespace simple_graph
         variables {G G₁ G₂ : simple_graph V} {u v x y z : V} {e : edge G}
         variables {p : walk G x y} {p' : walk G y z} {p'' : walk G z u} {h : G.adj y z} {h' : G.adj u x} {h'' : G.adj z v}
 
-        @[simp] def nodup  (p : walk G x y)                       := p.support.nodup
-
         @[simp] def myedges : Π {x y : V}, walk G x y -> list (edge G)
             | _ _ nil             := []
             | _ _ (walk.cons h p) := ⟨h⟩ :: myedges p
@@ -52,7 +50,7 @@ namespace simple_graph
         lemma nodup_rev : p.support.nodup -> p.reverse.support.nodup
             := by { rw (support_reverse p), exact list.nodup_reverse.mpr }
 
-        lemma nodup_concat : nodup (append p p') <-> nodup p ∧ nodup p' ∧ (∀ u, u ∈ p.support -> u ∈ p'.support -> u = y)
+        lemma nodup_concat : (append p p').support.nodup <-> p.support.nodup ∧ p'.support.nodup ∧ (∀ u, u ∈ p.support -> u ∈ p'.support -> u = y)
             := by { induction p with a a b c h q ih; simp, push_neg, split,
                 { rintros ⟨⟨h1,h2⟩,h3⟩, replace ih := ih.mp h3, refine ⟨⟨h1,ih.1⟩,ih.2.1,_,λ u h4 h5, _⟩,
                     intro, contradiction, exact ih.2.2 u h4 h5 },
