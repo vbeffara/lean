@@ -25,7 +25,7 @@ namespace simple_graph
         := le_antisymm (upper_bound G (nil : walk G x x)) (zero_le _)
 
     lemma dist_triangle : dist G x z ≤ dist G x y + dist G y z
-        := by { choose f g using @shortest_path, rw [<-(g G x y),<-(g G y z),<-mypath.size_concat],
+        := by { choose f g using @shortest_path, rw [<-(g G x y),<-(g G y z),<-length_append],
             exact upper_bound _ _
         }
 
@@ -33,7 +33,7 @@ namespace simple_graph
         := by { cases shortest_path G x y with p hp, cases p; finish }
 
     lemma dist_comm' : dist G x y <= dist G y x
-        := by { cases shortest_path G y x with p h, rw [<-h, <-mypath.size_rev], apply upper_bound }
+        := by { cases shortest_path G y x with p h, rw [<-h, <-length_reverse p], apply upper_bound }
 
     lemma dist_comm : dist G x y = dist G y x
         := le_antisymm (dist_comm' G) (dist_comm' G)

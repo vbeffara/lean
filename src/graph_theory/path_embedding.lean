@@ -31,7 +31,7 @@ namespace simple_graph
             | _ _ (cons h p) := F.df ⟨h⟩ ++ follow p
 
         @[simp] lemma follow_append {p : mypath G x y} {p' : mypath G y z} : follow F (p ++ p') = follow F p ++ follow F p'
-            := by { induction p, refl, simp [*], }
+            := by { induction p, refl, simp [*,append_assoc] }
 
         lemma mem_follow {z} {p : mypath G x y} (h : 0 < length p) : z ∈ follow F p <-> ∃ e ∈ p.myedges, z ∈ F.df e
             := by {

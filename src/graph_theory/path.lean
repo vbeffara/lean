@@ -25,12 +25,7 @@ namespace simple_graph
             | _ _ nil             := []
             | _ _ (walk.cons h p) := ⟨h⟩ :: myedges p
 
-        @[simp] lemma mem_point'   : u ∈ (@nil _ G x).support <-> u = x                          := list.mem_singleton
-        @[simp] lemma size_rev     :             length (reverse p)  =  length p                         := length_reverse p
-        @[simp] lemma concat_rev   :            reverse (p ++ p')  =  reverse p' ++ reverse p                := reverse_append p p'
-        @[simp] lemma size_concat  :           length (p ++ p')  =  length p + length p'               := length_append p p'
-        @[simp] lemma concat_assoc :         (p ++ p') ++ p''  =  p ++ (p' ++ p'')               := (append_assoc p p' p'').symm
-        @[simp] lemma mem_concat   :    u ∈ (p ++ p') <-> u ∈ p ∨ u ∈ p' := mem_support_append_iff p p'
+        @[simp] lemma mem_concat : u ∈ (p ++ p') <-> u ∈ p ∨ u ∈ p' := mem_support_append_iff p p'
 
         lemma mem_tail : y ∈ p.support := end_mem_support _
         lemma mem_head : x ∈ p.support := start_mem_support _
