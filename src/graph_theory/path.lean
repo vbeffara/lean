@@ -52,16 +52,16 @@ namespace simple_graph
                 { specialize ih h', exact ⟨or.inr ih.1, or.inr ih.2⟩ }
             }
 
-        lemma mem_of_edges (h : 0 < p.size) : u ∈ p <-> ∃ e ∈ p.myedges, u ∈ edge.ends e := sorry
-            -- := by { induction p with a b p ha ih, { simp at h, contradiction }, clear h,
-            --     cases nat.eq_zero_or_pos p.size, { cases p, simp, simp at h, contradiction },
-            --     specialize ih h, clear h, simp at ih, split; simp,
-            --         { intro h1, cases h1,
-            --             { obtain ⟨e,h2,h3⟩ := ih.mp h1, exact ⟨e, or.inr h2, h3⟩ },
-            --             exact ⟨⟨ha⟩, or.inl rfl, or.inr h1⟩ },
-            --         exact ⟨(λ h, or.cases_on h (λ h, or.inl (h.symm ▸ mem_tail)) (λ h, or.inr h)),
-            --             (λ e he h1, or.inl (ih.mpr ⟨e,he,h1⟩))⟩,
-            -- }
+        lemma mem_of_edges (h : 0 < p.size) : u ∈ p.support <-> ∃ e ∈ p.myedges, u ∈ edge.ends e
+            := by { induction p with u u v w h p ih, { simp at h, contradiction }, clear h,
+                cases nat.eq_zero_or_pos (size p), { cases p, simp, simp at h_1, contradiction },
+                specialize ih h_1, clear h_1, simp at ih, split; simp,
+                    { intro h1, cases h1,
+                        { subst h1, exact ⟨⟨h⟩, or.inl rfl, or.inl rfl⟩ },
+                        { obtain ⟨e,h2,h3⟩ := ih.mp h1, exact ⟨e, or.inr h2, h3⟩ } },
+                    exact ⟨(λ h, or.cases_on h or.inl (λ h, by { subst h, exact or.inr mem_head })),
+                        (λ e he h1, or.inr (ih.mpr ⟨e,he,h1⟩))⟩,
+            }
 
         @[simp] lemma nodup_cons : nodup (cons h' p) <-> u ∉ p ∧ nodup p := sorry
             -- := by { induction p with a b h1 h2 ih, simp, exact ne_comm,
@@ -70,8 +70,8 @@ namespace simple_graph
             --     { rintros ⟨⟨h1,h2⟩,h3,h4⟩, exact ⟨ih.mpr ⟨h1,h3⟩,h2.symm,h4⟩ }
             -- }
 
-        lemma nodup_rev : nodup p -> nodup p.rev := sorry
-            -- := by { induction p; simp, obviously }
+        lemma nodup_rev : nodup p -> nodup p.rev
+            := by { unfold nodup, unfold rev, rw (support_reverse p), exact list.nodup_reverse.mpr }
 
         lemma nodup_concat : nodup (append p p') <-> nodup p ∧ nodup p' ∧ (∀ u, u ∈ p -> u ∈ p' -> u = y) := sorry
             -- := by { induction p' with a b q h2 ih; simp, push_neg, split,
