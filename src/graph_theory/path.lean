@@ -63,23 +63,16 @@ namespace simple_graph
                         (λ e he h1, or.inr (ih.mpr ⟨e,he,h1⟩))⟩,
             }
 
-        @[simp] lemma nodup_cons : nodup (cons h' p) <-> u ∉ p ∧ nodup p := sorry
-            -- := by { induction p with a b h1 h2 ih, simp, exact ne_comm,
-            --     simp, push_neg, split,
-            --     { rintros ⟨h1,h2,h3⟩, have h4 := ih.mp h1, exact ⟨⟨h4.1,h2.symm⟩,h4.2,h3⟩ },
-            --     { rintros ⟨⟨h1,h2⟩,h3,h4⟩, exact ⟨ih.mpr ⟨h1,h3⟩,h2.symm,h4⟩ }
-            -- }
-
         lemma nodup_rev : nodup p -> nodup p.rev
             := by { unfold nodup, unfold rev, rw (support_reverse p), exact list.nodup_reverse.mpr }
 
-        lemma nodup_concat : nodup (append p p') <-> nodup p ∧ nodup p' ∧ (∀ u, u ∈ p -> u ∈ p' -> u = y) := sorry
-            -- := by { induction p' with a b q h2 ih; simp, push_neg, split,
-            --     { rintros ⟨h1,h2,h3⟩, replace ih := ih.mp h1, refine ⟨ih.1,⟨ih.2.1,h3⟩,λ u h4 h5, _⟩,
-            --         cases h5, exact ih.2.2 u h4 h5, rw h5 at h4, contradiction },
-            --     { rintros ⟨h1,⟨h2,h3⟩,h4⟩, refine ⟨ih.mpr ⟨h1,h2,_⟩,_,h3⟩,
-            --         intros u h5 h6, refine h4 u h5 (or.inl h6),
-            --         intro h5, apply h3, rw h4 b h5 (or.inr rfl), exact mem_head } }
+        lemma nodup_concat : nodup (append p p') <-> nodup p ∧ nodup p' ∧ (∀ u, u ∈ p -> u ∈ p' -> u = y)
+            := by { induction p with a a b c h q ih; simp, push_neg, split,
+                { rintros ⟨⟨h1,h2⟩,h3⟩, replace ih := ih.mp h3, refine ⟨⟨h1,ih.1⟩,ih.2.1,λ u h4 h5, _⟩,
+                    cases h4, rw h4 at h5, contradiction, exact ih.2.2 u h4 h5 },
+                { rintros ⟨⟨h1,h2⟩,h3,h4⟩, refine ⟨⟨h1,_⟩,_⟩,
+                    intro h5, apply h1, rw h4 a mem_head h5, exact mem_tail,
+                    refine ih.mpr ⟨h2,h3,_⟩, intros u hu h'u, refine h4 u (or.inr hu) h'u } }
 
         def path_from_subgraph (sub : ∀ {x y}, G₁.adj x y -> G₂.adj x y) : Π {x y : V}, mypath G₁ x y -> mypath G₂ x y
             | _ _ nil             := nil
