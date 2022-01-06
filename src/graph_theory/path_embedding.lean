@@ -33,7 +33,7 @@ namespace simple_graph
         @[simp] lemma follow_append {p : mypath G x y} {p' : mypath G y z} : follow F (p ++ p') = follow F p ++ follow F p'
             := by { induction p, refl, simp [*], }
 
-        lemma mem_follow {z} {p : mypath G x y} (h : 0 < p.size) : z ∈ follow F p <-> ∃ e ∈ p.myedges, z ∈ F.df e
+        lemma mem_follow {z} {p : mypath G x y} (h : 0 < length p) : z ∈ follow F p <-> ∃ e ∈ p.myedges, z ∈ F.df e
             := by {
                 revert h, induction p with u u v w h p ih; simp, split; intro H,
                     { cases H,

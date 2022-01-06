@@ -7,7 +7,7 @@ namespace simple_graph
 
     variables {V : Type} (G : simple_graph V) [connected_graph G] (a : V) {x y z : V}
 
-    def dists (x y) := set.range (mypath.size : mypath G x y -> ℕ)
+    def dists (x y) := set.range (length : walk G x y -> ℕ)
 
     lemma dists_ne_empty : (dists G x y).nonempty
         := set.range_nonempty_iff_nonempty.mpr (connected_graph.conn x y)
@@ -15,10 +15,10 @@ namespace simple_graph
     noncomputable def dist (x y : V)
         := well_founded.min nat.lt_wf (dists G x y) (dists_ne_empty _)
 
-    lemma upper_bound (p : mypath G x y) : dist G x y <= p.size
+    lemma upper_bound (p : mypath G x y) : dist G x y <= length p
         := not_lt.mp $ well_founded.not_lt_min _ _ _ (set.mem_range_self p)
 
-    lemma shortest_path (x y) : ∃ p : mypath G x y, p.size = dist G x y
+    lemma shortest_path (x y) : ∃ p : mypath G x y, length p = dist G x y
         := well_founded.min_mem _ _ (dists_ne_empty _)
 
     @[simp] lemma dist_self : dist G x x = 0

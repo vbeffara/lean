@@ -19,19 +19,16 @@ namespace simple_graph
         variables {G G₁ G₂ : simple_graph V} {u v x y z : V} {e : edge G}
         variables {p : walk G x y} {p' : walk G y z} {p'' : walk G z u} {h : G.adj y z} {h' : G.adj u x} {h'' : G.adj z v}
 
-        @[simp] def size   (p : mypath G x y)                     := p.length
         @[simp] def nodup  (p : walk G x y)                       := p.support.nodup
-
-        instance : has_sizeof (mypath G x y) := ⟨size⟩
 
         @[simp] def myedges : Π {x y : V}, walk G x y -> list (edge G)
             | _ _ nil             := []
             | _ _ (walk.cons h p) := ⟨h⟩ :: myedges p
 
         @[simp] lemma mem_point'   : u ∈ (@nil _ G x).support <-> u = x                          := list.mem_singleton
-        @[simp] lemma size_rev     :             size (reverse p)  =  size p                         := length_reverse p
+        @[simp] lemma size_rev     :             length (reverse p)  =  length p                         := length_reverse p
         @[simp] lemma concat_rev   :            reverse (p ++ p')  =  reverse p' ++ reverse p                := reverse_append p p'
-        @[simp] lemma size_concat  :           size (p ++ p')  =  size p + size p'               := length_append p p'
+        @[simp] lemma size_concat  :           length (p ++ p')  =  length p + length p'               := length_append p p'
         @[simp] lemma concat_assoc :         (p ++ p') ++ p''  =  p ++ (p' ++ p'')               := (append_assoc p p' p'').symm
         @[simp] lemma mem_concat   :    u ∈ (p ++ p') <-> u ∈ p ∨ u ∈ p' := mem_support_append_iff p p'
 
@@ -48,7 +45,7 @@ namespace simple_graph
 
         lemma mem_of_edges (h : 0 < p.length) : u ∈ p.support <-> ∃ e ∈ myedges p, u ∈ edge.ends e
             := by { induction p with u u v w h p ih, { simp at h, contradiction }, clear h,
-                cases nat.eq_zero_or_pos (size p), { cases p, simp, simp at h_1, contradiction },
+                cases nat.eq_zero_or_pos (length p), { cases p, simp, simp at h_1, contradiction },
                 specialize ih h_1, clear h_1, simp at ih, split; simp,
                     { intro h1, cases h1,
                         { subst h1, exact ⟨⟨h⟩, or.inl rfl, or.inl rfl⟩ },

@@ -32,7 +32,7 @@ namespace simple_graph
             | _ _ nil        := nil
             | _ _ (cons h p) := walk.cons (shift_adj S a h) (shift_path p)
 
-        @[simp] lemma size_shift_path (p : mypath (Cay S) x y) : (shift_path S a p).size = p.size
+        @[simp] lemma size_shift_path (p : mypath (Cay S) x y) : length (shift_path S a p) = length p
             := by { induction p, refl, simpa }
 
         lemma shift : linked (Cay S) x y -> linked (Cay S) (a*x : G) (a*y : G)
@@ -62,7 +62,7 @@ namespace simple_graph
         lemma covariant : (Cay S).dist (a*x) (a*y) = (Cay S).dist x y
             := by { unfold simple_graph.dist, congr' 1, funext ℓ, rw [eq_iff_iff],
                 let dists := dists (Cay S),
-                have h2 : ∀ x y a ℓ, dists x y ℓ -> dists (a*x) (a*y) ℓ
+                have h2 : ∀ x y a ℓ, ℓ ∈ dists x y -> ℓ ∈ dists (a*x) (a*y)
                     := by { intros x y a ℓ h, cases h with p, use shift_path S a p, simpa },
                 exact ⟨λ h, inv_mul_cancel_left a x ▸ inv_mul_cancel_left a y ▸ h2 (a*x) (a*y) a⁻¹ ℓ h,
                     h2 x y a ℓ⟩ }
@@ -80,7 +80,7 @@ namespace simple_graph
                 intros x y, obtain ⟨p,hp⟩ := simple_graph.shortest_path (Cay S1) x y,
                 rw <-hp, clear hp, induction p with u u v w h p ih, simp,
                 transitivity (Cay S2).dist u v + (Cay S2).dist v w, apply simple_graph.dist_triangle,
-                rw [mypath.size], dsimp, rw [mul_add,mul_one,add_comm], apply add_le_add ih,
+                dsimp, rw [mul_add,mul_one,add_comm], apply add_le_add ih,
                 suffices : (Cay S2).dist u v ∈ Δ, by exact finset.le_max_of_mem this K_h,
                 simp, use u⁻¹ * v, split, exact h.2, convert covariant S2 u⁻¹, group
             end
