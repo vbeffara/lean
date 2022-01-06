@@ -20,16 +20,11 @@ namespace simple_graph
             | _ _ nil             := []
             | _ _ (walk.cons h p) := ⟨h⟩ :: myedges p
 
-        @[simp] lemma mem_concat : u ∈ (p ++ p').support <-> u ∈ p.support ∨ u ∈ p'.support := mem_support_append_iff p p'
-
-        lemma mem_tail : y ∈ p.support := end_mem_support _
-        lemma mem_head : x ∈ p.support := start_mem_support _
-
         lemma point_of_size_0 : p.length = 0 -> x = y := by { intro h, cases p, refl, contradiction }
 
         lemma mem_edges : e ∈ myedges p -> e.x ∈ p.support ∧ e.y ∈ p.support
             := by { induction p with u u v w h p ih; simp, intro h', cases h',
-                { subst e, split, left, refl, right, exact mem_head },
+                { subst e, split, left, refl, right, exact start_mem_support _ },
                 { specialize ih h', exact ⟨or.inr ih.1, or.inr ih.2⟩ }
             }
 
@@ -40,7 +35,7 @@ namespace simple_graph
                     { intro h1, cases h1,
                         { subst h1, exact ⟨⟨h⟩, or.inl rfl, or.inl rfl⟩ },
                         { obtain ⟨e,h2,h3⟩ := ih.mp h1, exact ⟨e, or.inr h2, h3⟩ } },
-                    exact ⟨(λ h, or.cases_on h or.inl (λ h, by { subst h, exact or.inr mem_head })),
+                    exact ⟨(λ h, or.cases_on h or.inl (λ h, by { subst h, exact or.inr (start_mem_support _) })),
                         (λ e he h1, or.inr (ih.mpr ⟨e,he,h1⟩))⟩,
             }
 
@@ -52,7 +47,7 @@ namespace simple_graph
                 { rintros ⟨⟨h1,h2⟩,h3⟩, replace ih := ih.mp h3, refine ⟨⟨h1,ih.1⟩,ih.2.1,_,λ u h4 h5, _⟩,
                     intro, contradiction, exact ih.2.2 u h4 h5 },
                 { rintros ⟨⟨h1,h2⟩,h3,h4,h5⟩, refine ⟨⟨h1,_⟩,_⟩,
-                    intro h5, apply h1, rw h4 h5, exact mem_tail,
+                    intro h5, apply h1, rw h4 h5, exact end_mem_support _,
                     refine ih.mpr ⟨h2,h3,_⟩, intros u hu h'u, exact h5 u hu h'u } }
 
         def path_from_subgraph (sub : ∀ {x y}, G₁.adj x y -> G₂.adj x y) : Π {x y : V}, walk G₁ x y -> walk G₂ x y

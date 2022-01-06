@@ -40,7 +40,7 @@ namespace simple_graph
                     { cases H,
                         { exact ⟨⟨h⟩,or.inl rfl,H⟩ },
                         { cases p,
-                            { simp at *, rw H, exact mem_tail },
+                            { simp at *, rw H, exact end_mem_support _ },
                             { simp at ih H, obtain ⟨e,h1,h2⟩ := ih.mp H, refine ⟨e,or.inr h1,h2⟩ },
                         }
                     },
