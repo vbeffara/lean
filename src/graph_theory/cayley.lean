@@ -28,11 +28,11 @@ namespace simple_graph
 
         def Cay (S : genset G) : simple_graph G := ⟨adj S, adj_symm S, (λ x, not_and.mpr (λ h1 h2, h1 rfl ))⟩
 
-        @[simp] def shift_path : Π {x y : G}, mypath (Cay S) x y -> mypath (Cay S) (a*x : G) (a*y : G)
+        @[simp] def shift_path : Π {x y : G}, walk (Cay S) x y -> walk (Cay S) (a*x : G) (a*y : G)
             | _ _ nil        := nil
             | _ _ (cons h p) := walk.cons (shift_adj S a h) (shift_path p)
 
-        @[simp] lemma size_shift_path (p : mypath (Cay S) x y) : length (shift_path S a p) = length p
+        @[simp] lemma size_shift_path (p : walk (Cay S) x y) : length (shift_path S a p) = length p
             := by { induction p, refl, simpa }
 
         lemma shift : linked (Cay S) x y -> linked (Cay S) (a*x : G) (a*y : G)

@@ -5,12 +5,12 @@ import graph_theory.basic
 namespace simple_graph
     variables {V : Type}
 
-    def mypath (G : simple_graph V) := walk G
-
     instance (G : simple_graph V) (x y : V) : has_mem V (walk G x y) := ⟨λ z p, z ∈ p.support⟩
 
-    infixr ` :: `  := walk.cons
-    infix ` ++ `   := walk.append
+    namespace walk
+        infixr ` :: ` := cons
+        infix  ` ++ ` := append
+    end walk
 
     namespace mypath
         open mypath walk
@@ -57,14 +57,14 @@ namespace simple_graph
                     intro h5, apply h1, rw h4 h5, exact mem_tail,
                     refine ih.mpr ⟨h2,h3,_⟩, intros u hu h'u, exact h5 u hu h'u } }
 
-        def path_from_subgraph (sub : ∀ {x y}, G₁.adj x y -> G₂.adj x y) : Π {x y : V}, mypath G₁ x y -> mypath G₂ x y
+        def path_from_subgraph (sub : ∀ {x y}, G₁.adj x y -> G₂.adj x y) : Π {x y : V}, walk G₁ x y -> walk G₂ x y
             | _ _ nil             := nil
             | _ _ (walk.cons h p) := walk.cons (sub h) (path_from_subgraph p)
     end mypath
 
     variables {G : simple_graph V} {x y z : V}
 
-    def linked    (G : simple_graph V) (x y : V) := nonempty (mypath G x y)
+    def linked    (G : simple_graph V) (x y : V) := nonempty (walk G x y)
     def connected (G : simple_graph V)           := ∀ x y, linked G x y
 
     class connected_graph (G : simple_graph V) := (conn : connected G)
@@ -81,7 +81,7 @@ namespace simple_graph
 
         lemma equiv : equivalence (linked G) := ⟨@refl _ _, @symm _ _, @trans _ _⟩
 
-        noncomputable def to_path' : linked G x y -> mypath G x y := classical.choice
+        noncomputable def to_path' : linked G x y -> walk G x y := classical.choice
 
         lemma linked_of_subgraph {G₁ G₂ : simple_graph V} (sub : ∀ {x y : V}, G₁.adj x y -> G₂.adj x y) : linked G₁ x y -> linked G₂ x y
             := by { intro h, cases h with p, induction p with a b h1 h2 ih, refl, exact cons (sub ih) p_ih }

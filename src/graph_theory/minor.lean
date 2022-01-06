@@ -37,7 +37,7 @@ namespace simple_graph
                 exact linked.edge h₄,
                 exact linked.linked_of_subgraph S.sub (quotient.eq.mp h₃) }
 
-        noncomputable def proj_path : Π {x y : V}, mypath G x y -> mypath (contract S) ⟦x⟧ ⟦y⟧
+        noncomputable def proj_path : Π {x y : V}, walk G x y -> walk (contract S) ⟦x⟧ ⟦y⟧
             | _ _ nil                      := nil
             | _ z (cons (h : G.adj x y) p) := dite (⟦y⟧ = ⟦x⟧) (λ h, by { rw <-h, exact proj_path p })
                                                                (λ h', walk.cons ⟨ne.symm h',_,_,rfl,rfl,h⟩ (proj_path p))
