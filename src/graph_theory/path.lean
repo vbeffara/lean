@@ -9,7 +9,6 @@ namespace simple_graph
 
     instance (G : simple_graph V) (x y : V) : has_mem V (walk G x y) := ⟨λ z p, z ∈ p.support⟩
 
-    infix ` · `:50 := λ p h, walk.append p (walk.cons h walk.nil)
     infixr ` :: `  := walk.cons
     infix ` ++ `   := walk.append
 
@@ -73,13 +72,12 @@ namespace simple_graph
     namespace linked
         open mypath walk
 
-        lemma edge : G.adj x y                 -> linked G x y := λ h, ⟨walk.cons h walk.nil⟩
-        lemma cons : G.adj x y -> linked G y z -> linked G x z := λ e h, h.cases_on (λ p, nonempty.intro (e :: p))
-        lemma step : linked G x y -> G.adj y z -> linked G x z := λ h e, h.cases_on (λ p, nonempty.intro (p · e))
-
         @[refl]  lemma refl  : linked G x x                                 := ⟨nil⟩
         @[symm]  lemma symm  : linked G x y -> linked G y x                 := λ h, h.cases_on (λ p, nonempty.intro p.reverse)
         @[trans] lemma trans : linked G x y -> linked G y z -> linked G x z := λ h₁ h₂, h₁.cases_on (λ p₁, h₂.cases_on (λ p₂, nonempty.intro (p₁ ++ p₂)))
+
+        lemma edge : G.adj x y                 -> linked G x y := λ h, ⟨walk.cons h walk.nil⟩
+        lemma cons : G.adj x y -> linked G y z -> linked G x z := λ h h', trans (edge h) h'
 
         lemma equiv : equivalence (linked G) := ⟨@refl _ _, @symm _ _, @trans _ _⟩
 
