@@ -20,7 +20,6 @@ namespace simple_graph
         variables {p : walk G x y} {p' : walk G y z} {p'' : walk G z u} {h : G.adj y z} {h' : G.adj u x} {h'' : G.adj z v}
 
         @[simp] def size   (p : mypath G x y)                     := p.length
-        @[simp] def rev    (p : mypath G x y)                     := walk.reverse p
         @[simp] def nodup  (p : walk G x y)                       := p.support.nodup
 
         instance : has_sizeof (mypath G x y) := ⟨size⟩
@@ -30,8 +29,8 @@ namespace simple_graph
             | _ _ (walk.cons h p) := ⟨h⟩ :: myedges p
 
         @[simp] lemma mem_point'   : u ∈ (@nil _ G x).support <-> u = x                          := list.mem_singleton
-        @[simp] lemma size_rev     :             size (rev p)  =  size p                         := length_reverse p
-        @[simp] lemma concat_rev   :            rev (p ++ p')  =  rev p' ++ rev p                := reverse_append p p'
+        @[simp] lemma size_rev     :             size (reverse p)  =  size p                         := length_reverse p
+        @[simp] lemma concat_rev   :            reverse (p ++ p')  =  reverse p' ++ reverse p                := reverse_append p p'
         @[simp] lemma size_concat  :           size (p ++ p')  =  size p + size p'               := length_append p p'
         @[simp] lemma concat_assoc :         (p ++ p') ++ p''  =  p ++ (p' ++ p'')               := (append_assoc p p' p'').symm
         @[simp] lemma mem_concat   :    u ∈ (p ++ p') <-> u ∈ p ∨ u ∈ p' := mem_support_append_iff p p'
@@ -89,7 +88,7 @@ namespace simple_graph
         lemma step : linked G x y -> G.adj y z -> linked G x z := λ h e, h.cases_on (λ p, nonempty.intro (p · e))
 
         @[refl]  lemma refl  : linked G x x                                 := ⟨nil⟩
-        @[symm]  lemma symm  : linked G x y -> linked G y x                 := λ h, h.cases_on (λ p, nonempty.intro p.rev)
+        @[symm]  lemma symm  : linked G x y -> linked G y x                 := λ h, h.cases_on (λ p, nonempty.intro p.reverse)
         @[trans] lemma trans : linked G x y -> linked G y z -> linked G x z := λ h₁ h₂, h₁.cases_on (λ p₁, h₂.cases_on (λ p₂, nonempty.intro (p₁ ++ p₂)))
 
         lemma equiv : equivalence (linked G) := ⟨@refl _ _, @symm _ _, @trans _ _⟩
