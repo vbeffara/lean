@@ -5,7 +5,7 @@ set_option trace.check true
 namespace simple_graph
     variables {V : Type} (G : simple_graph V) [connected_graph G] (a : V) {x y z : V}
 
-    def dists (x y) := set.range (path.size : path G x y -> ℕ)
+    def dists (x y) := set.range (mypath.size : mypath G x y -> ℕ)
 
     lemma dists_ne_empty : (dists G x y).nonempty
         := set.range_nonempty_iff_nonempty.mpr (connected_graph.conn x y)
@@ -13,17 +13,17 @@ namespace simple_graph
     noncomputable def dist (x y : V)
         := well_founded.min nat.lt_wf (dists G x y) (dists_ne_empty _)
 
-    lemma upper_bound (p : path G x y) : dist G x y <= p.size
+    lemma upper_bound (p : mypath G x y) : dist G x y <= p.size
         := not_lt.mp $ well_founded.not_lt_min _ _ _ (set.mem_range_self p)
 
-    lemma shortest_path (x y) : ∃ p : path G x y, p.size = dist G x y
+    lemma shortest_path (x y) : ∃ p : mypath G x y, p.size = dist G x y
         := well_founded.min_mem _ _ (dists_ne_empty _)
 
     @[simp] lemma dist_self : dist G x x = 0
-        := le_antisymm (upper_bound G (path.point : path G x x)) (zero_le _)
+        := le_antisymm (upper_bound G (mypath.point : mypath G x x)) (zero_le _)
 
     lemma dist_triangle : dist G x z ≤ dist G x y + dist G y z
-        := by { choose f g using @shortest_path, rw [<-(g G x y),<-(g G y z),<-path.size_concat],
+        := by { choose f g using @shortest_path, rw [<-(g G x y),<-(g G y z),<-mypath.size_concat],
             exact upper_bound _ _
         }
 
@@ -31,7 +31,7 @@ namespace simple_graph
         := by { cases shortest_path G x y with p hp, cases p; finish }
 
     lemma dist_comm' : dist G x y <= dist G y x
-        := by { cases shortest_path G y x with p h, rw [<-h, <-path.size_rev], apply upper_bound }
+        := by { cases shortest_path G y x with p h, rw [<-h, <-mypath.size_rev], apply upper_bound }
 
     lemma dist_comm : dist G x y = dist G y x
         := le_antisymm (dist_comm' G) (dist_comm' G)

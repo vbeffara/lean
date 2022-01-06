@@ -3,7 +3,7 @@ import graph_theory.path graph_theory.metric topology.metric_space.lipschitz
 
 namespace simple_graph
     namespace cayley
-        open path
+        open mypath
 
         structure genset (G : Type) [group G] :=
             (els : finset G)
@@ -28,11 +28,11 @@ namespace simple_graph
 
         def Cay (S : genset G) : simple_graph G := ⟨adj S, adj_symm S, (λ x, not_and.mpr (λ h1 h2, h1 rfl ))⟩
 
-        @[simp] def shift_path : Π {y : G}, path (Cay S) x y -> path (Cay S) (a*x : G) (a*y : G)
+        @[simp] def shift_path : Π {y : G}, mypath (Cay S) x y -> mypath (Cay S) (a*x : G) (a*y : G)
             | _ point   := point
             | _ (p · h) := shift_path p · shift_adj S a h
 
-        @[simp] lemma size_shift_path (p : path (Cay S) x y) : (shift_path S a p).size = p.size
+        @[simp] lemma size_shift_path (p : mypath (Cay S) x y) : (shift_path S a p).size = p.size
             := by { induction p, refl, simpa }
 
         lemma shift : linked (Cay S) x y -> linked (Cay S) (a*x : G) (a*y : G)

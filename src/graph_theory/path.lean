@@ -2,50 +2,50 @@ import tactic
 import graph_theory.basic
 
 namespace simple_graph
-    inductive path {V : Type} (G : simple_graph V) (x : V) : V -> Type
-    | point : path x
-    | step {y z : V} : path y -> G.adj y z -> path z
+    inductive mypath {V : Type} (G : simple_graph V) (x : V) : V -> Type
+    | point : mypath x
+    | step {y z : V} : mypath y -> G.adj y z -> mypath z
 
-    infix ` · `:50 := path.step
+    infix ` · `:50 := mypath.step
 
-    namespace path
-        open path
+    namespace mypath
+        open mypath
         variables {V : Type} {G G₁ G₂ : simple_graph V} {u v x y z : V} {e : edge G}
-        variables {p : path G x y} {p' : path G y z} {p'' : path G z u} {h : G.adj y z} {h' : G.adj u x} {h'' : G.adj z v}
+        variables {p : mypath G x y} {p' : mypath G y z} {p'' : mypath G z u} {h : G.adj y z} {h' : G.adj u x} {h'' : G.adj z v}
 
-        @[simp] def cons (h : G.adj x y) : Π {z : V}, path G y z -> path G x z
+        @[simp] def cons (h : G.adj x y) : Π {z : V}, mypath G y z -> mypath G x z
             | _ point    := point · h
             | _ (p · h') := cons p · h'
 
         infixr ` :: ` := cons
 
-        @[simp] def concat (p : path G x y) : Π {z : V}, path G y z -> path G x z
+        @[simp] def concat (p : mypath G x y) : Π {z : V}, mypath G y z -> mypath G x z
             | _ point    := p
             | _ (p' · h) := concat p' · h
 
         infix ` ++ ` := concat
 
-        @[simp] def mem (z : V) : Π {y : V}, path G x y -> Prop
+        @[simp] def mem (z : V) : Π {y : V}, mypath G x y -> Prop
             | _ point   := z = x
             | y (p · _) := mem p ∨ z = y
 
-        instance : has_mem V (path G x y) := ⟨λ z, mem z⟩
+        instance : has_mem V (mypath G x y) := ⟨λ z, mem z⟩
 
-        @[simp] def size : Π {y : V}, path G x y -> ℕ
+        @[simp] def size : Π {y : V}, mypath G x y -> ℕ
             | _ point   := 0
             | _ (p · _) := size p + 1
 
-        instance : has_sizeof (path G x y) := ⟨size⟩
+        instance : has_sizeof (mypath G x y) := ⟨size⟩
 
-        @[simp] def rev : Π {y : V}, path G x y -> path G y x
+        @[simp] def rev : Π {y : V}, mypath G x y -> mypath G y x
             | _ point   := point
             | _ (p · h) := h.symm :: rev p
 
-        @[simp] def edges : Π {y : V}, path G x y -> list (edge G)
+        @[simp] def edges : Π {y : V}, mypath G x y -> list (edge G)
             | _ point   := []
             | _ (p · h) := ⟨h⟩ :: edges p
 
-        @[simp] def nodup : Π {y : V}, path G x y -> Prop
+        @[simp] def nodup : Π {y : V}, mypath G x y -> Prop
             | _ point   := true
             | y (p · _) := nodup p ∧ y ∉ p
 
@@ -101,20 +101,20 @@ namespace simple_graph
                     intros u h5 h6, refine h4 u h5 (or.inl h6),
                     intro h5, apply h3, rw h4 b h5 (or.inr rfl), exact mem_head } }
 
-        def path_from_subgraph (sub : ∀ {x y}, G₁.adj x y -> G₂.adj x y) : Π {y : V}, path G₁ x y -> path G₂ x y
+        def path_from_subgraph (sub : ∀ {x y}, G₁.adj x y -> G₂.adj x y) : Π {y : V}, mypath G₁ x y -> mypath G₂ x y
             | _ point   := point
             | _ (p · h) := path_from_subgraph p · sub h
-    end path
+    end mypath
 
     variables {V : Type} {G : simple_graph V} {x y z : V}
 
-    def linked    (G : simple_graph V) (x y : V) := nonempty (path G x y)
+    def linked    (G : simple_graph V) (x y : V) := nonempty (mypath G x y)
     def connected (G : simple_graph V)           := ∀ x y, linked G x y
 
     class connected_graph (G : simple_graph V) := (conn : connected G)
 
     namespace linked
-        open path
+        open mypath
 
         lemma edge : G.adj x y                 -> linked G x y := λ h, ⟨point · h⟩
         lemma cons : G.adj x y -> linked G y z -> linked G x z := λ e h, h.cases_on (λ p, nonempty.intro (e :: p))
@@ -126,7 +126,7 @@ namespace simple_graph
 
         lemma equiv : equivalence (linked G) := ⟨@refl _ _, @symm _ _, @trans _ _⟩
 
-        noncomputable def to_path' : linked G x y -> path G x y := classical.choice
+        noncomputable def to_path' : linked G x y -> mypath G x y := classical.choice
 
         lemma linked_of_subgraph {G₁ G₂ : simple_graph V} (sub : ∀ {x y : V}, G₁.adj x y -> G₂.adj x y) : linked G₁ x y -> linked G₂ x y
             := by { intro h, cases h with p, induction p with a b h1 h2 ih, refl, exact ih.step (sub h2) }

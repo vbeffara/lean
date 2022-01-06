@@ -18,7 +18,7 @@ namespace simple_graph
         def clusters (S : setup G) := quotient (contraction.contraction_setoid S)
 
         variables {S : setup G} {x y : support S}
-        open path
+        open mypath
 
         def adj (x y : clusters S) := x ≠ y ∧ ∃ x' y' : V, ⟦x'⟧ = x ∧ ⟦y'⟧ = y ∧ G.adj x' y'
 
@@ -36,7 +36,7 @@ namespace simple_graph
                 exact linked.edge h₄,
                 exact linked.linked_of_subgraph S.sub (quotient.eq.mp h₃) }
 
-        noncomputable def proj_path : Π {y : V}, path G x y -> path (contract S) ⟦x⟧ ⟦y⟧
+        noncomputable def proj_path : Π {y : V}, mypath G x y -> mypath (contract S) ⟦x⟧ ⟦y⟧
             | _ point                 := point
             | z (p · (h : G.adj y z)) := dite (⟦y⟧ = ⟦z⟧) (λ h, by { rw <-h, exact proj_path p })
                                                           (λ h', proj_path p · ⟨h',_,_,rfl,rfl,h⟩)

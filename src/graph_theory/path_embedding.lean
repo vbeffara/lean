@@ -6,7 +6,7 @@ namespace simple_graph
 
     structure path_embedding (G : simple_graph V) (G' : simple_graph V') :=
         (f        : V ↪ V')
-        (df       : Π e : edge G, path G' (f e.x) (f e.y))
+        (df       : Π e : edge G, mypath G' (f e.x) (f e.y))
         --
         (nodup    : ∀ e : edge G, (df e).nodup)
         (sym      : ∀ e : edge G, df e.flip = (df e).rev)
@@ -18,28 +18,28 @@ namespace simple_graph
 
     namespace path_embedding
         variables {G : simple_graph V} {G' : simple_graph V'} (F : path_embedding G G') {x y z : V}
-        open path
+        open mypath
 
         lemma nop {e : edge G} : 0 < (F.df e).size
             := by {
                 cases nat.eq_zero_or_pos (F.df e).size, swap, exact h, exfalso,
-                exact G.ne_of_adj e.h (F.f.injective (path.point_of_size_0 h))
+                exact G.ne_of_adj e.h (F.f.injective (mypath.point_of_size_0 h))
             }
 
-        def follow : Π {y : V}, path G x y -> path G' (F.f x) (F.f y)
+        def follow : Π {y : V}, mypath G x y -> mypath G' (F.f x) (F.f y)
             | _ point   := point
             | _ (p · h) := follow p ++ F.df ⟨h⟩
 
-        @[simp] lemma follow_point : follow F (path.point : path G x x) = path.point := rfl
+        @[simp] lemma follow_point : follow F (mypath.point : mypath G x x) = mypath.point := rfl
 
-        @[simp] lemma follow_step {p : path G x y} {h : G.adj y z} : follow F (p.step h) = (follow F p).concat (F.df ⟨h⟩) := rfl
+        @[simp] lemma follow_step {p : mypath G x y} {h : G.adj y z} : follow F (p.step h) = (follow F p).concat (F.df ⟨h⟩) := rfl
 
-        lemma mem_follow {z} {p : path G x y} (h : 0 < p.size) : z ∈ follow F p <-> ∃ e ∈ p.edges, z ∈ F.df e
+        lemma mem_follow {z} {p : mypath G x y} (h : 0 < p.size) : z ∈ follow F p <-> ∃ e ∈ p.edges, z ∈ F.df e
             := by {
                 revert h, induction p with a b q h1 ih; simp, split; intro H,
                     { cases H,
                         { cases q; simp at *,
-                            { convert path.mem_head },
+                            { convert mypath.mem_head },
                             { cases (ih.mp H) with e he, exact ⟨e, or.inr he.1, he.2⟩ }
                         },
                         { exact ⟨⟨h1⟩,or.inl rfl,H⟩ }
@@ -53,14 +53,14 @@ namespace simple_graph
                     }
             }
 
-        lemma follow_nodup {p : path G x y} (h : p.nodup) : (follow F p).nodup
+        lemma follow_nodup {p : mypath G x y} (h : p.nodup) : (follow F p).nodup
             := by {
-                induction p with a b q h1 ih; simp [path.nodup_concat], simp at h,
+                induction p with a b q h1 ih; simp [mypath.nodup_concat], simp at h,
                 refine ⟨ih h.1, F.nodup _, _⟩, rintros u h3 h4,
                 cases nat.eq_zero_or_pos q.size with h5 h5, { cases q, exact h3, simp at h5, contradiction },
                 obtain ⟨e,h7,h8⟩ := (mem_follow F h5).mp h3,
-                cases path.mem_edges h7, cases F.disjoint h4 h8 with h9 h9,
-                    { exfalso, apply h.2, apply (path.mem_of_edges h5).mpr ⟨e,h7,_⟩,
+                cases mypath.mem_edges h7, cases F.disjoint h4 h8 with h9 h9,
+                    { exfalso, apply h.2, apply (mypath.mem_of_edges h5).mpr ⟨e,h7,_⟩,
                         rw <-h9, exact sym2.mem_mk_right _ _ },
                     {
                         obtain ⟨v,_⟩ := h9, subst u,
@@ -71,10 +71,10 @@ namespace simple_graph
                     }
             }
 
-        @[simp] lemma follow_cons {p : path G y z} {h : G.adj x y} : follow F (p.cons h) = (F.df ⟨h⟩).concat (follow F p)
+        @[simp] lemma follow_cons {p : mypath G y z} {h : G.adj x y} : follow F (p.cons h) = (F.df ⟨h⟩).concat (follow F p)
             := by { induction p; simp [*] }
 
-        lemma follow_rev {p : path G x y} : follow F p.rev = (follow F p).rev
+        lemma follow_rev {p : mypath G x y} : follow F p.rev = (follow F p).rev
             := by { induction p with a b q h1 ih; simp [*], congr, exact F.sym ⟨h1⟩ }
     end path_embedding
 
@@ -90,7 +90,7 @@ namespace simple_graph
             --
             endpoint := by {
                 intros e x h1, obtain ⟨e',h4,h5⟩ := (mem_follow F' (nop F)).mp h1,
-                exact F.endpoint ((path.mem_of_edges (nop _)).mpr ⟨e',h4,F'.endpoint h5⟩)
+                exact F.endpoint ((mypath.mem_of_edges (nop _)).mpr ⟨e',h4,F'.endpoint h5⟩)
             },
             --
             disjoint := by {
@@ -100,8 +100,8 @@ namespace simple_graph
                 have h7 := F'.disjoint h4 h6, cases h7,
                 {
                     left, clear h4 h6,
-                    replace h3 := path.mem_edges h3,
-                    replace h5 := path.mem_edges h5,
+                    replace h3 := mypath.mem_edges h3,
+                    replace h5 := mypath.mem_edges h5,
                     replace h5 : e1.x ∈ F.df e' ∧ e1.y ∈ F.df e' := by {
                         cases edge.same_iff.mpr h7; subst e2,
                         exact h5, simp at h5, exact h5.symm
@@ -121,8 +121,8 @@ namespace simple_graph
                     obtain ⟨y,h8⟩ := h7, subst z,
                     replace h4 := F'.endpoint h4,
                     replace h6 := F'.endpoint h6,
-                    replace h3 := path.mem_edges h3,
-                    replace h5 := path.mem_edges h5,
+                    replace h3 := mypath.mem_edges h3,
+                    replace h5 := mypath.mem_edges h5,
                     replace h3 : y ∈ F.df e, by { cases edge.mem_edge.mp h4; subst h, exact h3.1, exact h3.2 },
                     replace h5 : y ∈ F.df e', by { cases edge.mem_edge.mp h6; subst h, exact h5.1, exact h5.2 },
                     cases F.disjoint h3 h5 with h9 h9,
