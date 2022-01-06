@@ -3,6 +3,8 @@ import topology.metric_space.basic
 set_option trace.check true
 
 namespace simple_graph
+    open walk
+
     variables {V : Type} (G : simple_graph V) [connected_graph G] (a : V) {x y z : V}
 
     def dists (x y) := set.range (mypath.size : mypath G x y -> ℕ)
@@ -20,7 +22,7 @@ namespace simple_graph
         := well_founded.min_mem _ _ (dists_ne_empty _)
 
     @[simp] lemma dist_self : dist G x x = 0
-        := le_antisymm (upper_bound G (mypath.point : mypath G x x)) (zero_le _)
+        := le_antisymm (upper_bound G (nil : walk G x x)) (zero_le _)
 
     lemma dist_triangle : dist G x z ≤ dist G x y + dist G y z
         := by { choose f g using @shortest_path, rw [<-(g G x y),<-(g G y z),<-mypath.size_concat],

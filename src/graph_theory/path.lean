@@ -17,7 +17,6 @@ namespace simple_graph
         variables {G G₁ G₂ : simple_graph V} {u v x y z : V} {e : edge G}
         variables {p : mypath G x y} {p' : mypath G y z} {p'' : mypath G z u} {h : G.adj y z} {h' : G.adj u x} {h'' : G.adj z v}
 
-        @[simp] def point  {x : V} : mypath G x x                 := nil
         @[simp] def cons   (h : G.adj x y) (p : mypath G y z)     := p.cons h
         @[simp] def concat (p : mypath G x y) (p' : mypath G y z) := p.append p'
         @[simp] def mem    (z : V) (p : mypath G x y)             := z ∈ p.support
@@ -87,13 +86,13 @@ namespace simple_graph
     class connected_graph (G : simple_graph V) := (conn : connected G)
 
     namespace linked
-        open mypath
+        open mypath walk
 
         lemma edge : G.adj x y                 -> linked G x y := λ h, ⟨walk.cons h walk.nil⟩
         lemma cons : G.adj x y -> linked G y z -> linked G x z := λ e h, h.cases_on (λ p, nonempty.intro (e :: p))
         lemma step : linked G x y -> G.adj y z -> linked G x z := λ h e, h.cases_on (λ p, nonempty.intro (p · e))
 
-        @[refl]  lemma refl  : linked G x x                                 := ⟨point⟩
+        @[refl]  lemma refl  : linked G x x                                 := ⟨nil⟩
         @[symm]  lemma symm  : linked G x y -> linked G y x                 := λ h, h.cases_on (λ p, nonempty.intro p.rev)
         @[trans] lemma trans : linked G x y -> linked G y z -> linked G x z := λ h₁ h₂, h₁.cases_on (λ p₁, h₂.cases_on (λ p₂, nonempty.intro (p₁ ++ p₂)))
 
