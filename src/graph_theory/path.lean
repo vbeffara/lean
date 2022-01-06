@@ -1,112 +1,96 @@
 import tactic
+import combinatorics.simple_graph.connectivity
 import graph_theory.basic
 
 namespace simple_graph
-    inductive mypath {V : Type} (G : simple_graph V) (x : V) : V -> Type
-    | point : mypath x
-    | step {y z : V} : mypath y -> G.adj y z -> mypath z
+    variables {V : Type}
 
-    infix ` · `:50 := mypath.step
+    def mypath (G : simple_graph V) := walk G
+
+    infix ` · `:50 := λ p h, walk.append p (walk.cons h walk.nil)
+    infixr ` :: `  := walk.cons
+    infix ` ++ `   := walk.append
 
     namespace mypath
-        open mypath
-        variables {V : Type} {G G₁ G₂ : simple_graph V} {u v x y z : V} {e : edge G}
+        open mypath walk
+
+        variables {G G₁ G₂ : simple_graph V} {u v x y z : V} {e : edge G}
         variables {p : mypath G x y} {p' : mypath G y z} {p'' : mypath G z u} {h : G.adj y z} {h' : G.adj u x} {h'' : G.adj z v}
 
-        @[simp] def cons (h : G.adj x y) : Π {z : V}, mypath G y z -> mypath G x z
-            | _ point    := point · h
-            | _ (p · h') := cons p · h'
+        def point  {x : V} : mypath G x x                 := nil
+        def cons   (h : G.adj x y) (p : mypath G y z)     := p.cons h
+        def concat (p : mypath G x y) (p' : mypath G y z) := p.append p'
+        def mem    (z : V) (p : mypath G x y)             := z ∈ p.support
+        def size   (p : mypath G x y)                     := p.length
+        def rev    (p : mypath G x y)                     := walk.reverse p
+        def nodup  (p : mypath G x y)                     := p.support.nodup
 
-        infixr ` :: ` := cons
-
-        @[simp] def concat (p : mypath G x y) : Π {z : V}, mypath G y z -> mypath G x z
-            | _ point    := p
-            | _ (p' · h) := concat p' · h
-
-        infix ` ++ ` := concat
-
-        @[simp] def mem (z : V) : Π {y : V}, mypath G x y -> Prop
-            | _ point   := z = x
-            | y (p · _) := mem p ∨ z = y
-
-        instance : has_mem V (mypath G x y) := ⟨λ z, mem z⟩
-
-        @[simp] def size : Π {y : V}, mypath G x y -> ℕ
-            | _ point   := 0
-            | _ (p · _) := size p + 1
-
+        instance : has_mem V (walk G x y) := ⟨mem⟩
+        instance : has_mem V (mypath G x y) := ⟨mem⟩
         instance : has_sizeof (mypath G x y) := ⟨size⟩
 
-        @[simp] def rev : Π {y : V}, mypath G x y -> mypath G y x
-            | _ point   := point
-            | _ (p · h) := h.symm :: rev p
+        @[simp] def myedges : Π {x y : V}, mypath G x y -> list (edge G)
+            | _ _ nil             := []
+            | _ _ (walk.cons h p) := ⟨h⟩ :: myedges p
 
-        @[simp] def edges : Π {y : V}, mypath G x y -> list (edge G)
-            | _ point   := []
-            | _ (p · h) := ⟨h⟩ :: edges p
+        @[simp] lemma mem_point    : u ∈ (@point _ G x) <-> u = x            := sorry
+        @[simp] lemma mem_step     :        u ∈ (p · h) <-> u ∈ p ∨ u = z    := sorry
+        @[simp] lemma mem_cons     :      v ∈ cons h' p <-> v = u ∨ v ∈ p    := sorry
+        @[simp] lemma size_cons    :     size (h' :: p)  =  size p + 1       := sorry
+        @[simp] lemma size_rev     :       size (rev p)  =  size p           := sorry
+        @[simp] lemma mem_rev      :          z ∈ rev p <-> z ∈ p            := sorry
+        @[simp] lemma concat_point :         point ++ p  =  p                := sorry
+        -- @[simp] lemma concat_step  :  (point · h') ++ p  =  h' :: p          := sorry
+        @[simp] lemma concat_cons  :    (h' :: p) ++ p'  =  h' :: (p ++ p')  := sorry
+        @[simp] lemma concat_rev   :      rev (p ++ p')  =  rev p' ++ rev p  := sorry
+        @[simp] lemma size_concat  :     size (p ++ p')  =  size p + size p' := sorry
+        @[simp] lemma concat_assoc :   (p ++ p') ++ p''  =  p ++ (p' ++ p'') := sorry
 
-        @[simp] def nodup : Π {y : V}, mypath G x y -> Prop
-            | _ point   := true
-            | y (p · _) := nodup p ∧ y ∉ p
-
-        @[simp] lemma mem_point    : u ∈ (@point _ G x) <-> u = x            := iff.rfl
-        @[simp] lemma mem_step     :        u ∈ (p · h) <-> u ∈ p ∨ u = z    := iff.rfl
-        @[simp] lemma mem_cons     :        v ∈ h' :: p <-> v = u ∨ v ∈ p    := by { induction p; simp[*,or_assoc] }
-        @[simp] lemma size_cons    :     size (h' :: p)  =  size p + 1       := by { induction p, obviously }
-        @[simp] lemma size_rev     :       size (rev p)  =  size p           := by { induction p, obviously }
-        @[simp] lemma mem_rev      :          z ∈ rev p <-> z ∈ p            := by { induction p; simp [*,or.comm] }
-        @[simp] lemma concat_point :         point ++ p  =  p                := by { induction p, obviously }
-        @[simp] lemma concat_step  :  (point · h') ++ p  =  h' :: p          := by { induction p, obviously }
-        @[simp] lemma concat_cons  :    (h' :: p) ++ p'  =  h' :: (p ++ p')  := by { induction p', obviously }
-        @[simp] lemma concat_rev   :      rev (p ++ p')  =  rev p' ++ rev p  := by { induction p', obviously }
-        @[simp] lemma size_concat  :     size (p ++ p')  =  size p + size p' := by { induction p'; simp [*,add_assoc] }
-        @[simp] lemma concat_assoc :   (p ++ p') ++ p''  =  p ++ (p' ++ p'') := by { induction p''; simp [*] }
-
-        lemma mem_tail : y ∈ p := by { cases p, exact rfl, exact or.inr rfl }
-        lemma mem_head : x ∈ p := by { induction p, simp, left, exact p_ih }
+        lemma mem_tail : y ∈ p := sorry -- by { cases p, exact rfl, exact or.inr rfl }
+        lemma mem_head : x ∈ p := sorry -- by { induction p, simp, left, exact p_ih }
 
         lemma point_of_size_0 : p.size = 0 -> x = y := by { intro h, cases p, refl, contradiction }
 
-        @[simp] lemma mem_concat : u ∈ concat p p' <-> u ∈ p ∨ u ∈ p'
-            := by { induction p'; simp [*,or_assoc], exact ⟨or.inl,(λ h, or.cases_on h id (λ h, h.symm ▸ mem_tail))⟩ }
+        @[simp] lemma mem_concat : u ∈ concat p p' <-> u ∈ p ∨ u ∈ p' := mem_support_append_iff p p'
 
-        lemma mem_edges : e ∈ p.edges -> e.x ∈ p ∧ e.y ∈ p
-            := by { induction p; simp, intro h, cases h; simp[*], left, exact mem_tail }
+        lemma mem_edges : e ∈ p.myedges -> e.x ∈ p ∧ e.y ∈ p := sorry
+            -- := by { induction p; simp, intro h, cases h; simp[*], left, exact mem_tail }
 
-        lemma mem_of_edges (h : 0 < p.size) : u ∈ p <-> ∃ e ∈ p.edges, u ∈ edge.ends e
-            := by { induction p with a b p ha ih, { simp at h, contradiction }, clear h,
-                cases nat.eq_zero_or_pos p.size, { cases p, simp, simp at h, contradiction },
-                specialize ih h, clear h, simp at ih, split; simp,
-                    { intro h1, cases h1,
-                        { obtain ⟨e,h2,h3⟩ := ih.mp h1, exact ⟨e, or.inr h2, h3⟩ },
-                        exact ⟨⟨ha⟩, or.inl rfl, or.inr h1⟩ },
-                    exact ⟨(λ h, or.cases_on h (λ h, or.inl (h.symm ▸ mem_tail)) (λ h, or.inr h)),
-                        (λ e he h1, or.inl (ih.mpr ⟨e,he,h1⟩))⟩,
-            }
+        lemma mem_of_edges (h : 0 < p.size) : u ∈ p <-> ∃ e ∈ p.myedges, u ∈ edge.ends e := sorry
+            -- := by { induction p with a b p ha ih, { simp at h, contradiction }, clear h,
+            --     cases nat.eq_zero_or_pos p.size, { cases p, simp, simp at h, contradiction },
+            --     specialize ih h, clear h, simp at ih, split; simp,
+            --         { intro h1, cases h1,
+            --             { obtain ⟨e,h2,h3⟩ := ih.mp h1, exact ⟨e, or.inr h2, h3⟩ },
+            --             exact ⟨⟨ha⟩, or.inl rfl, or.inr h1⟩ },
+            --         exact ⟨(λ h, or.cases_on h (λ h, or.inl (h.symm ▸ mem_tail)) (λ h, or.inr h)),
+            --             (λ e he h1, or.inl (ih.mpr ⟨e,he,h1⟩))⟩,
+            -- }
 
-        @[simp] lemma nodup_cons : nodup (cons h' p) <-> u ∉ p ∧ nodup p
-            := by { induction p with a b h1 h2 ih, simp, exact ne_comm,
-                simp, push_neg, split,
-                { rintros ⟨h1,h2,h3⟩, have h4 := ih.mp h1, exact ⟨⟨h4.1,h2.symm⟩,h4.2,h3⟩ },
-                { rintros ⟨⟨h1,h2⟩,h3,h4⟩, exact ⟨ih.mpr ⟨h1,h3⟩,h2.symm,h4⟩ }
-            }
+        @[simp] lemma nodup_cons : nodup (cons h' p) <-> u ∉ p ∧ nodup p := sorry
+            -- := by { induction p with a b h1 h2 ih, simp, exact ne_comm,
+            --     simp, push_neg, split,
+            --     { rintros ⟨h1,h2,h3⟩, have h4 := ih.mp h1, exact ⟨⟨h4.1,h2.symm⟩,h4.2,h3⟩ },
+            --     { rintros ⟨⟨h1,h2⟩,h3,h4⟩, exact ⟨ih.mpr ⟨h1,h3⟩,h2.symm,h4⟩ }
+            -- }
 
-        lemma nodup_rev : nodup p -> nodup p.rev := by { induction p; simp, obviously }
+        lemma nodup_rev : nodup p -> nodup p.rev := sorry
+            -- := by { induction p; simp, obviously }
 
-        lemma nodup_concat : nodup (concat p p') <-> nodup p ∧ nodup p' ∧ (∀ u, u ∈ p -> u ∈ p' -> u = y)
-            := by { induction p' with a b q h2 ih; simp, push_neg, split,
-                { rintros ⟨h1,h2,h3⟩, replace ih := ih.mp h1, refine ⟨ih.1,⟨ih.2.1,h3⟩,λ u h4 h5, _⟩,
-                    cases h5, exact ih.2.2 u h4 h5, rw h5 at h4, contradiction },
-                { rintros ⟨h1,⟨h2,h3⟩,h4⟩, refine ⟨ih.mpr ⟨h1,h2,_⟩,_,h3⟩,
-                    intros u h5 h6, refine h4 u h5 (or.inl h6),
-                    intro h5, apply h3, rw h4 b h5 (or.inr rfl), exact mem_head } }
+        lemma nodup_concat : nodup (concat p p') <-> nodup p ∧ nodup p' ∧ (∀ u, u ∈ p -> u ∈ p' -> u = y) := sorry
+            -- := by { induction p' with a b q h2 ih; simp, push_neg, split,
+            --     { rintros ⟨h1,h2,h3⟩, replace ih := ih.mp h1, refine ⟨ih.1,⟨ih.2.1,h3⟩,λ u h4 h5, _⟩,
+            --         cases h5, exact ih.2.2 u h4 h5, rw h5 at h4, contradiction },
+            --     { rintros ⟨h1,⟨h2,h3⟩,h4⟩, refine ⟨ih.mpr ⟨h1,h2,_⟩,_,h3⟩,
+            --         intros u h5 h6, refine h4 u h5 (or.inl h6),
+            --         intro h5, apply h3, rw h4 b h5 (or.inr rfl), exact mem_head } }
 
-        def path_from_subgraph (sub : ∀ {x y}, G₁.adj x y -> G₂.adj x y) : Π {y : V}, mypath G₁ x y -> mypath G₂ x y
-            | _ point   := point
-            | _ (p · h) := path_from_subgraph p · sub h
+        def path_from_subgraph (sub : ∀ {x y}, G₁.adj x y -> G₂.adj x y) : Π {x y : V}, mypath G₁ x y -> mypath G₂ x y
+            | _ _ nil             := nil
+            | _ _ (walk.cons h p) := walk.cons (sub h) (path_from_subgraph p)
     end mypath
 
-    variables {V : Type} {G : simple_graph V} {x y z : V}
+    variables {G : simple_graph V} {x y z : V}
 
     def linked    (G : simple_graph V) (x y : V) := nonempty (mypath G x y)
     def connected (G : simple_graph V)           := ∀ x y, linked G x y
@@ -116,7 +100,7 @@ namespace simple_graph
     namespace linked
         open mypath
 
-        lemma edge : G.adj x y                 -> linked G x y := λ h, ⟨point · h⟩
+        lemma edge : G.adj x y                 -> linked G x y := λ h, ⟨walk.cons h walk.nil⟩
         lemma cons : G.adj x y -> linked G y z -> linked G x z := λ e h, h.cases_on (λ p, nonempty.intro (e :: p))
         lemma step : linked G x y -> G.adj y z -> linked G x z := λ h e, h.cases_on (λ p, nonempty.intro (p · e))
 
@@ -129,6 +113,6 @@ namespace simple_graph
         noncomputable def to_path' : linked G x y -> mypath G x y := classical.choice
 
         lemma linked_of_subgraph {G₁ G₂ : simple_graph V} (sub : ∀ {x y : V}, G₁.adj x y -> G₂.adj x y) : linked G₁ x y -> linked G₂ x y
-            := by { intro h, cases h with p, induction p with a b h1 h2 ih, refl, exact ih.step (sub h2) }
+            := by { intro h, cases h with p, induction p with a b h1 h2 ih, refl, exact cons (sub ih) p_ih }
     end linked
 end simple_graph

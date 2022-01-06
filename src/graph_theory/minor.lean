@@ -4,6 +4,7 @@ open function
 open_locale classical
 
 namespace simple_graph
+    open walk
     variables {V V' : Type} {G : simple_graph V}
 
     namespace contraction
@@ -36,23 +37,23 @@ namespace simple_graph
                 exact linked.edge h₄,
                 exact linked.linked_of_subgraph S.sub (quotient.eq.mp h₃) }
 
-        noncomputable def proj_path : Π {y : V}, mypath G x y -> mypath (contract S) ⟦x⟧ ⟦y⟧
-            | _ point                 := point
-            | z (p · (h : G.adj y z)) := dite (⟦y⟧ = ⟦z⟧) (λ h, by { rw <-h, exact proj_path p })
-                                                          (λ h', proj_path p · ⟨h',_,_,rfl,rfl,h⟩)
+        noncomputable def proj_path : Π {x y : V}, mypath G x y -> mypath (contract S) ⟦x⟧ ⟦y⟧
+            | _ _ nil                      := nil
+            | _ z (cons (h : G.adj x y) p) := dite (⟦y⟧ = ⟦x⟧) (λ h, by { rw <-h, exact proj_path p })
+                                                               (λ h', walk.cons ⟨ne.symm h',_,_,rfl,rfl,h⟩ (proj_path p))
 
-        lemma project_linked : linked G x y -> linked (contract S) ⟦x⟧ ⟦y⟧
-            := by { intro h, cases h with p, induction p with a b h1 h2 ih, refl,
-                cases proj_adj h2, exact h ▸ ih, exact ih.step h }
+        lemma project_linked : linked G x y -> linked (contract S) ⟦x⟧ ⟦y⟧ := sorry
+            -- := by { intro h, cases h with p, induction p with a b h1 h2 ih, refl,
+            --     cases proj_adj h2, exact h ▸ ih, exact ih.step h }
 
         lemma lift_linked' {xx yy : clusters S} : linked (contract S) xx yy ->
-                ∀ (x y : V) (hx : ⟦x⟧ = xx) (hy : ⟦y⟧ = yy), linked G x y
-            := by {
-                intro h, cases h with p, induction p with x' xx' h1 h2 ih; intros x y hx hy,
-                { subst hy, exact linked.linked_of_subgraph S.sub (quotient.eq.mp hx) },
-                { obtain ⟨u, hu : ⟦u⟧ = x'⟩ := quot.exists_rep x', substs hu hx hy,
-                    transitivity u, exact ih x u rfl rfl, exact linked_of_adj h2 }
-            }
+                ∀ (x y : V) (hx : ⟦x⟧ = xx) (hy : ⟦y⟧ = yy), linked G x y := sorry
+            -- := by {
+            --     intro h, cases h with p, induction p with x' xx' h1 h2 ih; intros x y hx hy,
+            --     { subst hy, exact linked.linked_of_subgraph S.sub (quotient.eq.mp hx) },
+            --     { obtain ⟨u, hu : ⟦u⟧ = x'⟩ := quot.exists_rep x', substs hu hx hy,
+            --         transitivity u, exact ih x u rfl rfl, exact linked_of_adj h2 }
+            -- }
 
         lemma lift_linked (h : linked (contract S) ⟦x⟧ ⟦y⟧) : linked G x y
             := lift_linked' h _ _ rfl rfl

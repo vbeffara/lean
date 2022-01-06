@@ -3,7 +3,7 @@ import graph_theory.path graph_theory.metric topology.metric_space.lipschitz
 
 namespace simple_graph
     namespace cayley
-        open mypath
+        open mypath walk
 
         structure genset (G : Type) [group G] :=
             (els : finset G)
@@ -28,9 +28,9 @@ namespace simple_graph
 
         def Cay (S : genset G) : simple_graph G := ⟨adj S, adj_symm S, (λ x, not_and.mpr (λ h1 h2, h1 rfl ))⟩
 
-        @[simp] def shift_path : Π {y : G}, mypath (Cay S) x y -> mypath (Cay S) (a*x : G) (a*y : G)
-            | _ point   := point
-            | _ (p · h) := shift_path p · shift_adj S a h
+        @[simp] def shift_path : Π {x y : G}, mypath (Cay S) x y -> mypath (Cay S) (a*x : G) (a*y : G)
+            | _ _ nil        := nil
+            | _ _ (cons h p) := walk.cons (shift_adj S a h) (shift_path p)
 
         @[simp] lemma size_shift_path (p : mypath (Cay S) x y) : (shift_path S a p).size = p.size
             := by { induction p, refl, simpa }
@@ -72,17 +72,17 @@ namespace simple_graph
         variables {G : Type} [group G] (S1 S2 : genset G)
         open finset
 
-        lemma lipschitz : ∃ K : ℕ, ∀ x y : G, (Cay S2).dist x y <= K * (Cay S1).dist x y
-            := begin
-                set Δ := finset.image ((Cay S2).dist 1) S1.els,
-                have : Δ.nonempty := finset.nonempty.image S1.nem ((Cay S2).dist 1),
-                obtain K := finset.max_of_nonempty this, cases K, use K_w,
-                intros x y, obtain p := simple_graph.shortest_path (Cay S1) x y, cases p with p hp,
-                rw <-hp, clear hp, induction p with a b h1 h2 ih, rw dist_self, exact rfl.ge,
-                transitivity (Cay S2).dist x a + (Cay S2).dist a b, apply simple_graph.dist_triangle,
-                dsimp, rw [mul_add,mul_one], apply add_le_add ih,
-                suffices : (Cay S2).dist a b ∈ Δ, by exact finset.le_max_of_mem this K_h,
-                simp, use a⁻¹ * b, split, exact h2.2, convert covariant S2 a⁻¹, group
-            end
+        lemma lipschitz : ∃ K : ℕ, ∀ x y : G, (Cay S2).dist x y <= K * (Cay S1).dist x y := sorry
+            -- := begin
+            --     set Δ := finset.image ((Cay S2).dist 1) S1.els,
+            --     have : Δ.nonempty := finset.nonempty.image S1.nem ((Cay S2).dist 1),
+            --     obtain K := finset.max_of_nonempty this, cases K, use K_w,
+            --     intros x y, obtain p := simple_graph.shortest_path (Cay S1) x y, cases p with p hp,
+            --     rw <-hp, clear hp, induction p with a b h1 h2 ih, rw dist_self, exact rfl.ge,
+            --     transitivity (Cay S2).dist x a + (Cay S2).dist a b, apply simple_graph.dist_triangle,
+            --     dsimp, rw [mul_add,mul_one], apply add_le_add ih,
+            --     suffices : (Cay S2).dist a b ∈ Δ, by exact finset.le_max_of_mem this K_h,
+            --     simp, use a⁻¹ * b, split, exact h2.2, convert covariant S2 a⁻¹, group
+            -- end
     end cayley
 end simple_graph
