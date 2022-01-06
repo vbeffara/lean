@@ -72,17 +72,17 @@ namespace simple_graph
         variables {G : Type} [group G] (S1 S2 : genset G)
         open finset
 
-        lemma lipschitz : ∃ K : ℕ, ∀ x y : G, (Cay S2).dist x y <= K * (Cay S1).dist x y := sorry
-            -- := begin
-            --     set Δ := finset.image ((Cay S2).dist 1) S1.els,
-            --     have : Δ.nonempty := finset.nonempty.image S1.nem ((Cay S2).dist 1),
-            --     obtain K := finset.max_of_nonempty this, cases K, use K_w,
-            --     intros x y, obtain p := simple_graph.shortest_path (Cay S1) x y, cases p with p hp,
-            --     rw <-hp, clear hp, induction p with a b h1 h2 ih, rw dist_self, exact rfl.ge,
-            --     transitivity (Cay S2).dist x a + (Cay S2).dist a b, apply simple_graph.dist_triangle,
-            --     dsimp, rw [mul_add,mul_one], apply add_le_add ih,
-            --     suffices : (Cay S2).dist a b ∈ Δ, by exact finset.le_max_of_mem this K_h,
-            --     simp, use a⁻¹ * b, split, exact h2.2, convert covariant S2 a⁻¹, group
-            -- end
+        lemma lipschitz : ∃ K : ℕ, ∀ x y : G, (Cay S2).dist x y <= K * (Cay S1).dist x y
+            := begin
+                set Δ := finset.image ((Cay S2).dist 1) S1.els,
+                have : Δ.nonempty := finset.nonempty.image S1.nem ((Cay S2).dist 1),
+                obtain K := finset.max_of_nonempty this, cases K, use K_w,
+                intros x y, obtain ⟨p,hp⟩ := simple_graph.shortest_path (Cay S1) x y,
+                rw <-hp, clear hp, induction p with u u v w h p ih, simp,
+                transitivity (Cay S2).dist u v + (Cay S2).dist v w, apply simple_graph.dist_triangle,
+                rw [mypath.size], dsimp, rw [mul_add,mul_one,add_comm], apply add_le_add ih,
+                suffices : (Cay S2).dist u v ∈ Δ, by exact finset.le_max_of_mem this K_h,
+                simp, use u⁻¹ * v, split, exact h.2, convert covariant S2 u⁻¹, group
+            end
     end cayley
 end simple_graph

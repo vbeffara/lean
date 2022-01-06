@@ -17,13 +17,13 @@ namespace simple_graph
         variables {G G₁ G₂ : simple_graph V} {u v x y z : V} {e : edge G}
         variables {p : mypath G x y} {p' : mypath G y z} {p'' : mypath G z u} {h : G.adj y z} {h' : G.adj u x} {h'' : G.adj z v}
 
-        def point  {x : V} : mypath G x x                 := nil
-        def cons   (h : G.adj x y) (p : mypath G y z)     := p.cons h
-        def concat (p : mypath G x y) (p' : mypath G y z) := p.append p'
-        def mem    (z : V) (p : mypath G x y)             := z ∈ p.support
-        def size   (p : mypath G x y)                     := p.length
-        def rev    (p : mypath G x y)                     := walk.reverse p
-        def nodup  (p : mypath G x y)                     := p.support.nodup
+        @[simp] def point  {x : V} : mypath G x x                 := nil
+        @[simp] def cons   (h : G.adj x y) (p : mypath G y z)     := p.cons h
+        @[simp] def concat (p : mypath G x y) (p' : mypath G y z) := p.append p'
+        @[simp] def mem    (z : V) (p : mypath G x y)             := z ∈ p.support
+        @[simp] def size   (p : mypath G x y)                     := p.length
+        @[simp] def rev    (p : mypath G x y)                     := walk.reverse p
+        @[simp] def nodup  (p : mypath G x y)                     := p.support.nodup
 
         instance : has_mem V (walk G x y) := ⟨mem⟩
         instance : has_mem V (mypath G x y) := ⟨mem⟩
@@ -33,7 +33,8 @@ namespace simple_graph
             | _ _ nil             := []
             | _ _ (walk.cons h p) := ⟨h⟩ :: myedges p
 
-        @[simp] lemma mem_point    : u ∈ (@point _ G x) <-> u = x            := sorry
+        @[simp] lemma mem_point    : u ∈ (@point _ G x) <-> u = x            := list.mem_singleton
+        @[simp] lemma mem_point'   :   u ∈ (@nil _ G x) <-> u = x            := list.mem_singleton
         @[simp] lemma mem_step     :        u ∈ (p · h) <-> u ∈ p ∨ u = z    := sorry
         @[simp] lemma mem_cons     :      v ∈ cons h' p <-> v = u ∨ v ∈ p    := sorry
         @[simp] lemma size_cons    :     size (h' :: p)  =  size p + 1       := sorry
@@ -51,7 +52,7 @@ namespace simple_graph
 
         lemma point_of_size_0 : p.size = 0 -> x = y := by { intro h, cases p, refl, contradiction }
 
-        @[simp] lemma mem_concat : u ∈ concat p p' <-> u ∈ p ∨ u ∈ p' := mem_support_append_iff p p'
+        @[simp] lemma mem_concat : u ∈ append p p' <-> u ∈ p ∨ u ∈ p' := mem_support_append_iff p p'
 
         lemma mem_edges : e ∈ p.myedges -> e.x ∈ p ∧ e.y ∈ p := sorry
             -- := by { induction p; simp, intro h, cases h; simp[*], left, exact mem_tail }

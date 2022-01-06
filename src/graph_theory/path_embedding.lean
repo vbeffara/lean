@@ -30,28 +30,24 @@ namespace simple_graph
             | _ _ nil        := nil
             | _ _ (cons h p) := F.df ⟨h⟩ ++ follow p
 
-        -- @[simp] lemma follow_point : follow F (mypath.point : mypath G x x) = mypath.point := rfl
-
-        -- @[simp] lemma follow_step {p : mypath G x y} {h : G.adj y z} : follow F (p.step h) = (follow F p).concat (F.df ⟨h⟩) := rfl
-
-        lemma mem_follow {z} {p : mypath G x y} (h : 0 < p.size) : z ∈ follow F p <-> ∃ e ∈ p.myedges, z ∈ F.df e := sorry
-            -- := by {
-            --     revert h, induction p with a b q h1 ih; simp, split; intro H,
-            --         { cases H,
-            --             { cases q; simp at *,
-            --                 { convert mypath.mem_head },
-            --                 { cases (ih.mp H) with e he, exact ⟨e, or.inr he.1, he.2⟩ }
-            --             },
-            --             { exact ⟨⟨h1⟩,or.inl rfl,H⟩ }
-            --         },
-            --         { obtain ⟨e,H1,H2⟩ := H, cases H1,
-            --             { right, subst H1, exact H2 },
-            --             { left, cases q,
-            --                 { simp at H1, contradiction },
-            --                 { refine (ih _).mpr ⟨e,H1,H2⟩, simp }
-            --             }
-            --         }
-            -- }
+        lemma mem_follow {z} {p : mypath G x y} (h : 0 < p.size) : z ∈ follow F p <-> ∃ e ∈ p.myedges, z ∈ F.df e
+            := by {
+                revert h, induction p with u u v w h p ih; simp, split; intro H,
+                    { cases H,
+                        { exact ⟨⟨h⟩,or.inl rfl,H⟩ },
+                        { cases p,
+                            { simp at *, convert mem_tail },
+                            { simp at ih H, obtain ⟨e,h1,h2⟩ := ih.mp H, refine ⟨e,or.inr h1,h2⟩ },
+                        }
+                    },
+                    { obtain ⟨e,H1,H2⟩ := H, cases H1,
+                        { left, exact H1 ▸ H2 },
+                        { right, cases p,
+                            { simp at H1, contradiction },
+                            { refine (ih _).mpr ⟨e,H1,H2⟩, simp }
+                        }
+                    }
+            }
 
         lemma follow_nodup {p : mypath G x y} (h : p.nodup) : (follow F p).nodup := sorry
             -- := by {
