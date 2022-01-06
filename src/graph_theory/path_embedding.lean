@@ -6,10 +6,10 @@ namespace simple_graph
 
     structure path_embedding (G : simple_graph V) (G' : simple_graph V') :=
         (f        : V ↪ V')
-        (df       : Π e : edge G, mypath G' (f e.x) (f e.y))
+        (df       : Π e : edge G, walk G' (f e.x) (f e.y))
         --
-        (nodup    : ∀ e : edge G, (df e).nodup)
-        (sym      : ∀ e : edge G, df e.flip = (df e).rev)
+        (nodup    : ∀ e : edge G, (df e).support.nodup)
+        (sym      : ∀ e : edge G, df e.flip = (df e).reverse)
         --
         (endpoint : ∀ {e x},    f x ∈ df e              -> x ∈ e.ends)
         (disjoint : ∀ {e e' z},   z ∈ df e -> z ∈ df e' -> e.ends = e'.ends ∨ ∃ x, z = f x)
@@ -20,13 +20,13 @@ namespace simple_graph
         variables {G : simple_graph V} {G' : simple_graph V'} (F : path_embedding G G') {x y z : V}
         open mypath walk
 
-        lemma nop {e : edge G} : 0 < (F.df e).size
+        lemma nop {e : edge G} : 0 < (F.df e).length
             := by {
-                cases nat.eq_zero_or_pos (F.df e).size, swap, exact h, exfalso,
+                cases nat.eq_zero_or_pos (F.df e).length, swap, exact h, exfalso,
                 exact G.ne_of_adj e.h (F.f.injective (mypath.point_of_size_0 h))
             }
 
-        @[simp] def follow : Π {x y : V}, mypath G x y -> mypath G' (F.f x) (F.f y)
+        @[simp] def follow : Π {x y : V}, mypath G x y -> walk G' (F.f x) (F.f y)
             | _ _ nil        := nil
             | _ _ (cons h p) := F.df ⟨h⟩ ++ follow p
 
@@ -39,7 +39,7 @@ namespace simple_graph
                     { cases H,
                         { exact ⟨⟨h⟩,or.inl rfl,H⟩ },
                         { cases p,
-                            { simp at *, convert mem_tail },
+                            { simp at *, convert mem_tail, simp, apply list.mem_singleton.mp, exact H },
                             { simp at ih H, obtain ⟨e,h1,h2⟩ := ih.mp H, refine ⟨e,or.inr h1,h2⟩ },
                         }
                     },
@@ -52,7 +52,7 @@ namespace simple_graph
                     }
             }
 
-        lemma follow_nodup {p : mypath G x y} (h : p.nodup) : (follow F p).nodup
+        lemma follow_nodup {p : mypath G x y} (h : p.nodup) : (follow F p).support.nodup
             := by {
                 induction p with u u v w h p ih; simp, simp at h, apply nodup_concat.mpr,
 
@@ -69,7 +69,7 @@ namespace simple_graph
                     }
             }
 
-        lemma follow_rev {p : mypath G x y} : follow F p.rev = (follow F p).rev
+        lemma follow_rev {p : mypath G x y} : follow F p.rev = (follow F p).reverse
             := by { induction p with u u v w h p ih, refl, simp [ih.symm], congr, exact F.sym ⟨h⟩ }
     end path_embedding
 
