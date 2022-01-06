@@ -44,7 +44,7 @@ namespace simple_graph
         lemma linked_mp : linked (Cay S) (1:G) x
             := by { apply subgroup.closure_induction,
                 { rw S.gen, trivial },
-                { intros, apply linked.step, split,
+                { intros, have := linked.step, apply this, split,
                     { intro h, rw <-h at H, exact S.irr H },
                     { convert H, group } },
                 { refl },
