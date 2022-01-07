@@ -74,5 +74,17 @@ namespace simple_graph
 
         lemma linked_of_subgraph {G₁ G₂ : simple_graph V} (sub : ∀ {x y : V}, G₁.adj x y -> G₂.adj x y) : linked G₁ x y -> linked G₂ x y
             := by { intro h, cases h with p, induction p with a b h1 h2 ih, refl, exact cons (sub ih) p_ih }
+
+        lemma extend {pred : V -> Prop} {hₓ : pred x} {hᵣ : ∀ {a b}, pred a -> G.adj a b -> pred b} : linked G x z -> pred z
+            := by {
+                intro h, cases h.symm with p,
+                suffices : ∀ i ∈ p.support, pred i, { apply this z, exact p.start_mem_support },
+                induction p with a a b c h' p ih; intros i hi,
+                    { simp at hi, rw hi, exact hₓ },
+                    { cases hi,
+                        { subst i, have := ih ⟨p.reverse⟩ b p.start_mem_support, apply hᵣ this h'.symm, exact hₓ },
+                        { apply ih, refine trans h (step h'), exact hi, exact hₓ }
+                    }
+            }
     end linked
 end simple_graph
