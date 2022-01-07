@@ -9,14 +9,20 @@ namespace simple_graph
     namespace walk
         infixr ` :: ` := cons
         infix  ` ++ ` := append
+
+        def good (G : simple_graph V) (pred : V -> Prop) : Prop := ∀ x y, pred x -> G.adj x y -> pred y
+
+        lemma propagate (pred : V -> Prop) (hg : good G pred) : ∀ {x y}, pred x -> walk G x y -> pred y
+            | _ _ h nil         := h
+            | _ _ h (cons h' p) := propagate (hg _ _ h h') p
     end walk
 
     namespace mypath
         open mypath walk
 
         @[simp] def myedges : Π {x y : V}, walk G x y -> list (step G)
-            | _ _ nil             := []
-            | _ _ (walk.cons h p) := ⟨h⟩ :: myedges p
+            | _ _ nil        := []
+            | _ _ (cons h p) := ⟨h⟩ :: myedges p
 
         lemma point_of_size_0 : p.length = 0 -> x = y := by { intro h, cases p, refl, contradiction }
 
@@ -49,8 +55,8 @@ namespace simple_graph
                     refine ih.mpr ⟨h2,h3,_⟩, intros u hu h'u, exact h5 u hu h'u } }
 
         def path_from_subgraph (sub : ∀ {x y}, G₁.adj x y -> G₂.adj x y) : Π {x y : V}, walk G₁ x y -> walk G₂ x y
-            | _ _ nil             := nil
-            | _ _ (walk.cons h p) := walk.cons (sub h) (path_from_subgraph p)
+            | _ _ nil        := nil
+            | _ _ (cons h p) := walk.cons (sub h) (path_from_subgraph p)
     end mypath
 
     def linked    (G : simple_graph V) (x y : V) := nonempty (walk G x y)
@@ -72,18 +78,13 @@ namespace simple_graph
 
         noncomputable def to_path' : linked G x y -> walk G x y := classical.choice
 
-        lemma linked_of_subgraph {G₁ G₂ : simple_graph V} (sub : ∀ {x y : V}, G₁.adj x y -> G₂.adj x y) : linked G₁ x y -> linked G₂ x y
-            := by { intro h, cases h with p, induction p with a b h1 h2 ih, refl, exact cons (sub ih) p_ih }
+        lemma linked_of_subgraph (sub : ∀ {x y : V}, G₁.adj x y -> G₂.adj x y) : ∀ {x y}, linked G₁ x y -> linked G₂ x y
+            | x y ⟨p⟩ := walk.rec (λ _, ⟨nil⟩) (λ _ _ _ h1 _, cons (sub h1)) p
 
-        def good (G : simple_graph V) (pred : V -> Prop) : Prop := ∀ x y, pred x -> G.adj x y -> pred y
-
-        lemma propagate (pred : V -> Prop) (hg : good G pred) (h : pred x) (p : walk G x y) : pred y
-            := by { induction p with a a b c h₁ p ih, exact h, exact ih (hg a b h h₁) }
-
-        lemma extend (pred : V -> Prop) (hg : good G pred) (h : pred x) : ∀ z, linked G x z -> pred z
-            := by { intros z hz, cases hz with p, exact propagate pred hg h p }
+        lemma extend (pred : V -> Prop) (hg : good G pred) (h : pred x) : ∀ {z}, linked G x z -> pred z
+            | z ⟨p⟩ := propagate pred hg h p
 
         lemma extend' (conn : connected G) (pred : V -> Prop) (hg : good G pred) (h : pred x) : ∀ z, pred z
-            := λ z, extend pred hg h z (conn x z)
+            := λ z, extend pred hg h (conn x z)
     end linked
 end simple_graph
