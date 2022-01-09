@@ -12,7 +12,7 @@ namespace simple_graph
 
         def good (G : simple_graph V) (pred : V -> Prop) : Prop := ∀ x y, pred x -> G.adj x y -> pred y
 
-        lemma propagate (pred : V -> Prop) (hg : good G pred) : ∀ {x y}, pred x -> walk G x y -> pred y
+        lemma propagate {pred : V -> Prop} (hg : good G pred) : ∀ {x y}, pred x -> walk G x y -> pred y
             | _ _ h nil         := h
             | _ _ h (cons h' p) := propagate (hg _ _ h h') p
     end walk
@@ -81,10 +81,10 @@ namespace simple_graph
         lemma linked_of_subgraph (sub : ∀ {x y : V}, G₁.adj x y -> G₂.adj x y) : ∀ {x y}, linked G₁ x y -> linked G₂ x y
             | x y ⟨p⟩ := walk.rec (λ _, ⟨nil⟩) (λ _ _ _ h1 _, cons (sub h1)) p
 
-        lemma extend (pred : V -> Prop) (hg : good G pred) (h : pred x) : ∀ {z}, linked G x z -> pred z
-            | z ⟨p⟩ := propagate pred hg h p
+        lemma extend {pred : V -> Prop} (hg : good G pred) (h : pred x) : ∀ {z}, linked G x z -> pred z
+            | z ⟨p⟩ := propagate hg h p
 
-        lemma extend' (conn : connected G) (pred : V -> Prop) (hg : good G pred) (h : pred x) : ∀ z, pred z
-            := λ z, extend pred hg h (conn x z)
+        lemma extend' (conn : connected G) {pred : V -> Prop} (hg : good G pred) : pred x -> ∀ z, pred z
+            | h z := extend hg h (conn x z)
     end linked
 end simple_graph

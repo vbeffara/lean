@@ -18,13 +18,11 @@ namespace simple_graph
 
         def adj (x y : G) := x ≠ y ∧ x⁻¹ * y ∈ S
 
-        @[simp] lemma cancel : (a * x)⁻¹ * (a * y) = x⁻¹ * y := by group
-
         lemma shift_adj : adj S x y -> adj S (a*x) (a*y)
-            := by { rintro ⟨h1,h2⟩, refine ⟨(mul_ne_mul_right a).mpr h1,_⟩, rw cancel, exact h2 }
+            | ⟨h1,h2⟩ := by { refine ⟨(mul_ne_mul_right a).mpr h1,_⟩, simpa [mul_assoc] }
 
         @[symm] lemma adj_symm (x y) : adj S x y -> adj S y x
-            := by { rintro ⟨h1,h2⟩, refine ⟨h1.symm,_⟩, convert S.sym h2, group }
+            | ⟨h1,h2⟩ := ⟨h1.symm, by { convert S.sym h2, group }⟩
 
         def Cay (S : genset G) : simple_graph G := ⟨adj S, adj_symm S, (λ x, not_and.mpr (λ h1 h2, h1 rfl ))⟩
 
@@ -36,7 +34,7 @@ namespace simple_graph
             := by { induction p, refl, simpa }
 
         lemma shift : linked (Cay S) x y -> linked (Cay S) (a*x : G) (a*y : G)
-            := by { intro h, cases h with p, use shift_path S _ p }
+            | ⟨p⟩ := ⟨shift_path S _ p⟩
 
         lemma inv : linked (Cay S) (1:G) x -> linked (Cay S) (1:G) (x⁻¹:G)
             := by { intro h, symmetry, convert shift S x⁻¹ h; group }
@@ -53,7 +51,7 @@ namespace simple_graph
             }
 
         theorem connected : connected (Cay S)
-            := by { intros x y, transitivity (1:G), symmetry, apply linked_mp, apply linked_mp }
+            | x y := by { transitivity (1:G), symmetry, apply linked_mp, apply linked_mp }
 
         instance : connected_graph (Cay S) := ⟨connected S⟩
 
@@ -61,7 +59,7 @@ namespace simple_graph
 
         lemma covariant : (Cay S).dist (a*x) (a*y) = (Cay S).dist x y
             := by { unfold simple_graph.dist, congr' 1, funext ℓ, rw [eq_iff_iff],
-                let dists := dists (Cay S),
+                set dists := dists (Cay S),
                 have h2 : ∀ x y a ℓ, ℓ ∈ dists x y -> ℓ ∈ dists (a*x) (a*y)
                     := by { intros x y a ℓ h, cases h with p, use shift_path S a p, simpa },
                 exact ⟨λ h, inv_mul_cancel_left a x ▸ inv_mul_cancel_left a y ▸ h2 (a*x) (a*y) a⁻¹ ℓ h,
