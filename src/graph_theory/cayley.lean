@@ -26,12 +26,9 @@ namespace simple_graph
 
         def Cay (S : genset G) : simple_graph G := ⟨adj S, adj_symm S, (λ x, not_and.mpr (λ h1 h2, h1 rfl ))⟩
 
-        @[simp] def shift_path : Π {x y : G}, walk (Cay S) x y -> walk (Cay S) (a*x : G) (a*y : G)
-            | _ _ nil        := nil
-            | _ _ (cons h p) := walk.cons (shift_adj S a h) (shift_path p)
+        def left_shift : (Cay S) →g (Cay S) := ⟨(*) a, @shift_adj G _ S a⟩
 
-        @[simp] lemma size_shift_path (p : walk (Cay S) x y) : length (shift_path S a p) = length p
-            := by { induction p, refl, simpa }
+        def shift_path : walk (Cay S) x y -> walk (Cay S) (a*x : G) (a*y : G) := mypath.fmap (left_shift S a)
 
         lemma shift : linked (Cay S) x y -> linked (Cay S) (a*x : G) (a*y : G)
             | ⟨p⟩ := ⟨shift_path S _ p⟩
@@ -61,7 +58,7 @@ namespace simple_graph
             := by { unfold simple_graph.dist, congr' 1, funext ℓ, rw [eq_iff_iff],
                 set dists := dists (Cay S),
                 have h2 : ∀ x y a ℓ, ℓ ∈ dists x y -> ℓ ∈ dists (a*x) (a*y)
-                    := by { intros x y a ℓ h, cases h with p, use shift_path S a p, simpa },
+                    := by { intros x y a ℓ h, cases h with p, use shift_path S a p, simpa [shift_path] },
                 exact ⟨λ h, inv_mul_cancel_left a x ▸ inv_mul_cancel_left a y ▸ h2 (a*x) (a*y) a⁻¹ ℓ h,
                     h2 x y a ℓ⟩ }
     end cayley

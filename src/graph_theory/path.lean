@@ -3,7 +3,7 @@ import combinatorics.simple_graph.connectivity
 import graph_theory.basic
 
 namespace simple_graph
-    variables {V : Type} {G G₁ G₂ : simple_graph V} {u v x y z : V} {e : step G}
+    variables {V V' : Type} {G G₁ G₂ : simple_graph V} {G' : simple_graph V'} {u v x y z : V} {e : step G}
     variables {p : walk G x y} {p' : walk G y z} {p'' : walk G z u} {h : G.adj y z} {h' : G.adj u x} {h'' : G.adj z v}
 
     namespace walk
@@ -57,6 +57,13 @@ namespace simple_graph
         def path_from_subgraph (sub : ∀ {x y}, G₁.adj x y -> G₂.adj x y) : Π {x y : V}, walk G₁ x y -> walk G₂ x y
             | _ _ nil        := nil
             | _ _ (cons h p) := walk.cons (sub h) (path_from_subgraph p)
+
+        @[simp] def fmap (f : G →g G') : ∀ {x y}, walk G x y -> walk G' (f x) (f y)
+            | _ _ nil        := nil
+            | _ _ (cons h p) := cons (f.map_rel' h) (fmap p)
+
+        @[simp] lemma length_map {f : G →g G'} : length (fmap f p) = length p
+            := by { induction p, refl, simpa }
     end mypath
 
     def linked    (G : simple_graph V) (x y : V) := nonempty (walk G x y)
