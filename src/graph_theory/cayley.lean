@@ -64,22 +64,22 @@ namespace simple_graph
     end cayley
 
     namespace cayley
-        variables {G : Type} [group G] (S1 S2 : genset G)
-        open finset
+        variables {G : Type} [group G] (S1 S2 : genset G) {x y : G}
+        open classical finset
 
-        lemma lipschitz : ∃ K : ℕ, ∀ x y : G, (Cay S2).dist x y <= K * (Cay S1).dist x y
-            := begin
-                set Δ := finset.image ((Cay S2).dist 1) S1.els,
-                have : Δ.nonempty := finset.nonempty.image S1.nem ((Cay S2).dist 1),
-                obtain K := finset.max_of_nonempty this, cases K, use K_w,
-                suffices : ∀ z, (Cay S2).dist 1 z ≤ K_w * (Cay S1).dist 1 z,
-                    { intros x y, rw [<-covariant S1 x⁻¹, <-covariant S2 x⁻¹], simp, apply this },
-                intro z, obtain ⟨p,hp⟩ := simple_graph.shortest_path (Cay S1) 1 z,
-                rw <-hp, clear hp, induction p with u u v w h p ih, simp,
+        noncomputable def distorsion (S1 S2 : genset G) := some (max_of_nonempty (S1.nem.image ((Cay S2).dist 1)))
+
+        lemma distorsion_spec : distorsion S1 S2 ∈ (image ((Cay S2).dist 1) S1.els).max
+            := some_spec (max_of_nonempty (S1.nem.image ((Cay S2).dist 1)))
+
+        lemma distorsion_le {h : (Cay S1).adj x y} : (Cay S2).dist x y ≤ distorsion S1 S2
+            := by { refine finset.le_max_of_mem _ (distorsion_spec S1 S2),
+                rw [finset.mem_image], refine ⟨x⁻¹ * y, h.2, _⟩, convert covariant _ x⁻¹, group }
+
+        lemma lipschitz : (Cay S2).dist x y <= (distorsion S1 S2) * (Cay S1).dist x y
+            := by { obtain ⟨p,hp⟩ := simple_graph.shortest_path (Cay S1) x y, rw <-hp, clear hp,
+                induction p with u u v w h p ih; simp,
                 transitivity (Cay S2).dist u v + (Cay S2).dist v w, apply simple_graph.dist_triangle,
-                dsimp, rw [mul_add,mul_one,add_comm], apply add_le_add ih,
-                suffices : (Cay S2).dist u v ∈ Δ, by exact finset.le_max_of_mem this K_h,
-                simp, use u⁻¹ * v, split, exact h.2, convert covariant S2 u⁻¹, group
-            end
+                rw [mul_add,mul_one,add_comm], apply add_le_add ih, apply distorsion_le, exact h }
     end cayley
 end simple_graph
