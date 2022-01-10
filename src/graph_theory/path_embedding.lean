@@ -22,10 +22,8 @@ namespace simple_graph
         open mypath walk
 
         lemma nop {e : step G} : 0 < (F.df e).length
-            := by {
-                cases nat.eq_zero_or_pos (F.df e).length, swap, exact h, exfalso,
-                exact G.ne_of_adj e.h (F.f.injective (mypath.point_of_size_0 h))
-            }
+            := by { cases nat.eq_zero_or_pos (F.df e).length, swap, exact h, exfalso,
+                exact G.ne_of_adj e.h (F.f.injective (mypath.point_of_size_0 h)) }
 
         @[simp] def follow : Π {x y : V}, walk G x y -> walk G' (F.f x) (F.f y)
             | _ _ nil        := nil

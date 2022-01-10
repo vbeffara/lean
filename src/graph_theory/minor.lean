@@ -24,15 +24,15 @@ namespace simple_graph
         def adj (x y : clusters S) := x ≠ y ∧ ∃ x' y' : V, ⟦x'⟧ = x ∧ ⟦y'⟧ = y ∧ G.adj x' y'
 
         @[symm] lemma symm (x y : clusters S) : adj x y -> adj y x
-            := by { rintro ⟨h0,x',y',h1,h2,h3⟩, exact ⟨h0.symm,y',x',h2,h1,h3.symm⟩ }
+            | ⟨h0,x',y',h1,h2,h3⟩ := ⟨h0.symm,y',x',h2,h1,h3.symm⟩
 
         def contract (S : setup G) : simple_graph (clusters S) := ⟨adj, symm⟩
 
         lemma proj_adj (h : G.adj x y) : ⟦x⟧ = ⟦y⟧ ∨ (contract S).adj ⟦x⟧ ⟦y⟧
             := dite (⟦x⟧ = ⟦y⟧) or.inl (λ h', or.inr ⟨h',x,y,rfl,rfl,h⟩)
 
-        lemma linked_of_adj (h : (contract S).adj ⟦x⟧ ⟦y⟧) : linked G x y
-            := by { obtain ⟨h₁,a,b,h₂,h₃,h₄⟩ := h, transitivity b, transitivity a,
+        lemma linked_of_adj : (contract S).adj ⟦x⟧ ⟦y⟧ -> linked G x y
+            | ⟨h₁,a,b,h₂,h₃,h₄⟩ := by { transitivity b, transitivity a,
                 exact linked.linked_of_subgraph S.sub (quotient.eq.mp h₂.symm),
                 exact linked.step h₄,
                 exact linked.linked_of_subgraph S.sub (quotient.eq.mp h₃) }
@@ -42,8 +42,8 @@ namespace simple_graph
             | _ z (cons (h : G.adj x y) p) := dite (⟦y⟧ = ⟦x⟧) (λ h, by { rw <-h, exact proj_path p })
                                                                (λ h', walk.cons ⟨ne.symm h',_,_,rfl,rfl,h⟩ (proj_path p))
 
-        lemma project_linked : linked G x y -> linked (contract S) ⟦x⟧ ⟦y⟧
-            := by { intro h, cases h with p, induction p with u u v w h p ih, refl,
+        lemma project_linked : ∀ {x y}, linked G x y -> linked (contract S) ⟦x⟧ ⟦y⟧
+            | _ _ ⟨p⟩ := by { induction p with u u v w h p ih, refl,
                 cases proj_adj h with h' h', rw h', exact ih, exact ih.cons h' }
 
         lemma lift_linked' {xx yy : clusters S} : linked (contract S) xx yy ->
