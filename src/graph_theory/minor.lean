@@ -12,6 +12,11 @@ namespace simple_graph
             (g : simple_graph V)
             (sub : ∀ {x y : V}, g.adj x y -> G.adj x y)
 
+        def empty_setup : setup G := {
+            g := ⊥,
+            sub := by { intros x y, simp }
+        }
+
         def support (S : setup G) : Type := V
 
         instance contraction_setoid (S : setup G) : setoid (support S) := ⟨S.g.linked,simple_graph.linked.equiv⟩
@@ -69,6 +74,9 @@ namespace simple_graph
 
     def is_minor (G : simple_graph V) (G' : simple_graph V') : Prop
         := ∃ S : contraction.setup G', embeds_into G (contraction.contract S)
+
+    def is_minor' (G : simple_graph V) (G' : simple_graph V') : Prop
+        := ∃ S : contraction.setup G', ∃ f : G →g contraction.contract S, injective f
 
     def is_forbidden (H : simple_graph V) (G : simple_graph V') := ¬ (is_minor H G)
 

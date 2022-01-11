@@ -3,6 +3,7 @@ open function
 
 namespace simple_graph
     variables {V V' V'': Type}
+    open walk
 
     structure path_embedding (G : simple_graph V) (G' : simple_graph V') :=
         (f        : V ↪ V')
@@ -128,5 +129,13 @@ namespace simple_graph
 
         theorem trans : embeds_into G G' -> embeds_into G' G'' -> embeds_into G G''
             | ⟨F⟩ ⟨F'⟩ := ⟨comp F F'⟩
+
+        def from_hom (f : G →g G') (inj : injective f) : path_embedding G G'
+            := { f       := ⟨f, inj⟩,
+                df       := λ e, cons (f.map_rel' e.h) nil,
+                nodup    := λ e, by { have := G'.ne_of_adj (f.map_rel' e.h), simpa },
+                sym      := λ e, by simp,
+                endpoint := λ e x h, by { simp at h ⊢, cases h, { left, exact inj h }, { right, exact inj h }},
+                disjoint := by finish } -- TODO simplify the proof of disjoint
     end path_embedding
 end simple_graph
