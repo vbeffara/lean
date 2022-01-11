@@ -19,11 +19,11 @@ namespace simple_graph
     namespace path_embedding
         variables {G : simple_graph V} {G' : simple_graph V'} (F : path_embedding G G')
         variables {x y z : V} {p : walk G x y} {p' : walk G y z}
-        open mypath walk
+        open walk
 
         lemma nop {e : step G} : 0 < (F.df e).length
             := by { cases nat.eq_zero_or_pos (F.df e).length, swap, exact h, exfalso,
-                exact G.ne_of_adj e.h (F.f.injective (mypath.point_of_size_0 h)) }
+                exact G.ne_of_adj e.h (F.f.injective (point_of_size_0 h)) }
 
         @[simp] def follow : Π {x y : V}, walk G x y -> walk G' (F.f x) (F.f y)
             | _ _ nil        := nil
@@ -32,7 +32,7 @@ namespace simple_graph
         @[simp] lemma follow_append : follow F (p ++ p') = follow F p ++ follow F p'
             := by { induction p, refl, simp [*,append_assoc] }
 
-        lemma mem_follow {z} (h : 0 < length p) : z ∈ (follow F p).support <-> ∃ e ∈ mypath.myedges p, z ∈ (F.df e).support
+        lemma mem_follow {z} (h : 0 < length p) : z ∈ (follow F p).support <-> ∃ e ∈ myedges p, z ∈ (F.df e).support
             := by {
                 revert h, induction p with u u v w h p ih; simp, split; intro H,
                     { cases H,
@@ -58,8 +58,8 @@ namespace simple_graph
                 refine ⟨F.nodup _, ih h.2, _⟩, rintros z h3 h4,
                 cases nat.eq_zero_or_pos p.length with h5 h5, { cases p, simp at h4, exact h4, simp at h5, contradiction },
                 obtain ⟨e,h7,h8⟩ := (mem_follow F h5).mp h4,
-                cases mypath.mem_edges h7, cases F.disjoint h3 h8 with h9 h9,
-                    { exfalso, apply h.1, apply (mypath.mem_of_edges h5).mpr ⟨e,h7,_⟩, rw <-h9, exact sym2.mem_mk_left _ _ },
+                cases mem_edges h7, cases F.disjoint h3 h8 with h9 h9,
+                    { exfalso, apply h.1, apply (mem_of_edges h5).mpr ⟨e,h7,_⟩, rw <-h9, exact sym2.mem_mk_left _ _ },
                     {
                         obtain ⟨v,_⟩ := h9, subst z, have h10 := F.endpoint h3,
                         cases sym2.mem_iff.mp h10 with h10 h10; simp at h10; subst h10,
@@ -84,7 +84,7 @@ namespace simple_graph
             --
             endpoint := by {
                 intros e x h1, obtain ⟨e',h4,h5⟩ := (mem_follow F' (nop F)).mp h1,
-                exact F.endpoint ((mypath.mem_of_edges (nop _)).mpr ⟨e',h4,F'.endpoint h5⟩)
+                exact F.endpoint ((walk.mem_of_edges (nop _)).mpr ⟨e',h4,F'.endpoint h5⟩)
             },
             --
             disjoint := by {
@@ -94,8 +94,8 @@ namespace simple_graph
                 have h7 := F'.disjoint h4 h6, cases h7,
                 {
                     left, clear h4 h6,
-                    replace h3 := mypath.mem_edges h3,
-                    replace h5 := mypath.mem_edges h5,
+                    replace h3 := walk.mem_edges h3,
+                    replace h5 := walk.mem_edges h5,
                     replace h5 : e1.x ∈ (F.df e').support ∧ e1.y ∈ (F.df e').support := by {
                         cases step.same_iff.mpr h7; subst e2,
                         exact h5, simp at h5, exact h5.symm
@@ -115,8 +115,8 @@ namespace simple_graph
                     obtain ⟨y,h8⟩ := h7, subst z,
                     replace h4 := F'.endpoint h4,
                     replace h6 := F'.endpoint h6,
-                    replace h3 := mypath.mem_edges h3,
-                    replace h5 := mypath.mem_edges h5,
+                    replace h3 := walk.mem_edges h3,
+                    replace h5 := walk.mem_edges h5,
                     replace h3 : y ∈ (F.df e).support, by { simp at h4, cases h4; subst h4, exact h3.1, exact h3.2 },
                     replace h5 : y ∈ (F.df e').support, by { simp at h6, cases h6; subst h6, exact h5.1, exact h5.2 },
                     cases F.disjoint h3 h5 with h9 h9,
@@ -127,6 +127,6 @@ namespace simple_graph
         }
 
         theorem trans : embeds_into G G' -> embeds_into G' G'' -> embeds_into G G''
-            := by { intros F F', cases F, cases F', use comp F F' }
+            | ⟨F⟩ ⟨F'⟩ := ⟨comp F F'⟩
     end path_embedding
 end simple_graph

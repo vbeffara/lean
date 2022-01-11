@@ -19,7 +19,6 @@ namespace simple_graph
         def clusters (S : setup G) := quotient (contraction.contraction_setoid S)
 
         variables {S : setup G} {x y : support S}
-        open mypath
 
         def adj (x y : clusters S) := x ≠ y ∧ ∃ x' y' : V, ⟦x'⟧ = x ∧ ⟦y'⟧ = y ∧ G.adj x' y'
 
@@ -66,8 +65,13 @@ namespace simple_graph
                     exact project_linked (h x y) },
                 mpr := λ h x y, lift_linked (h ⟦x⟧ ⟦y⟧)
             }
-
-        def is_minor (G : simple_graph V) (G' : simple_graph V') : Prop
-            := ∃ S : setup G', embeds_into G (contract S)
     end contraction
+
+    def is_minor (G : simple_graph V) (G' : simple_graph V') : Prop
+        := ∃ S : contraction.setup G', embeds_into G (contraction.contract S)
+
+    def is_forbidden (H : simple_graph V) (G : simple_graph V') := ¬ (is_minor H G)
+
+    infix ` ≼ `:50 := is_minor
+    infix ` ⋠ `:50 := is_forbidden
 end simple_graph

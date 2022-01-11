@@ -3,7 +3,7 @@ import graph_theory.path graph_theory.metric topology.metric_space.lipschitz
 
 namespace simple_graph
     namespace cayley
-        open mypath walk
+        open walk
 
         structure genset (G : Type) [group G] :=
             (els : finset G)
@@ -30,7 +30,7 @@ namespace simple_graph
 
         def left_shift : (Cay S) →g (Cay S) := ⟨(*) a, @shift_adj G _ S a⟩
 
-        def shift_path : walk (Cay S) x y -> walk (Cay S) (a*x : G) (a*y : G) := mypath.fmap (left_shift S a)
+        def shift_path : walk (Cay S) x y -> walk (Cay S) (a*x : G) (a*y : G) := fmap (left_shift S a)
 
         lemma shift : linked (Cay S) x y -> linked (Cay S) (a*x : G) (a*y : G)
             | ⟨p⟩ := ⟨shift_path S a p⟩

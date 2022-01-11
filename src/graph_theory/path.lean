@@ -17,9 +17,7 @@ namespace simple_graph
             | _ _ h (cons h' p) := propagate (hg _ _ h h') p
     end walk
 
-    namespace mypath
-        open mypath walk
-
+    namespace walk
         @[simp] def myedges : Π {x y : V}, walk G x y -> list (step G)
             | _ _ nil        := []
             | _ _ (cons h p) := ⟨h⟩ :: myedges p
@@ -64,7 +62,7 @@ namespace simple_graph
 
         @[simp] lemma length_map {f : G →g G'} : length (fmap f p) = length p
             := by { induction p, refl, simpa }
-    end mypath
+    end walk
 
     def linked    (G : simple_graph V) (x y : V) := nonempty (walk G x y)
     def connected (G : simple_graph V)           := ∀ x y, linked G x y
@@ -72,7 +70,7 @@ namespace simple_graph
     class connected_graph (G : simple_graph V) := (conn : connected G)
 
     namespace linked
-        open mypath walk
+        open walk
 
         @[refl]  lemma refl  : linked G x x                                 := ⟨nil⟩
         @[symm]  lemma symm  : linked G x y -> linked G y x                 := λ h, h.cases_on (λ p, nonempty.intro p.reverse)
@@ -93,5 +91,8 @@ namespace simple_graph
 
         lemma extend' (conn : connected G) {pred : V -> Prop} (hg : good G pred) : pred x -> ∀ z, pred z
             | h z := extend hg h (conn x z)
+
+        lemma fmap (f : G →g G') : linked G x y -> linked G' (f x) (f y)
+            | ⟨p⟩ := ⟨walk.fmap f p⟩
     end linked
 end simple_graph
