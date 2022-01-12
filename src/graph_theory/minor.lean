@@ -34,6 +34,7 @@ namespace simple_graph
 
     namespace contract
         variables {S : setup G} {x y : S.support} {xx yy : S.clusters}
+        open classical quotient
 
         lemma proj_adj (h : G.adj x y) : ⟦x⟧ = ⟦y⟧ ∨ (G/S).adj ⟦x⟧ ⟦y⟧
             := dite (⟦x⟧ = ⟦y⟧) or.inl (λ h', or.inr ⟨h',x,y,rfl,rfl,h⟩)
@@ -87,6 +88,61 @@ namespace simple_graph
                 to_fun := λ x, ⟦x⟧,
                 map_rel' := λ x y h, ⟨proj_bot_inj' h, ⟨x,y,rfl,rfl,h⟩ ⟩
             }
+
+        def comp (S : setup G) (S' : setup (G/S)) : setup G
+            := {
+                g := {
+                    adj := λ x y, x ≠ y ∧ (S.g.adj x y ∨ (G.adj x y ∧ S'.g.adj ⟦x⟧ ⟦y⟧)),
+                    symm := λ x y, by { rintros ⟨h1,h2⟩, refine ⟨h1.symm,_⟩, cases h2, left, exact h2.symm,
+                                        right, exact ⟨h2.1.symm,h2.2.symm⟩ }
+                },
+                sub := λ x y, by { rintros ⟨h1,h2⟩, cases h2, exact S.sub h2, exact h2.1 }
+            }
+
+        variables {S' : setup (G/S)}
+
+        lemma comp_linked_mp : (comp S S').g.linked x y -> S'.g.linked ⟦x⟧ ⟦y⟧
+            := by { rintro ⟨p⟩, induction p with a a b c h p ih, refl, cases h with h1 h2, cases h2,
+                    { have := linked.step h2, have := (@quotient.eq S.support _ a b).mpr this, rw this, exact ih },
+                    { refine linked.cons _ ih, exact h2.2 } }
+
+        lemma comp_linked_mpr_aux : ⟦x⟧ = ⟦y⟧ -> (comp S S').g.linked x y
+            | h := linked.linked_of_subgraph (λ x y ha, ⟨S.g.ne_of_adj ha, or.inl ha⟩) (quotient.eq.mp h)
+
+        lemma comp_linked_mpr_aux' : S'.g.adj ⟦x⟧ ⟦y⟧ -> (comp S S').g.linked x y
+            | h := by { rcases S'.sub h with ⟨h1,x',y',hx,hy,h2⟩, rw [<-hx,<-hy] at h,
+                transitivity x', exact comp_linked_mpr_aux hx.symm,
+                transitivity y', swap, exact comp_linked_mpr_aux hy,
+                exact linked.step ⟨G.ne_of_adj h2, or.inr ⟨h2,h⟩⟩ }
+
+        lemma comp_linked_mpr : S'.g.linked xx yy -> (comp S S').g.linked xx.out yy.out
+            := by { rintro ⟨p⟩, induction p with aa aa bb cc hh pp ih,
+                { apply comp_linked_mpr_aux, refl },
+                { transitivity bb.out, swap, exact ih, clear ih, apply comp_linked_mpr_aux', convert hh; apply out_eq } }
+
+        lemma comp_linked : (comp S S').g.linked x y <-> S'.g.linked ⟦x⟧ ⟦y⟧
+            := by { split,
+                { exact comp_linked_mp },
+                { intro h, transitivity ⟦x⟧.out, apply comp_linked_mpr_aux, symmetry, apply out_eq,
+                    transitivity ⟦y⟧.out, exact comp_linked_mpr h, apply comp_linked_mpr_aux, apply out_eq } }
+
+        @[simp] lemma comp_rep_spec (S : setup G) (x : S.clusters) : ⟦x.out⟧ = x := out_eq _
+        lemma comp_rep_iff (S : setup G) (x y : S.clusters) : x.out ≈ y.out <-> x = y := out_equiv_out
+
+        lemma comp_sound {S : setup G} {S' : setup (G/S)} : nonempty (G/(comp S S') ≃g (G/S)/S')
+            := by {
+                let f : (comp S S').clusters ≃ S'.clusters := {
+                    to_fun := λ xxx, ⟦⟦xxx.out⟧⟧,
+                    inv_fun := λ xxx, ⟦xxx.out.out⟧,
+                    left_inv := λ xxx, by {
+                        dsimp, apply out_equiv_out.mp, sorry
+                    },
+                    right_inv := λ xxx, by {
+                        dsimp, apply out_equiv_out.mp, sorry
+                    }
+                },
+                refine ⟨⟨f,_⟩⟩, sorry
+            }
     end contract
 
     def is_minor (G : simple_graph V) (G' : simple_graph V') : Prop
@@ -96,4 +152,10 @@ namespace simple_graph
 
     infix ` ≼ `:50 := is_minor
     infix ` ⋠ `:50 := is_forbidden
+
+    namespace minor
+        open contract
+
+        @[refl] lemma refl {G : simple_graph V } : G ≼ G := ⟨⊥, proj_bot, λ x y, proj_bot_inj⟩
+    end minor
 end simple_graph
