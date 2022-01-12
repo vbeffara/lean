@@ -8,7 +8,7 @@ namespace simple_graph
     variables {V V' V'' : Type} {G : simple_graph V} {G' : simple_graph V'} {G'' : simple_graph V''}
 
     namespace contract
-        structure setup (G : simple_graph V) :=
+        @[ext] structure setup (G : simple_graph V) :=
             (g : simple_graph V)
             (sub : ∀ {x y : V}, g.adj x y -> G.adj x y)
 
@@ -261,9 +261,10 @@ namespace simple_graph
                     have := rel_iso.apply_symm_apply f x, exact this.symm, have := rel_iso.apply_symm_apply f y, exact this.symm }
             }
 
-        -- @[simp] lemma contract_isom_adj {f : G ≃g G'} {S : setup G} {x y} : (contract_isom f S).g.adj x y <-> S.g.adj (f.inv_fun x) (f.inv_fun y) := iff.rfl
-
-        lemma contract_isom_inv (f : G ≃g G') (S : setup G) : contract_isom f.symm (contract_isom f S) = S := sorry
+        lemma contract_isom_inv (f : G ≃g G') (S : setup G) : contract_isom f.symm (contract_isom f S) = S
+            := by { have hf : f.symm.to_equiv.symm = f.to_equiv := by { ext, refl }, ext, split; intro h,
+                { simp [contract_isom,hf] at h, convert h; symmetry; exact rel_iso.symm_apply_apply _ _ },
+                { simp [contract_isom,hf], convert h; exact rel_iso.symm_apply_apply _ _ } }
 
         lemma linked_isom_mp (f : G ≃g G') (S : setup G) (x y : V) : S.g.linked x y -> (contract_isom f S).g.linked (f x) (f y)
             := by {
@@ -272,7 +273,10 @@ namespace simple_graph
                 simp [contract_isom], convert h; exact rel_iso.symm_apply_apply _ _
             }
 
-        lemma linked_isom (f : G ≃g G') (S : setup G) (x y : V) : S.g.linked x y <-> (contract_isom f S).g.linked (f x) (f y) := sorry
+        lemma linked_isom (f : G ≃g G') (S : setup G) (x y : V) : S.g.linked x y <-> (contract_isom f S).g.linked (f x) (f y)
+            := by { split, exact linked_isom_mp f S x y, intro h,
+                replace h := linked_isom_mp f.symm (contract_isom f S) (f x) (f y) h,
+                simp [contract_isom_inv] at h, exact h }
 
         noncomputable def map_isom (f : G ≃g G') (S : setup G) : (G/S) ≃g (G'/contract_isom f S)
             := {
@@ -323,9 +327,7 @@ namespace simple_graph
     def is_minor (G : simple_graph V) (G' : simple_graph V') : Prop := ∃ (V'' : Type) (G'' : simple_graph V''), is_smaller G G'' ∧ is_contract G'' G'
 
     lemma minor_contract : is_minor G G' -> is_contract G' G'' -> is_minor G G''
-        := by {
-            rintros ⟨U,H,h3,h4⟩ h2,
-        }
+        | ⟨U,H,h3,h4⟩ h2 := ⟨U,H,h3,contract.trans h4 h2⟩
 
     def is_forbidden (H : simple_graph V) (G : simple_graph V') := ¬ (is_minor H G)
 
@@ -335,13 +337,18 @@ namespace simple_graph
     namespace minor
         open contract quotient
 
-        @[refl] lemma refl : G ≼ G := ⟨⊥, proj_bot, λ x y, proj_bot_inj⟩
-        @[trans] lemma trans : G ≼ G' -> G' ≼ G'' -> G ≼ G''
-            | ⟨S,f,hf⟩ ⟨S',f',hf'⟩ := by {
-                let S'' := comp S' (contract.extend f' hf' S),
-                let f := compose f f' hf,
-                refine ⟨S'',f,_⟩,
-                sorry
+        @[refl] lemma refl : G ≼ G
+            := by { refine ⟨_, G, ⟨⟨id,λ a b,id⟩,injective_id⟩, _⟩,
+                refine ⟨⟨⊥,λ x y,false.rec _⟩,⟨_⟩⟩,
+                exact {
+                    to_fun := λ x, ⟦x⟧,
+                    inv_fun := λ xx, xx.out,
+                    left_inv := λ x, by { simp, sorry },
+                    right_inv := λ xx, by { simp },
+                    map_rel_iff' := λ x y, by { simp, sorry },
+                }
             }
+
+        @[trans] lemma trans : G ≼ G' -> G' ≼ G'' -> G ≼ G'' := sorry
     end minor
 end simple_graph
