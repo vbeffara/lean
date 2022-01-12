@@ -311,22 +311,11 @@ namespace simple_graph
             }
 
         @[trans] lemma trans : is_contract G G' -> is_contract G' G'' -> is_contract G G''
-            := by {
-                rintros ⟨S,⟨f1⟩⟩ ⟨S',⟨f2⟩⟩,
-                let S'' := contract_isom f2 S,
-                cases comp_sound S'' with φ,
-                set T := comp S' S'',
-                use T,
-                refine ⟨_⟩,
-                apply iso.comp φ.symm,
-                exact {
-                    to_fun := λ x, ⟦f2 (f1 x).out⟧,
-                    inv_fun := λ x'', f1.symm ⟦f2.symm ⟦x''.out.out⟧⟧,
-                    left_inv := by { intro x, dsimp, },
-                    right_inv := sorry,
-                    map_rel_iff' := sorry
-                }
-            }
+            := by { rintros ⟨S,⟨f1⟩⟩ ⟨S',⟨f2⟩⟩,
+                cases comp_sound (contract_isom f2 S) with φ,
+                refine ⟨comp S' (contract_isom f2 S), ⟨_⟩⟩,
+                refine iso.comp φ.symm _, clear φ,
+                exact iso.comp (map_isom f2 S) f1 }
     end contract
     open contract
 
