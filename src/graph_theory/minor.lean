@@ -129,7 +129,7 @@ namespace simple_graph
         @[simp] lemma comp_rep_spec (S : setup G) (x : S.clusters) : ⟦x.out⟧ = x := out_eq _
         lemma comp_rep_iff (S : setup G) (x y : S.clusters) : x.out ≈ y.out <-> x = y := out_equiv_out
 
-        lemma comp_sound {S : setup G} {S' : setup (G/S)} : nonempty (G/(comp S S') ≃g (G/S)/S')
+        lemma comp_sound {S : setup G} {S' : setup (G/S)} : nonempty (G/comp S S' ≃g G/S/S')
             := by {
                 let f : (comp S S').clusters ≃ S'.clusters := {
                     to_fun := λ xxx, ⟦⟦xxx.out⟧⟧,
@@ -142,12 +142,10 @@ namespace simple_graph
                         apply quotient.eq.mpr,
                         apply comp_linked.mpr,
                         set z : S.support := (x : V),
-                        set zz := ⟦z⟧,
-                        set uu : S'.support := zz,
+                        set uu : S'.support := ⟦z⟧,
                         rw out_eq ⟦uu⟧.out,
                         change ⟦uu⟧.out ≈ uu,
-                        apply quotient.eq.mp,
-                        apply out_eq
+                        apply mk_out
                     },
                     right_inv := λ xxx, by {
                         dsimp,
@@ -159,11 +157,30 @@ namespace simple_graph
                         apply comp_linked_mp,
                         set y : (comp S S').support := x,
                         change ⟦y⟧.out ≈ y,
-                        apply quotient.eq.mp,
-                        apply out_eq
+                        apply mk_out
                     }
                 },
-                refine ⟨⟨f,_⟩⟩, sorry
+                refine ⟨⟨f,_⟩⟩, intros a b, dsimp, split,
+                    { rintro ⟨h1,xx,yy,h2,h3,h4,u,v,h5,h6,h7⟩, split, { intro h, rw h at h1, apply h1, refl },
+                        substs xx yy, refine ⟨u,v,_,_,h7⟩,
+                            rw <-out_eq a, apply quotient.eq.mpr, apply comp_linked.mpr,
+                                replace h2 := quotient.eq.mp h2, exact h2,
+                            rw <-out_eq b, apply quotient.eq.mpr, apply comp_linked.mpr,
+                                replace h3 := quotient.eq.mp h3, exact h3 },
+                    { rintro ⟨h1,x,y,h2,h3,h4⟩, split, {
+                            intro h, have := quotient.eq.mp h, have h5 := comp_linked.mpr this, substs a b,
+                            set x : (comp S S').support := x, set y : (comp S S').support := y,
+                            change ⟦x⟧.out ≈ ⟦y⟧.out at h5, have := quotient.eq.mpr h5,
+                            rw out_eq ⟦x⟧ at this, rw out_eq ⟦y⟧ at this, exact h1 this },
+                        substs a b, refine ⟨⟦x⟧,⟦y⟧,_,_,_,x,y,rfl,rfl,h4⟩,
+                            { apply quotient.eq.mpr, apply comp_linked.mp, set x : (comp S S').support := x,
+                                change x ≈ ⟦x⟧.out, apply quotient.eq.mp, symmetry, apply out_eq },
+                            { apply quotient.eq.mpr, apply comp_linked.mp, set y : (comp S S').support := y,
+                                change y ≈ ⟦y⟧.out, apply quotient.eq.mp, symmetry, apply out_eq },
+                            { intro h, replace h := quotient.eq.mp h, change S.g.linked x y at h,
+                                have : (comp S S').g.linked x y, { apply linked.linked_of_subgraph _, exact h,
+                                    intros x y h, refine ⟨_,or.inl h⟩, intro, subst y, apply S.g.ne_of_adj h, refl },
+                                apply h1, apply quotient.eq.mpr, exact this } }
             }
     end contract
 
