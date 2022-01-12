@@ -5,7 +5,7 @@ open_locale classical
 
 namespace simple_graph
     open walk
-    variables {V V' : Type} {G : simple_graph V}
+    variables {V V' V'' : Type} {G : simple_graph V} {G' : simple_graph V'} {G'' : simple_graph V''}
 
     namespace contract
         structure setup (G : simple_graph V) :=
@@ -129,7 +129,7 @@ namespace simple_graph
         @[simp] lemma comp_rep_spec (S : setup G) (x : S.clusters) : ⟦x.out⟧ = x := out_eq _
         lemma comp_rep_iff (S : setup G) (x y : S.clusters) : x.out ≈ y.out <-> x = y := out_equiv_out
 
-        lemma comp_sound {S : setup G} {S' : setup (G/S)} : nonempty (G/comp S S' ≃g G/S/S')
+        lemma comp_sound {S : setup G} (S' : setup (G/S)) : nonempty (G/comp S S' ≃g G/S/S')
             := by {
                 let f : (comp S S').clusters ≃ S'.clusters := {
                     to_fun := λ xxx, ⟦⟦xxx.out⟧⟧,
@@ -182,10 +182,143 @@ namespace simple_graph
                                     intros x y h, refine ⟨_,or.inl h⟩, intro, subst y, apply S.g.ne_of_adj h, refl },
                                 apply h1, apply quotient.eq.mpr, exact this } }
             }
-    end contract
 
-    def is_minor (G : simple_graph V) (G' : simple_graph V') : Prop
-        := ∃ S : contract.setup G', ∃ f : G →g G'/S, injective f
+        def extend {S' : setup G'} (f : G →g G'/S') (h : injective f) (S : setup G) : setup (G'/S')
+            := {
+                g := {
+                    adj := λ xx yy, ∃ x y : V, xx = f x ∧ yy = f y ∧ S.g.adj x y,
+                    symm := λ xx yy, by { rintros ⟨x,y,h1,h2,h3⟩, exact ⟨y,x,h2,h1,h3.symm⟩ },
+                    loopless := λ xx h', by { rcases h' with ⟨x,y,h1,h2,h'⟩, subst h1, refine S.g.ne_of_adj h' (h h2) }
+                },
+                sub := by { rintros xx yy ⟨x,y,h1,h2,h3⟩, substs xx yy, exact f.map_rel' (S.sub h3) }
+            }
+
+        noncomputable def compose {S : setup G'} {S' : setup G''} (f: G →g G'/S) (f' : G' →g G''/S') (hf : injective f) (hf': injective ⇑f')
+                : G →g G''/(comp S' (contract.extend f' hf' S))
+            := by {
+                set S'' := contract.extend f' hf' S,
+                have φ := (choice (comp_sound S'')).symm,
+                let ψ := φ.to_hom,
+                refine hom.comp ψ _,
+                exact {
+                    to_fun := λ x, ⟦f' (f x).out⟧,
+                    map_rel' := λ x y h, by {
+                        refine ⟨_,_,_,rfl,rfl,_,_⟩,
+                        { sorry },
+                        { apply injective.ne hf', have : injective out, sorry, apply injective.ne this,
+                            apply injective.ne hf, exact G.ne_of_adj h },
+                        { have h1 := f.map_rel' h, rcases h1 with ⟨h1,xx,yy,h2,h3,h4⟩,
+                            have h5 := f'.map_rel' h4, rcases h5 with ⟨h5,xxx,yyy,h6,h7,h8⟩,
+                            refine ⟨xxx,yyy,_,_,h8⟩,
+                            { rw h6, dsimp, congr,  },
+                            sorry }
+                    }
+                }
+            }
+
+                -- exact {
+                -- to_fun := λ x, ⟦(f' ((f x).out)).out⟧, -- TODO factor out
+                -- map_rel' := λ x y h, by {
+                --     have := f.map_rel' h, rcases this with ⟨h1,xx,yy,h2,h3,h4⟩, simp at h2 h3,
+                --     have := f'.map_rel' h4, rcases this with ⟨h5,xxx,yyy,h6,h7,h8⟩, simp at h6 h7,
+                --     refine ⟨_,xxx,yyy,_,_,h8⟩,
+                --         { sorry },
+                --         { sorry },
+                --         { sorry }
+
+                    -- refine ⟨_,_,_,rfl,rfl,_⟩,
+                    -- {
+
+                    --     set u := (f x).out, set a := (f' u).out, set v := (f y).out, set b := (f' v).out,
+
+                    --     -- have h0 : injective out := sorry,
+                    --     -- have h'0 : injective out := sorry,
+                    --     -- have h1 := G.ne_of_adj h,
+                    --     -- have h2 := injective.ne hf h1,
+                    --     -- have h3 := injective.ne h0 h2,
+                    --     -- have h4 := injective.ne hf' h3,
+                    --     -- have h5 := injective.ne h'0 h4,
+                    --     -- intro h1,
+                    --     -- set S'' := comp S' (contract.extend f' hf' S),
+                    --     -- set a' : S''.support := a, set b' : S''.support := b,
+                    --     -- have h2 := quotient.eq.mp h1, have h3 := comp_linked.mp h2,
+                    --     -- have :=
+                    --     },
+                    -- { }
+                -- }
+            -- } }
+
+        def is_contract (G : simple_graph V) (G' : simple_graph V') : Prop := ∃ S : contract.setup G', nonempty (G ≃g (G'/S))
+
+        def contract_isom (f : G ≃g G') (S : setup G) : setup G'
+            := {
+                g := {
+                    adj := λ x y, S.g.adj (f.inv_fun x) (f.inv_fun y),
+                    symm := λ x' y' h, S.g.symm h,
+                    loopless := λ x, S.g.loopless _
+                },
+                sub := λ x y, by { simp, intro h, have h1 := S.sub h, have h2 := f.map_rel_iff', convert h2.mpr h1,
+                    have := rel_iso.apply_symm_apply f x, exact this.symm, have := rel_iso.apply_symm_apply f y, exact this.symm }
+            }
+
+        lemma contract_isom_inv (f : G ≃g G') (S : setup G) : contract_isom f.symm (contract_isom f S) = S := sorry
+
+        lemma linked_isom_mp (f : G ≃g G') (S : setup G) (x y : V) : S.g.linked x y -> (contract_isom f S).g.linked (f x) (f y)
+            := by {
+                intro h, cases h with p, induction p with a a b c h q ih, refl,
+                refine linked.cons _ ih,
+                simp [contract_isom], convert h; exact rel_iso.symm_apply_apply _ _
+            }
+
+        lemma linked_isom (f : G ≃g G') (S : setup G) (x y : V) : S.g.linked x y <-> (contract_isom f S).g.linked (f x) (f y) := sorry
+
+        noncomputable def map_isom (f : G ≃g G') (S : setup G) : (G/S) ≃g (G'/contract_isom f S)
+            := {
+                    to_fun := λ xx, ⟦f xx.out⟧,
+                    inv_fun := λ xx', ⟦f.symm xx'.out⟧,
+                    left_inv := λ xx, by {
+                        transitivity ⟦xx.out⟧, swap, exact out_eq xx,
+                        apply quotient.eq.mpr,
+                        set x := out xx,
+                        apply (linked_isom f _ _ _).mpr,
+                        simp, set y : (contract_isom f S).support := f x, exact mk_out y },
+                    right_inv := λ yy, by {
+                        simp,
+                        transitivity ⟦yy.out⟧, swap, exact out_eq yy,
+                        apply quotient.eq.mpr,
+                        set y := out yy,
+                        apply (linked_isom f.symm _ _ _).mpr,
+                        simp, set x : S.support := f.symm y, rw contract_isom_inv, exact mk_out x },
+                    map_rel_iff' := sorry
+            }
+
+        @[trans] lemma trans : is_contract G G' -> is_contract G' G'' -> is_contract G G''
+            := by {
+                rintros ⟨S,⟨f1⟩⟩ ⟨S',⟨f2⟩⟩,
+                let S'' := contract_isom f2 S,
+                cases comp_sound S'' with φ,
+                set T := comp S' S'',
+                use T,
+                refine ⟨_⟩,
+                apply iso.comp φ.symm,
+                exact {
+                    to_fun := λ x, ⟦f2 (f1 x).out⟧,
+                    inv_fun := λ x'', f1.symm ⟦f2.symm ⟦x''.out.out⟧⟧,
+                    left_inv := by { intro x, dsimp, },
+                    right_inv := sorry,
+                    map_rel_iff' := sorry
+                }
+            }
+    end contract
+    open contract
+
+    def is_smaller (G : simple_graph V) (G' : simple_graph V') : Prop := ∃ f : G →g G', injective f
+    def is_minor (G : simple_graph V) (G' : simple_graph V') : Prop := ∃ (V'' : Type) (G'' : simple_graph V''), is_smaller G G'' ∧ is_contract G'' G'
+
+    lemma minor_contract : is_minor G G' -> is_contract G' G'' -> is_minor G G''
+        := by {
+            rintros ⟨U,H,h3,h4⟩ h2,
+        }
 
     def is_forbidden (H : simple_graph V) (G : simple_graph V') := ¬ (is_minor H G)
 
@@ -193,8 +326,15 @@ namespace simple_graph
     infix ` ⋠ `:50 := is_forbidden
 
     namespace minor
-        open contract
+        open contract quotient
 
-        @[refl] lemma refl {G : simple_graph V } : G ≼ G := ⟨⊥, proj_bot, λ x y, proj_bot_inj⟩
+        @[refl] lemma refl : G ≼ G := ⟨⊥, proj_bot, λ x y, proj_bot_inj⟩
+        @[trans] lemma trans : G ≼ G' -> G' ≼ G'' -> G ≼ G''
+            | ⟨S,f,hf⟩ ⟨S',f',hf'⟩ := by {
+                let S'' := comp S' (contract.extend f' hf' S),
+                let f := compose f f' hf,
+                refine ⟨S'',f,_⟩,
+                sorry
+            }
     end minor
 end simple_graph
