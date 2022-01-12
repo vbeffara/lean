@@ -193,61 +193,6 @@ namespace simple_graph
                 sub := by { rintros xx yy ⟨x,y,h1,h2,h3⟩, substs xx yy, exact f.map_rel' (S.sub h3) }
             }
 
-        -- noncomputable def compose {S : setup G'} {S' : setup G''} (f: G →g G'/S) (f' : G' →g G''/S') (hf : injective f) (hf': injective ⇑f')
-        --         : G →g G''/(comp S' (contract.extend f' hf' S))
-        --     := by {
-        --         set S'' := contract.extend f' hf' S,
-        --         have φ := (choice (comp_sound S'')).symm,
-        --         let ψ := φ.to_hom,
-        --         refine hom.comp ψ _,
-        --         exact {
-        --             to_fun := λ x, ⟦f' (f x).out⟧,
-        --             map_rel' := λ x y h, by {
-        --                 refine ⟨_,_,_,rfl,rfl,_,_⟩,
-        --                 { sorry },
-        --                 { apply injective.ne hf', have : injective out, sorry, apply injective.ne this,
-        --                     apply injective.ne hf, exact G.ne_of_adj h },
-        --                 { have h1 := f.map_rel' h, rcases h1 with ⟨h1,xx,yy,h2,h3,h4⟩,
-        --                     have h5 := f'.map_rel' h4, rcases h5 with ⟨h5,xxx,yyy,h6,h7,h8⟩,
-        --                     refine ⟨xxx,yyy,_,_,h8⟩,
-        --                     { rw h6, dsimp, congr,  },
-        --                     sorry }
-        --             }
-        --         }
-        --     }
-
-                -- exact {
-                -- to_fun := λ x, ⟦(f' ((f x).out)).out⟧, -- TODO factor out
-                -- map_rel' := λ x y h, by {
-                --     have := f.map_rel' h, rcases this with ⟨h1,xx,yy,h2,h3,h4⟩, simp at h2 h3,
-                --     have := f'.map_rel' h4, rcases this with ⟨h5,xxx,yyy,h6,h7,h8⟩, simp at h6 h7,
-                --     refine ⟨_,xxx,yyy,_,_,h8⟩,
-                --         { sorry },
-                --         { sorry },
-                --         { sorry }
-
-                    -- refine ⟨_,_,_,rfl,rfl,_⟩,
-                    -- {
-
-                    --     set u := (f x).out, set a := (f' u).out, set v := (f y).out, set b := (f' v).out,
-
-                    --     -- have h0 : injective out := sorry,
-                    --     -- have h'0 : injective out := sorry,
-                    --     -- have h1 := G.ne_of_adj h,
-                    --     -- have h2 := injective.ne hf h1,
-                    --     -- have h3 := injective.ne h0 h2,
-                    --     -- have h4 := injective.ne hf' h3,
-                    --     -- have h5 := injective.ne h'0 h4,
-                    --     -- intro h1,
-                    --     -- set S'' := comp S' (contract.extend f' hf' S),
-                    --     -- set a' : S''.support := a, set b' : S''.support := b,
-                    --     -- have h2 := quotient.eq.mp h1, have h3 := comp_linked.mp h2,
-                    --     -- have :=
-                    --     },
-                    -- { }
-                -- }
-            -- } }
-
         def is_contract (G : simple_graph V) (G' : simple_graph V') : Prop := ∃ S : contract.setup G', nonempty (G ≃g (G'/S))
 
         def contract_isom (f : G ≃g G') (S : setup G) : setup G'
@@ -320,14 +265,43 @@ namespace simple_graph
                 refine ⟨comp S' (contract_isom f2 S), ⟨_⟩⟩,
                 refine iso.comp φ.symm _, clear φ,
                 exact iso.comp (map_isom f2 S) f1 }
+
+        def empty_setup (G : simple_graph V): setup G := { g := ⊥, sub := λ x y, false.rec _ }
+
+        lemma eq_of_linked_bot : linked (⊥ : simple_graph V) x y -> x = y
+            := by { intro h, cases h with p, induction p with a a b c h p ih, refl, simp at h, contradiction }
+
+        lemma eq_of_same_class {x y : (empty_setup G).support} : ⟦x⟧ = ⟦y⟧ -> x = y
+            := sorry
+
+        noncomputable def empty_iso : (G ≃g G/empty_setup G)
+            := {
+                to_fun := λ x, ⟦x⟧,
+                inv_fun := out,
+                left_inv := λ x, by { apply eq_of_same_class, simp },
+                right_inv := λ xx, by simp,
+                map_rel_iff' := λ x y, by { simp, split,
+                    { intro h, rcases h with ⟨h1,x',y',h2,h3,h4⟩,
+                        replace h2 := eq_of_same_class h2, subst x',
+                        replace h3 := eq_of_same_class h3, subst y', exact h4 },
+                    { intro h, refine ⟨_,x,y,rfl,rfl,h⟩,
+                        intro h1, replace h1 := eq_of_same_class h1, subst y, exact G.ne_of_adj h rfl } } }
+
+        @[refl] lemma refl : is_contract G G := ⟨empty_setup G,⟨empty_iso⟩⟩
     end contract
     open contract
 
     def is_smaller (G : simple_graph V) (G' : simple_graph V') : Prop := ∃ f : G →g G', injective f
+
+    lemma smaller_refl : is_smaller G G := ⟨⟨id, λ x y, id⟩, injective_id⟩
+
     def is_minor (G : simple_graph V) (G' : simple_graph V') : Prop := ∃ (V'' : Type) (G'' : simple_graph V''), is_smaller G G'' ∧ is_contract G'' G'
 
     lemma minor_contract : is_minor G G' -> is_contract G' G'' -> is_minor G G''
         | ⟨U,H,h3,h4⟩ h2 := ⟨U,H,h3,contract.trans h4 h2⟩
+
+    lemma minor_smaller : is_minor G G' -> is_smaller G' G'' -> is_minor G G''
+        := sorry
 
     def is_forbidden (H : simple_graph V) (G : simple_graph V') := ¬ (is_minor H G)
 
@@ -337,18 +311,9 @@ namespace simple_graph
     namespace minor
         open contract quotient
 
-        @[refl] lemma refl : G ≼ G
-            := by { refine ⟨_, G, ⟨⟨id,λ a b,id⟩,injective_id⟩, _⟩,
-                refine ⟨⟨⊥,λ x y,false.rec _⟩,⟨_⟩⟩,
-                exact {
-                    to_fun := λ x, ⟦x⟧,
-                    inv_fun := λ xx, xx.out,
-                    left_inv := λ x, by { simp, sorry },
-                    right_inv := λ xx, by { simp },
-                    map_rel_iff' := λ x y, by { simp, sorry },
-                }
-            }
+        @[refl] lemma refl : G ≼ G := ⟨_,G,smaller_refl,refl⟩
 
-        @[trans] lemma trans : G ≼ G' -> G' ≼ G'' -> G ≼ G'' := sorry
+        @[trans] lemma trans : G ≼ G' -> G' ≼ G'' -> G ≼ G''
+            | h1 ⟨U',H',h3,h4⟩ := minor_contract (minor_smaller h1 h3) h4
     end minor
 end simple_graph
