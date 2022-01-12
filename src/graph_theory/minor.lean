@@ -272,7 +272,7 @@ namespace simple_graph
             := by { intro h, cases h with p, induction p with a a b c h p ih, refl, simp at h, contradiction }
 
         lemma eq_of_same_class {x y : (empty_setup G).support} : ⟦x⟧ = ⟦y⟧ -> x = y
-            := sorry
+            | h := eq_of_linked_bot (quotient.eq.mp h)
 
         noncomputable def empty_iso : (G ≃g G/empty_setup G)
             := {
