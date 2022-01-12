@@ -135,10 +135,32 @@ namespace simple_graph
                     to_fun := λ xxx, ⟦⟦xxx.out⟧⟧,
                     inv_fun := λ xxx, ⟦xxx.out.out⟧,
                     left_inv := λ xxx, by {
-                        dsimp, apply out_equiv_out.mp, sorry
+                        dsimp,
+                        have := out_eq xxx,
+                        set x := out xxx,
+                        rw <-this,
+                        apply quotient.eq.mpr,
+                        apply comp_linked.mpr,
+                        set z : S.support := (x : V),
+                        set zz := ⟦z⟧,
+                        set uu : S'.support := zz,
+                        rw out_eq ⟦uu⟧.out,
+                        change ⟦uu⟧.out ≈ uu,
+                        apply quotient.eq.mp,
+                        apply out_eq
                     },
                     right_inv := λ xxx, by {
-                        dsimp, apply out_equiv_out.mp, sorry
+                        dsimp,
+                        have h1 := out_eq xxx,
+                        have h2 := out_eq xxx.out,
+                        set x := xxx.out.out,
+                        rw <-h1, rw <-h2,
+                        apply quotient.eq.mpr,
+                        apply comp_linked_mp,
+                        set y : (comp S S').support := x,
+                        change ⟦y⟧.out ≈ y,
+                        apply quotient.eq.mp,
+                        apply out_eq
                     }
                 },
                 refine ⟨⟨f,_⟩⟩, sorry
