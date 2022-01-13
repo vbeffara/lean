@@ -11,99 +11,7 @@ namespace simple_graph
         variables {S : setup G} {x y : S.support} {xx yy : S.clusters}
         open classical quotient
 
-        def comp (S : setup G) (S' : setup (G/S)) : setup G
-            := {
-                g := {
-                    adj := λ x y, x ≠ y ∧ (S.g.adj x y ∨ (G.adj x y ∧ S'.g.adj ⟦x⟧ ⟦y⟧)),
-                    symm := λ x y, by { rintros ⟨h1,h2⟩, refine ⟨h1.symm,_⟩, cases h2, left, exact h2.symm,
-                                        right, exact ⟨h2.1.symm,h2.2.symm⟩ }
-                },
-                sub := λ x y, by { rintros ⟨h1,h2⟩, cases h2, exact S.sub h2, exact h2.1 }
-            }
-
         variables {S' : setup (G/S)}
-
-        lemma comp_linked_mp : (comp S S').g.linked x y -> S'.g.linked ⟦x⟧ ⟦y⟧
-            := by { rintro ⟨p⟩, induction p with a a b c h p ih, refl, cases h with h1 h2, cases h2,
-                    { have := linked.step h2, have := (@quotient.eq S.support _ a b).mpr this, rw this, exact ih },
-                    { refine linked.cons _ ih, exact h2.2 } }
-
-        lemma comp_linked_mpr_aux : ⟦x⟧ = ⟦y⟧ -> (comp S S').g.linked x y
-            | h := linked.linked_of_subgraph (λ x y ha, ⟨S.g.ne_of_adj ha, or.inl ha⟩) (quotient.eq.mp h)
-
-        lemma comp_linked_mpr_aux' : S'.g.adj ⟦x⟧ ⟦y⟧ -> (comp S S').g.linked x y
-            | h := by { rcases S'.sub h with ⟨h1,x',y',hx,hy,h2⟩, rw [<-hx,<-hy] at h,
-                transitivity x', exact comp_linked_mpr_aux hx.symm,
-                transitivity y', swap, exact comp_linked_mpr_aux hy,
-                exact linked.step ⟨G.ne_of_adj h2, or.inr ⟨h2,h⟩⟩ }
-
-        lemma comp_linked_mpr : S'.g.linked xx yy -> (comp S S').g.linked xx.out yy.out
-            := by { rintro ⟨p⟩, induction p with aa aa bb cc hh pp ih,
-                { apply comp_linked_mpr_aux, refl },
-                { transitivity bb.out, swap, exact ih, clear ih, apply comp_linked_mpr_aux', convert hh; apply out_eq } }
-
-        lemma comp_linked : (comp S S').g.linked x y <-> S'.g.linked ⟦x⟧ ⟦y⟧
-            := by { split,
-                { exact comp_linked_mp },
-                { intro h, transitivity ⟦x⟧.out, apply comp_linked_mpr_aux, symmetry, apply out_eq,
-                    transitivity ⟦y⟧.out, exact comp_linked_mpr h, apply comp_linked_mpr_aux, apply out_eq } }
-
-        @[simp] lemma comp_rep_spec (S : setup G) (x : S.clusters) : ⟦x.out⟧ = x := out_eq _
-        lemma comp_rep_iff (S : setup G) (x y : S.clusters) : x.out ≈ y.out <-> x = y := out_equiv_out
-
-        lemma comp_sound {S : setup G} (S' : setup (G/S)) : nonempty (G/comp S S' ≃g G/S/S')
-            := by {
-                let f : (comp S S').clusters ≃ S'.clusters := {
-                    to_fun := λ xxx, ⟦⟦xxx.out⟧⟧,
-                    inv_fun := λ xxx, ⟦xxx.out.out⟧,
-                    left_inv := λ xxx, by {
-                        dsimp,
-                        have := out_eq xxx,
-                        set x := out xxx,
-                        rw <-this,
-                        apply quotient.eq.mpr,
-                        apply comp_linked.mpr,
-                        set z : S.support := (x : V),
-                        set uu : S'.support := ⟦z⟧,
-                        rw out_eq ⟦uu⟧.out,
-                        change ⟦uu⟧.out ≈ uu,
-                        apply mk_out
-                    },
-                    right_inv := λ xxx, by {
-                        dsimp,
-                        have h1 := out_eq xxx,
-                        have h2 := out_eq xxx.out,
-                        set x := xxx.out.out,
-                        rw <-h1, rw <-h2,
-                        apply quotient.eq.mpr,
-                        apply comp_linked_mp,
-                        set y : (comp S S').support := x,
-                        change ⟦y⟧.out ≈ y,
-                        apply mk_out
-                    }
-                },
-                refine ⟨⟨f,_⟩⟩, intros a b, dsimp, split,
-                    { rintro ⟨h1,xx,yy,h2,h3,h4,u,v,h5,h6,h7⟩, split, { intro h, rw h at h1, apply h1, refl },
-                        substs xx yy, refine ⟨u,v,_,_,h7⟩,
-                            rw <-out_eq a, apply quotient.eq.mpr, apply comp_linked.mpr,
-                                replace h2 := quotient.eq.mp h2, exact h2,
-                            rw <-out_eq b, apply quotient.eq.mpr, apply comp_linked.mpr,
-                                replace h3 := quotient.eq.mp h3, exact h3 },
-                    { rintro ⟨h1,x,y,h2,h3,h4⟩, split, {
-                            intro h, have := quotient.eq.mp h, have h5 := comp_linked.mpr this, substs a b,
-                            set x : (comp S S').support := x, set y : (comp S S').support := y,
-                            change ⟦x⟧.out ≈ ⟦y⟧.out at h5, have := quotient.eq.mpr h5,
-                            rw out_eq ⟦x⟧ at this, rw out_eq ⟦y⟧ at this, exact h1 this },
-                        substs a b, refine ⟨⟦x⟧,⟦y⟧,_,_,_,x,y,rfl,rfl,h4⟩,
-                            { apply quotient.eq.mpr, apply comp_linked.mp, set x : (comp S S').support := x,
-                                change x ≈ ⟦x⟧.out, apply quotient.eq.mp, symmetry, apply out_eq },
-                            { apply quotient.eq.mpr, apply comp_linked.mp, set y : (comp S S').support := y,
-                                change y ≈ ⟦y⟧.out, apply quotient.eq.mp, symmetry, apply out_eq },
-                            { intro h, replace h := quotient.eq.mp h, change S.g.linked x y at h,
-                                have : (comp S S').g.linked x y, { apply linked.linked_of_subgraph _, exact h,
-                                    intros x y h, refine ⟨_,or.inl h⟩, intro, subst y, apply S.g.ne_of_adj h, refl },
-                                apply h1, apply quotient.eq.mpr, exact this } }
-            }
 
         def extend {S' : setup G'} (f : G →g G'/S') (h : injective f) (S : setup G) : setup (G'/S')
             := {
@@ -181,8 +89,8 @@ namespace simple_graph
 
         @[trans] lemma trans : is_contraction G G' -> is_contraction G' G'' -> is_contraction G G''
             := by { rintros ⟨S,⟨f1⟩⟩ ⟨S',⟨f2⟩⟩,
-                cases comp_sound (contraction_isom f2 S) with φ,
-                refine ⟨comp S' (contraction_isom f2 S), ⟨_⟩⟩,
+                cases setup.comp.sound (contraction_isom f2 S) with φ,
+                refine ⟨S'.comp (contraction_isom f2 S), ⟨_⟩⟩,
                 refine iso.comp φ.symm _, clear φ,
                 exact iso.comp (map_isom f2 S) f1 }
 

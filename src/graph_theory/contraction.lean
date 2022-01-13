@@ -39,10 +39,84 @@ namespace simple_graph
     infix ` ≼c `:50 := is_contraction
 
     namespace contraction
-        variables {S : setup G} {x y : S.support} {xx yy : S.clusters}
+        variables {S : setup G} {S' : setup (G/S)} {x y : S.support} {xx yy : S.clusters}
         open walk quotient
 
-        def setup.linked (S : setup G) (x y : S.clusters) : Prop := (G/S).linked x y
+        namespace setup
+            def linked (S : setup G) (x y : S.clusters) : Prop := (G/S).linked x y
+
+            def comp (S : setup G) (S' : setup (G/S)) : setup G
+                := {
+                    g := {
+                        adj := λ x y, x ≠ y ∧ (S.g.adj x y ∨ (G.adj x y ∧ S'.g.adj ⟦x⟧ ⟦y⟧)),
+                        symm := λ x y, by { rintros ⟨h1,h2⟩, refine ⟨h1.symm,_⟩, cases h2, left, exact h2.symm,
+                                            right, exact ⟨h2.1.symm,h2.2.symm⟩ }
+                    },
+                    sub := λ x y, by { rintros ⟨h1,h2⟩, cases h2, exact S.sub h2, exact h2.1 }
+                }
+
+            namespace comp
+                lemma linked_mp : (S.comp S').g.linked x y -> S'.g.linked ⟦x⟧ ⟦y⟧
+                    := by { rintro ⟨p⟩, induction p with a a b c h p ih, refl, cases h with h1 h2, cases h2,
+                            { rw (@quotient.eq S.support _ a b).mpr (linked.step h2), exact ih },
+                            { exact linked.cons h2.2 ih } }
+
+                lemma linked_mpr_aux : ⟦x⟧ = ⟦y⟧ -> (S.comp S').g.linked x y
+                    | h := linked.linked_of_subgraph (λ x y ha, ⟨S.g.ne_of_adj ha, or.inl ha⟩) (quotient.eq.mp h)
+
+                lemma linked_mpr_aux' : S'.g.adj ⟦x⟧ ⟦y⟧ -> (S.comp S').g.linked x y
+                    | h := by { rcases S'.sub h with ⟨h1,x',y',hx,hy,h2⟩, rw [<-hx,<-hy] at h,
+                        transitivity x', exact linked_mpr_aux hx.symm,
+                        transitivity y', swap, exact linked_mpr_aux hy,
+                        exact linked.step ⟨G.ne_of_adj h2, or.inr ⟨h2,h⟩⟩ }
+
+                lemma linked_mpr : S'.g.linked xx yy -> (S.comp S').g.linked xx.out yy.out
+                    := by { rintro ⟨p⟩, induction p with aa aa bb cc hh pp ih,
+                        { apply linked_mpr_aux, refl },
+                        { transitivity bb.out, swap, exact ih, clear ih, apply linked_mpr_aux', convert hh; apply out_eq } }
+
+                lemma linked : (S.comp S').g.linked x y <-> S'.g.linked ⟦x⟧ ⟦y⟧
+                    := by { split,
+                        { exact linked_mp },
+                        { intro h, transitivity ⟦x⟧.out, apply linked_mpr_aux, symmetry, apply out_eq,
+                            transitivity ⟦y⟧.out, exact linked_mpr h, apply linked_mpr_aux, apply out_eq } }
+
+                lemma sound {S : setup G} (S' : setup (G/S)) : nonempty (G/comp S S' ≃g G/S/S')
+                    := by {
+                        let f : V -> S.clusters := quotient.mk,
+                        let g : S.clusters -> S'.clusters := quotient.mk,
+                        let h : V -> (S.comp S').clusters := quotient.mk,
+
+                        let α : S.clusters -> V := out,
+                        let β : S'.clusters -> S.clusters := out,
+                        let γ : (S.comp S').clusters -> V := out,
+
+                        have fα : ∀ {x}, f (α x) = x, by simp [f,α],
+                        have gβ : ∀ {x}, g (β x) = x, by simp [g,β],
+                        have hγ : ∀ {x}, h (γ x) = x, by simp [h,γ],
+
+                        have eqv : ∀ {x y : V}, h x = h y <-> g (f x) = g (f y),
+                            by { intros, simp [h], exact linked },
+
+                        let φ : (comp S S').clusters ≃ S'.clusters := {
+                            to_fun := g ∘ f ∘ γ,
+                            inv_fun := h ∘ α ∘ β,
+                            left_inv := λ _, eq.trans (eqv.mpr (by { rw [fα,gβ] })) hγ,
+                            right_inv := λ _, eq.trans (eqv.mp hγ) (by { rw [fα,gβ] })
+                        },
+                        refine ⟨⟨φ,_⟩⟩, intros a b, dsimp, split,
+                            { rintro ⟨h1,xx,yy,h2,h3,h4,u,v,h5,h6,h7⟩, substs xx yy, split,
+                                { intro h, rw h at h1, exact h1 rfl },
+                                { refine ⟨u,v,eq.trans (eqv.mpr h2) hγ,eq.trans (eqv.mpr h3) hγ,h7⟩ } },
+                            { rintro ⟨h1,x,y,h2,h3,h4⟩, split,
+                                { intro h, rw [eqv.symm,hγ,hγ] at h, exact h1 h },
+                                { refine ⟨f x,f y,_,_,_,x,y,rfl,rfl,h4⟩,
+                                    { apply eqv.mp, rw hγ, exact h2 },
+                                    { apply eqv.mp, rw hγ, exact h3 },
+                                    { intro h, substs a b, exact h1 (eqv.mpr (congr_arg g h)) } } }
+                    }
+            end comp
+        end setup
 
         lemma proj_adj : G.adj x y -> ⟦x⟧ = ⟦y⟧ ∨ (G/S).adj ⟦x⟧ ⟦y⟧
             | h := dite (⟦x⟧ = ⟦y⟧) or.inl (λ h', or.inr ⟨h',x,y,rfl,rfl,h⟩)
