@@ -130,8 +130,55 @@ namespace simple_graph
                     := by { have hf : f.symm.to_equiv.symm = f.to_equiv := by { ext, refl }, ext, split; intro h,
                         { simp [setup.fmap_isom,hf] at h, convert h; symmetry; exact rel_iso.symm_apply_apply _ _ },
                         { simp [setup.fmap_isom,hf,on_fun], convert h; exact rel_iso.symm_apply_apply _ _ } }
+
+                lemma linked : S.g.linked x y -> (S.fmap_isom f).g.linked (f x) (f y)
+                    := by { intro h, cases h with p, induction p with a a b c h q ih, refl,
+                        refine linked.cons _ ih, simp [setup.fmap_isom,on_fun], convert h; exact rel_iso.symm_apply_apply _ _ }
+
+                lemma linked_iff : S.g.linked x y <-> (S.fmap_isom f).g.linked (f x) (f y)
+                    := by { split, exact linked, intro h,
+                        replace h := @linked V' V G' G (S.fmap_isom f) (f x) (f y) f.symm h,
+                        simp [setup.fmap_isom.inv] at h, exact h }
+
+
             end fmap_isom
         end setup
+
+        noncomputable def fmap_iso (f : G ≃g G') (S : setup G) : G/S ≃g G'/S.fmap_isom f
+            := by {
+                let f₁ : V -> S.clusters := quotient.mk,
+                let f₂ : V' -> (S.fmap_isom f).clusters := quotient.mk,
+
+                let g₁ : S.clusters -> V := quotient.out,
+                let g₂ : (S.fmap_isom f).clusters -> V' := quotient.out,
+
+                have f₁g₁ : ∀ {x}, f₁ (g₁ x) = x, by simp [f₁,g₁],
+                have f₂g₂ : ∀ {x}, f₂ (g₂ x) = x, by simp [f₂,g₂],
+
+                have eqv : ∀ {x y}, f₁ x = f₁ y <-> f₂ (f x) = f₂ (f y),
+                    by { intros, rw [quotient.eq,quotient.eq], exact setup.fmap_isom.linked_iff },
+
+                let φ : S.clusters ≃ (S.fmap_isom f).clusters := {
+                    to_fun := f₂ ∘ f ∘ g₁,
+                    inv_fun := f₁ ∘ f.symm ∘ g₂,
+                    left_inv := λ _, eq.trans (by { rw [eqv,rel_iso.apply_symm_apply,f₂g₂] }) f₁g₁,
+                    right_inv := λ _, (eqv.mp f₁g₁).trans (by { rw [rel_iso.apply_symm_apply,f₂g₂] })
+                },
+
+                use φ, intros a b, simp, split,
+                { rintros ⟨h1,x',y',h2,h3,h4⟩, refine ⟨_,_⟩,
+                    { intro h, rw h at h1, exact h1 rfl },
+                    { refine ⟨f.symm x', f.symm y', _, _, _⟩,
+                        { rw [<-@f₁g₁ a,eqv,rel_iso.apply_symm_apply], exact h2 },
+                        { rw [<-@f₁g₁ b,eqv,rel_iso.apply_symm_apply], exact h3 },
+                        { have := f.symm.map_rel_iff', exact this.mpr h4 } } },
+                { rintros ⟨h1,x,y,h2,h3,h4⟩, refine ⟨_,_⟩,
+                    { unfold ne, rw [eqv.symm,f₁g₁,f₁g₁], exact h1 },
+                    { refine ⟨f x, f y, _, _, _⟩,
+                        { rw [eqv.symm,f₁g₁], exact h2 },
+                        { rw [eqv.symm,f₁g₁], exact h3 },
+                        { have := f.map_rel_iff', exact this.mpr h4 } } }
+            }
 
         lemma proj_adj : G.adj x y -> ⟦x⟧ = ⟦y⟧ ∨ (G/S).adj ⟦x⟧ ⟦y⟧
             | h := dite (⟦x⟧ = ⟦y⟧) or.inl (λ h', or.inr ⟨h',x,y,rfl,rfl,h⟩)
