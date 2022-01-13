@@ -81,7 +81,7 @@ namespace simple_graph
                         { intro h, transitivity ⟦x⟧.out, apply linked_mpr_aux, symmetry, apply out_eq,
                             transitivity ⟦y⟧.out, exact linked_mpr h, apply linked_mpr_aux, apply out_eq } }
 
-                lemma sound {S : setup G} (S' : setup (G/S)) : nonempty (G/comp S S' ≃g G/S/S')
+                noncomputable def iso {S : setup G} (S' : setup (G/S)) : G/comp S S' ≃g G/S/S'
                     := by {
                         let f : V -> S.clusters := quotient.mk,
                         let g : S.clusters -> S'.clusters := quotient.mk,
@@ -96,7 +96,7 @@ namespace simple_graph
                         have hγ : ∀ {x}, h (γ x) = x, by simp [h,γ],
 
                         have eqv : ∀ {x y : V}, h x = h y <-> g (f x) = g (f y),
-                            by { intros, simp [h], exact linked },
+                            by { intros, rw [quotient.eq,quotient.eq], exact linked },
 
                         let φ : (comp S S').clusters ≃ S'.clusters := {
                             to_fun := g ∘ f ∘ γ,
@@ -104,18 +104,33 @@ namespace simple_graph
                             left_inv := λ _, eq.trans (eqv.mpr (by { rw [fα,gβ] })) hγ,
                             right_inv := λ _, eq.trans (eqv.mp hγ) (by { rw [fα,gβ] })
                         },
-                        refine ⟨⟨φ,_⟩⟩, intros a b, dsimp, split,
-                            { rintro ⟨h1,xx,yy,h2,h3,h4,u,v,h5,h6,h7⟩, substs xx yy, split,
-                                { intro h, rw h at h1, exact h1 rfl },
-                                { refine ⟨u,v,eq.trans (eqv.mpr h2) hγ,eq.trans (eqv.mpr h3) hγ,h7⟩ } },
-                            { rintro ⟨h1,x,y,h2,h3,h4⟩, split,
-                                { intro h, rw [eqv.symm,hγ,hγ] at h, exact h1 h },
-                                { refine ⟨f x,f y,_,_,_,x,y,rfl,rfl,h4⟩,
-                                    { apply eqv.mp, rw hγ, exact h2 },
-                                    { apply eqv.mp, rw hγ, exact h3 },
-                                    { intro h, substs a b, exact h1 (eqv.mpr (congr_arg g h)) } } }
+
+                        use φ, intros a b, split,
+                        { rintro ⟨h1,xx,yy,h2,h3,h4,u,v,h5,h6,h7⟩, substs xx yy, split,
+                            { exact h1 ∘ (congr_arg (g ∘ f ∘ γ)) },
+                            { exact ⟨u,v,(eqv.mpr h2).trans hγ,(eqv.mpr h3).trans hγ,h7⟩ } },
+                        { rintro ⟨h1,x,y,h2,h3,h4⟩, split,
+                            { intro h', dsimp at h', rw [eqv.symm,hγ,hγ] at h', exact h1 h' },
+                            { refine ⟨_,_,eqv.mp (h2.trans hγ.symm),eqv.mp (h3.trans hγ.symm),_,x,y,rfl,rfl,h4⟩,
+                                intro h, substs a b, exact h1 (eqv.mpr (congr_arg g h)) } }
                     }
             end comp
+
+            def fmap_isom (f : G ≃g G') (S : setup G) : setup G'
+                := { g := { adj := S.g.adj on f.inv_fun,
+                            symm := λ x' y' h, S.g.symm h,
+                            loopless := λ x, S.g.loopless _ },
+                    sub := λ x y h, by { have h2 := f.map_rel_iff', convert h2.mpr (S.sub h);
+                            exact (rel_iso.apply_symm_apply f _).symm } }
+
+            namespace fmap_isom
+                variables {f : G ≃g G'}
+
+                lemma inv : (S.fmap_isom f).fmap_isom f.symm = S
+                    := by { have hf : f.symm.to_equiv.symm = f.to_equiv := by { ext, refl }, ext, split; intro h,
+                        { simp [setup.fmap_isom,hf] at h, convert h; symmetry; exact rel_iso.symm_apply_apply _ _ },
+                        { simp [setup.fmap_isom,hf,on_fun], convert h; exact rel_iso.symm_apply_apply _ _ } }
+            end fmap_isom
         end setup
 
         lemma proj_adj : G.adj x y -> ⟦x⟧ = ⟦y⟧ ∨ (G/S).adj ⟦x⟧ ⟦y⟧

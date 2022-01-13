@@ -23,35 +23,19 @@ namespace simple_graph
                 sub := by { rintros xx yy ⟨x,y,h1,h2,h3⟩, substs xx yy, exact f.map_rel' (S.sub h3) }
             }
 
-        def contraction_isom (f : G ≃g G') (S : setup G) : setup G'
-            := {
-                g := {
-                    adj := λ x y, S.g.adj (f.inv_fun x) (f.inv_fun y),
-                    symm := λ x' y' h, S.g.symm h,
-                    loopless := λ x, S.g.loopless _
-                },
-                sub := λ x y, by { simp, intro h, have h1 := S.sub h, have h2 := f.map_rel_iff', convert h2.mpr h1,
-                    have := rel_iso.apply_symm_apply f x, exact this.symm, have := rel_iso.apply_symm_apply f y, exact this.symm }
-            }
-
-        lemma contraction_isom_inv (f : G ≃g G') (S : setup G) : contraction_isom f.symm (contraction_isom f S) = S
-            := by { have hf : f.symm.to_equiv.symm = f.to_equiv := by { ext, refl }, ext, split; intro h,
-                { simp [contraction_isom,hf] at h, convert h; symmetry; exact rel_iso.symm_apply_apply _ _ },
-                { simp [contraction_isom,hf], convert h; exact rel_iso.symm_apply_apply _ _ } }
-
-        lemma linked_isom_mp (f : G ≃g G') (S : setup G) (x y : V) : S.g.linked x y -> (contraction_isom f S).g.linked (f x) (f y)
+        lemma linked_isom_mp (f : G ≃g G') (S : setup G) (x y : V) : S.g.linked x y -> (S.fmap_isom f).g.linked (f x) (f y)
             := by {
                 intro h, cases h with p, induction p with a a b c h q ih, refl,
                 refine linked.cons _ ih,
-                simp [contraction_isom], convert h; exact rel_iso.symm_apply_apply _ _
+                simp [setup.fmap_isom,on_fun], convert h; exact rel_iso.symm_apply_apply _ _
             }
 
-        lemma linked_isom (f : G ≃g G') (S : setup G) (x y : V) : S.g.linked x y <-> (contraction_isom f S).g.linked (f x) (f y)
+        lemma linked_isom (f : G ≃g G') (S : setup G) (x y : V) : S.g.linked x y <-> (S.fmap_isom f).g.linked (f x) (f y)
             := by { split, exact linked_isom_mp f S x y, intro h,
-                replace h := linked_isom_mp f.symm (contraction_isom f S) (f x) (f y) h,
-                simp [contraction_isom_inv] at h, exact h }
+                replace h := linked_isom_mp f.symm (S.fmap_isom f) (f x) (f y) h,
+                simp [setup.fmap_isom.inv] at h, exact h }
 
-        noncomputable def map_isom (f : G ≃g G') (S : setup G) : (G/S) ≃g (G'/contraction_isom f S)
+        noncomputable def map_isom (f : G ≃g G') (S : setup G) : (G/S) ≃g (G'/S.fmap_isom f)
             := {
                     to_fun := λ xx, ⟦f xx.out⟧,
                     inv_fun := λ xx', ⟦f.symm xx'.out⟧,
@@ -60,7 +44,7 @@ namespace simple_graph
                         apply quotient.eq.mpr,
                         set x := out xx,
                         apply (linked_isom f _ _ _).mpr,
-                        simp, set y : (contraction_isom f S).support := f x, exact mk_out y },
+                        simp, set y : (S.fmap_isom f).support := f x, exact mk_out y },
                     right_inv := λ yy, by {
                         transitivity ⟦yy.out⟧, swap, exact out_eq yy,
                         apply quotient.eq.mpr,
@@ -87,12 +71,9 @@ namespace simple_graph
                                 have := f.map_rel_iff', apply this.mpr, exact h4 } }
             }
 
-        @[trans] lemma trans : is_contraction G G' -> is_contraction G' G'' -> is_contraction G G''
-            := by { rintros ⟨S,⟨f1⟩⟩ ⟨S',⟨f2⟩⟩,
-                cases setup.comp.sound (contraction_isom f2 S) with φ,
-                refine ⟨S'.comp (contraction_isom f2 S), ⟨_⟩⟩,
-                refine iso.comp φ.symm _, clear φ,
-                exact iso.comp (map_isom f2 S) f1 }
+        @[trans] lemma trans : G ≼c G' -> G' ≼c G'' -> G ≼c G''
+            | ⟨S,⟨f1⟩⟩ ⟨S',⟨f2⟩⟩ := let T := S.fmap_isom f2 in
+                ⟨S'.comp T, ⟨(setup.comp.iso T).symm.comp ((map_isom f2 S).comp f1)⟩⟩
 
     end contraction
     open contraction
