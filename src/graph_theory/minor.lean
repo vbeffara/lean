@@ -1,5 +1,5 @@
 import tactic
-import graph_theory.basic graph_theory.path_embedding
+import graph_theory.basic graph_theory.path_embedding graph_theory.contraction
 open function
 open_locale classical
 
@@ -7,87 +7,9 @@ namespace simple_graph
     open walk
     variables {V V' V'' : Type} {G : simple_graph V} {G' : simple_graph V'} {G'' : simple_graph V''}
 
-    namespace contract
-        @[ext] structure setup (G : simple_graph V) :=
-            (g : simple_graph V)
-            (sub : ∀ {x y : V}, g.adj x y -> G.adj x y)
-
-        namespace setup
-            def support (S : setup G) : Type := V
-
-            instance setoid (S : setup G) : setoid S.support
-                := ⟨S.g.linked,simple_graph.linked.equiv⟩
-
-            def clusters (S : setup G) := quotient S.setoid
-
-            def adj (S : setup G) (x y : S.clusters) : Prop
-                := x ≠ y ∧ ∃ x' y' : V, ⟦x'⟧ = x ∧ ⟦y'⟧ = y ∧ G.adj x' y'
-
-            @[symm] lemma symm (S : setup G) (x y : S.clusters) : S.adj x y -> S.adj y x
-                | ⟨h0,x',y',h1,h2,h3⟩ := ⟨h0.symm,y',x',h2,h1,h3.symm⟩
-        end setup
-    end contract
-
-    def contract (G : simple_graph V) (S : contract.setup G) : simple_graph S.clusters := ⟨S.adj, S.symm⟩
-
-    notation G `/` S := contract G S
-
-    namespace contract
+    namespace contraction
         variables {S : setup G} {x y : S.support} {xx yy : S.clusters}
         open classical quotient
-
-        lemma proj_adj (h : G.adj x y) : ⟦x⟧ = ⟦y⟧ ∨ (G/S).adj ⟦x⟧ ⟦y⟧
-            := dite (⟦x⟧ = ⟦y⟧) or.inl (λ h', or.inr ⟨h',x,y,rfl,rfl,h⟩)
-
-        lemma linked_of_adj : (G/S).adj ⟦x⟧ ⟦y⟧ -> linked G x y
-            | ⟨h₁,a,b,h₂,h₃,h₄⟩ := by { transitivity b, transitivity a,
-                exact linked.linked_of_subgraph S.sub (quotient.eq.mp h₂.symm),
-                exact linked.step h₄,
-                exact linked.linked_of_subgraph S.sub (quotient.eq.mp h₃) }
-
-        noncomputable def proj_path : Π {x y : V}, walk G x y -> walk (G/S) ⟦x⟧ ⟦y⟧
-            | _ _ nil                      := nil
-            | _ z (cons (h : G.adj x y) p) := dite (⟦y⟧ = ⟦x⟧) (λ h, by { rw <-h, exact proj_path p })
-                                                              (λ h', walk.cons ⟨ne.symm h',_,_,rfl,rfl,h⟩ (proj_path p))
-
-        lemma project_linked : ∀ {x y}, linked G x y -> linked (G/S) ⟦x⟧ ⟦y⟧
-            | _ _ ⟨p⟩ := by { induction p with u u v w h p ih, refl,
-                cases proj_adj h with h' h', rw h', exact ih, exact ih.cons h' }
-
-        lemma lift_linked' : linked (G/S) xx yy ->
-                ∀ (x y : V) (hx : ⟦x⟧ = xx) (hy : ⟦y⟧ = yy), linked G x y
-            := by {
-                intro h, cases h with p, induction p with u u v w h p ih; intros x y hx hy,
-                { subst hy, exact linked.linked_of_subgraph S.sub (quotient.eq.mp hx) },
-                { obtain ⟨a, ha : ⟦a⟧ = v⟩ := quot.exists_rep v, substs ha hx hy,
-                    transitivity a, exact linked_of_adj h, exact ih a y rfl rfl }
-            }
-
-        lemma lift_linked (h : linked (G/S) ⟦x⟧ ⟦y⟧) : linked G x y
-            := lift_linked' h _ _ rfl rfl
-
-        lemma contract_connected_iff : connected G <-> connected (G/S)
-            := { mp := λ h xx yy, by {
-                    obtain ⟨x, hx : ⟦x⟧ = xx⟩ := quot.exists_rep xx, subst hx,
-                    obtain ⟨y, hy : ⟦y⟧ = yy⟩ := quot.exists_rep yy, subst hy,
-                    exact project_linked (h x y) },
-                mpr := λ h x y, lift_linked (h ⟦x⟧ ⟦y⟧) }
-
-
-        @[simp] def bot {G : simple_graph V} : setup G := ⟨⊥, λ x y, false.rec _⟩
-        instance : has_bot (setup G) := ⟨bot⟩
-
-        lemma proj_bot_inj {x y : (@bot V G).support} : ⟦x⟧ = ⟦y⟧ -> x = y
-            := by { intro h, cases quotient.eq.mp h with p, cases p, refl, simp at p_h, contradiction }
-
-        lemma proj_bot_inj' {x y : (@bot V G).support} : G.adj x y -> ⟦x⟧ ≠ ⟦y⟧
-            | h1 h2 := G.loopless y $ by { rw proj_bot_inj h2 at h1, exact h1 }
-
-        def proj_bot : G →g G/⊥
-            := {
-                to_fun := λ x, ⟦x⟧,
-                map_rel' := λ x y h, ⟨proj_bot_inj' h, ⟨x,y,rfl,rfl,h⟩ ⟩
-            }
 
         def comp (S : setup G) (S' : setup (G/S)) : setup G
             := {
@@ -193,9 +115,7 @@ namespace simple_graph
                 sub := by { rintros xx yy ⟨x,y,h1,h2,h3⟩, substs xx yy, exact f.map_rel' (S.sub h3) }
             }
 
-        def is_contract (G : simple_graph V) (G' : simple_graph V') : Prop := ∃ S : contract.setup G', nonempty (G ≃g (G'/S))
-
-        def contract_isom (f : G ≃g G') (S : setup G) : setup G'
+        def contraction_isom (f : G ≃g G') (S : setup G) : setup G'
             := {
                 g := {
                     adj := λ x y, S.g.adj (f.inv_fun x) (f.inv_fun y),
@@ -206,24 +126,24 @@ namespace simple_graph
                     have := rel_iso.apply_symm_apply f x, exact this.symm, have := rel_iso.apply_symm_apply f y, exact this.symm }
             }
 
-        lemma contract_isom_inv (f : G ≃g G') (S : setup G) : contract_isom f.symm (contract_isom f S) = S
+        lemma contraction_isom_inv (f : G ≃g G') (S : setup G) : contraction_isom f.symm (contraction_isom f S) = S
             := by { have hf : f.symm.to_equiv.symm = f.to_equiv := by { ext, refl }, ext, split; intro h,
-                { simp [contract_isom,hf] at h, convert h; symmetry; exact rel_iso.symm_apply_apply _ _ },
-                { simp [contract_isom,hf], convert h; exact rel_iso.symm_apply_apply _ _ } }
+                { simp [contraction_isom,hf] at h, convert h; symmetry; exact rel_iso.symm_apply_apply _ _ },
+                { simp [contraction_isom,hf], convert h; exact rel_iso.symm_apply_apply _ _ } }
 
-        lemma linked_isom_mp (f : G ≃g G') (S : setup G) (x y : V) : S.g.linked x y -> (contract_isom f S).g.linked (f x) (f y)
+        lemma linked_isom_mp (f : G ≃g G') (S : setup G) (x y : V) : S.g.linked x y -> (contraction_isom f S).g.linked (f x) (f y)
             := by {
                 intro h, cases h with p, induction p with a a b c h q ih, refl,
                 refine linked.cons _ ih,
-                simp [contract_isom], convert h; exact rel_iso.symm_apply_apply _ _
+                simp [contraction_isom], convert h; exact rel_iso.symm_apply_apply _ _
             }
 
-        lemma linked_isom (f : G ≃g G') (S : setup G) (x y : V) : S.g.linked x y <-> (contract_isom f S).g.linked (f x) (f y)
+        lemma linked_isom (f : G ≃g G') (S : setup G) (x y : V) : S.g.linked x y <-> (contraction_isom f S).g.linked (f x) (f y)
             := by { split, exact linked_isom_mp f S x y, intro h,
-                replace h := linked_isom_mp f.symm (contract_isom f S) (f x) (f y) h,
-                simp [contract_isom_inv] at h, exact h }
+                replace h := linked_isom_mp f.symm (contraction_isom f S) (f x) (f y) h,
+                simp [contraction_isom_inv] at h, exact h }
 
-        noncomputable def map_isom (f : G ≃g G') (S : setup G) : (G/S) ≃g (G'/contract_isom f S)
+        noncomputable def map_isom (f : G ≃g G') (S : setup G) : (G/S) ≃g (G'/contraction_isom f S)
             := {
                     to_fun := λ xx, ⟦f xx.out⟧,
                     inv_fun := λ xx', ⟦f.symm xx'.out⟧,
@@ -232,13 +152,13 @@ namespace simple_graph
                         apply quotient.eq.mpr,
                         set x := out xx,
                         apply (linked_isom f _ _ _).mpr,
-                        simp, set y : (contract_isom f S).support := f x, exact mk_out y },
+                        simp, set y : (contraction_isom f S).support := f x, exact mk_out y },
                     right_inv := λ yy, by {
                         transitivity ⟦yy.out⟧, swap, exact out_eq yy,
                         apply quotient.eq.mpr,
                         set y := out yy,
                         apply (linked_isom f.symm _ _ _).mpr,
-                        simp, set x : S.support := f.symm y, rw contract_isom_inv, exact mk_out x },
+                        simp, set x : S.support := f.symm y, rw contraction_isom_inv, exact mk_out x },
                     map_rel_iff' := by {
                         intros xx yy, split,
                         { intro h, rcases h with ⟨h1,x',y',h2,h3,h4⟩, refine ⟨_,_⟩,
@@ -259,61 +179,36 @@ namespace simple_graph
                                 have := f.map_rel_iff', apply this.mpr, exact h4 } }
             }
 
-        @[trans] lemma trans : is_contract G G' -> is_contract G' G'' -> is_contract G G''
+        @[trans] lemma trans : is_contraction G G' -> is_contraction G' G'' -> is_contraction G G''
             := by { rintros ⟨S,⟨f1⟩⟩ ⟨S',⟨f2⟩⟩,
-                cases comp_sound (contract_isom f2 S) with φ,
-                refine ⟨comp S' (contract_isom f2 S), ⟨_⟩⟩,
+                cases comp_sound (contraction_isom f2 S) with φ,
+                refine ⟨comp S' (contraction_isom f2 S), ⟨_⟩⟩,
                 refine iso.comp φ.symm _, clear φ,
                 exact iso.comp (map_isom f2 S) f1 }
 
-        def empty_setup (G : simple_graph V): setup G := { g := ⊥, sub := λ x y, false.rec _ }
+    end contraction
+    open contraction
 
-        lemma eq_of_linked_bot : linked (⊥ : simple_graph V) x y -> x = y
-            := by { intro h, cases h with p, induction p with a a b c h p ih, refl, simp at h, contradiction }
-
-        lemma eq_of_same_class {x y : (empty_setup G).support} : ⟦x⟧ = ⟦y⟧ -> x = y
-            | h := eq_of_linked_bot (quotient.eq.mp h)
-
-        noncomputable def empty_iso : (G ≃g G/empty_setup G)
-            := {
-                to_fun := λ x, ⟦x⟧,
-                inv_fun := out,
-                left_inv := λ x, by { apply eq_of_same_class, simp },
-                right_inv := λ xx, by simp,
-                map_rel_iff' := λ x y, by { simp, split,
-                    { intro h, rcases h with ⟨h1,x',y',h2,h3,h4⟩,
-                        replace h2 := eq_of_same_class h2, subst x',
-                        replace h3 := eq_of_same_class h3, subst y', exact h4 },
-                    { intro h, refine ⟨_,x,y,rfl,rfl,h⟩,
-                        intro h1, replace h1 := eq_of_same_class h1, subst y, exact G.ne_of_adj h rfl } } }
-
-        @[refl] lemma refl : is_contract G G := ⟨empty_setup G,⟨empty_iso⟩⟩
-    end contract
-    open contract
-
-    def is_smaller (G : simple_graph V) (G' : simple_graph V') : Prop := ∃ f : G →g G', injective f
-
-    lemma smaller_refl : is_smaller G G := ⟨⟨id, λ x y, id⟩, injective_id⟩
-
-    def is_minor (G : simple_graph V) (G' : simple_graph V') : Prop := ∃ (V'' : Type) (G'' : simple_graph V''), is_smaller G G'' ∧ is_contract G'' G'
-
-    lemma minor_contract : is_minor G G' -> is_contract G' G'' -> is_minor G G''
-        | ⟨U,H,h3,h4⟩ h2 := ⟨U,H,h3,contract.trans h4 h2⟩
-
-    lemma minor_smaller : is_minor G G' -> is_smaller G' G'' -> is_minor G G''
-        := sorry
+    def is_minor (G : simple_graph V) (G' : simple_graph V') : Prop
+        := ∃ {V'' : Type} (G'' : simple_graph V''), G ≼s G'' ∧ G'' ≼c G'
 
     def is_forbidden (H : simple_graph V) (G : simple_graph V') := ¬ (is_minor H G)
 
     infix ` ≼ `:50 := is_minor
     infix ` ⋠ `:50 := is_forbidden
 
+    lemma minor_contraction : G ≼ G' -> G' ≼c G'' -> G ≼ G''
+        | ⟨U,H,h3,h4⟩ h2 := ⟨U,H,h3,contraction.trans h4 h2⟩
+
+    lemma minor_smaller : G ≼ G' -> G' ≼s G'' -> G ≼ G''
+        := sorry
+
     namespace minor
-        open contract quotient
+        open contraction quotient
 
         @[refl] lemma refl : G ≼ G := ⟨_,G,smaller_refl,refl⟩
 
         @[trans] lemma trans : G ≼ G' -> G' ≼ G'' -> G ≼ G''
-            | h1 ⟨U',H',h3,h4⟩ := minor_contract (minor_smaller h1 h3) h4
+            | h1 ⟨U',H',h3,h4⟩ := minor_contraction (minor_smaller h1 h3) h4
     end minor
 end simple_graph

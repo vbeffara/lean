@@ -12,6 +12,7 @@ end sym2
 
 namespace simple_graph
     variables {V': Type} {G : simple_graph V}
+    open function
 
     def adj.symm := G.symm
 
@@ -32,4 +33,10 @@ namespace simple_graph
                     cases h; { cases h, substs x' y', simp } }
             }
     end step
+
+    def is_smaller (G : simple_graph V) (G' : simple_graph V') : Prop := ∃ f : G →g G', injective f
+
+    infix ` ≼s `:50 := is_smaller
+
+    lemma smaller_refl : G ≼s G := ⟨⟨id, λ x y, id⟩, injective_id⟩
 end simple_graph

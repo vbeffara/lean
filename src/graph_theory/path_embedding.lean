@@ -17,6 +17,8 @@ namespace simple_graph
 
     def embeds_into (G : simple_graph V) (G' : simple_graph V') := nonempty (path_embedding G G')
 
+    infix ` ≼t `:50 := embeds_into -- TODO rename as topological minor
+
     namespace path_embedding
         variables {G : simple_graph V} {G' : simple_graph V'} (F : path_embedding G G')
         variables {x y z : V} {p : walk G x y} {p' : walk G y z}
