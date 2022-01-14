@@ -55,6 +55,8 @@ namespace simple_graph
                     sub := λ x y, by { rintros ⟨h1,h2⟩, cases h2, exact S.sub h2, exact h2.1 }
                 }
 
+            -- TODO : comp.setoid is setoid.ker (setoid.mk ∘ setoid.mk)
+
             namespace comp
                 lemma linked_mp : (S.comp S').g.linked x y -> S'.g.linked ⟦x⟧ ⟦y⟧
                     := by { rintro ⟨p⟩, induction p with a a b c h p ih, refl, cases h with h1 h2, cases h2,
@@ -113,6 +115,30 @@ namespace simple_graph
                             { intro h', dsimp at h', rw [eqv.symm,hγ,hγ] at h', exact h1 h' },
                             { refine ⟨_,_,eqv.mp (h2.trans hγ.symm),eqv.mp (h3.trans hγ.symm),_,x,y,rfl,rfl,h4⟩,
                                 intro h, substs a b, exact h1 (eqv.mpr (congr_arg g h)) } }
+                    }
+
+                def iso' {S : setup G} (S' : setup (G/S)) : G/comp S S' ≃g G/S/S'
+                    := by {
+                        let f : V -> S.clusters := quotient.mk,
+                        let g : S.clusters -> S'.clusters := quotient.mk,
+                        let h : V -> (S.comp S').clusters := quotient.mk,
+
+                        have eqv : ∀ {x y : V}, h x = h y <-> g (f x) = g (f y),
+                            by { intros, rw [quotient.eq,quotient.eq], exact linked },
+
+                        let φ₁ : (S.comp S').clusters → S'.clusters := quotient.lift (g ∘ f) (λ a b, eqv.mp ∘ quotient.eq.mpr),
+                        let φ₂ : S.clusters -> (S.comp S').clusters := quotient.lift h (λ a b, eqv.mpr ∘ congr_arg g ∘ quotient.eq.mpr),
+                        let φ₃ := @quotient.lift _ _ S'.setoid φ₂ (by { intros a b h, dsimp [φ₂],
+                                cases quotient.exists_rep a with x hx, cases quotient.exists_rep b with y hy, substs a b,
+                                rw [quotient.lift_mk,quotient.lift_mk], apply eqv.mpr, replace h := quotient.eq.mpr h, exact h }),
+
+                        let φ : (comp S S').clusters ≃ S'.clusters := {
+                            to_fun := φ₁,
+                            inv_fun := φ₃,
+                            left_inv := sorry,
+                            right_inv := sorry
+                        },
+                        sorry
                     }
             end comp
 
