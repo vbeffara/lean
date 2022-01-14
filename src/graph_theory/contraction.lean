@@ -17,6 +17,9 @@ namespace simple_graph
 
             def clusters (S : setup G) := quotient S.setoid
 
+            @[simp] def proj (S : setup G) : V -> clusters S := quotient.mk
+            @[simp] noncomputable def out (S : setup G) : clusters S -> V := quotient.out
+
             def adj (S : setup G) (x y : S.clusters) : Prop
                 := x ≠ y ∧ ∃ x' y' : S.support, ⟦x'⟧ = x ∧ ⟦y'⟧ = y ∧ G.adj x' y'
 
@@ -83,38 +86,33 @@ namespace simple_graph
                         { intro h, transitivity ⟦x⟧.out, apply linked_mpr_aux, symmetry, apply out_eq,
                             transitivity ⟦y⟧.out, exact linked_mpr h, apply linked_mpr_aux, apply out_eq } }
 
+                lemma linked' : (S.comp S').proj x = (S.comp S').proj y <-> S'.proj (S.proj x) = S'.proj (S.proj y)
+                    := by { simp only [proj,quotient.eq], exact linked }
+
                 noncomputable def iso {S : setup G} (S' : setup (G/S)) : G/comp S S' ≃g G/S/S'
                     := by {
-                        let f : V -> S.clusters := quotient.mk,
-                        let g : S.clusters -> S'.clusters := quotient.mk,
-                        let h : V -> (S.comp S').clusters := quotient.mk,
+                        let f := S.proj, let g := S'.proj, let h := (S.comp S').proj,
+                        let α := S.out, let β := S'.out, let γ := (S.comp S').out,
 
-                        let α : S.clusters -> V := out,
-                        let β : S'.clusters -> S.clusters := out,
-                        let γ : (S.comp S').clusters -> V := out,
-
-                        have fα : ∀ {x}, f (α x) = x, by simp [f,α],
-                        have gβ : ∀ {x}, g (β x) = x, by simp [g,β],
-                        have hγ : ∀ {x}, h (γ x) = x, by simp [h,γ],
-
-                        have eqv : ∀ {x y : V}, h x = h y <-> g (f x) = g (f y),
-                            by { intros, rw [quotient.eq,quotient.eq], exact linked },
+                        have fα : ∀ {x}, S.proj (S.out x) = x, by simp [proj,out],
+                        have gβ : ∀ {x}, S'.proj (S'.out x) = x, by simp [proj,out],
+                        have hγ : ∀ {x}, (S.comp S').proj ((S.comp S').out x) = x, by simp [proj,out],
 
                         let φ : (comp S S').clusters ≃ S'.clusters := {
-                            to_fun := g ∘ f ∘ γ,
-                            inv_fun := h ∘ α ∘ β,
-                            left_inv := λ _, eq.trans (eqv.mpr (by { rw [fα,gβ] })) hγ,
-                            right_inv := λ _, eq.trans (eqv.mp hγ) (by { rw [fα,gβ] })
+                            to_fun := λ x, g (f (γ x)),
+                            inv_fun := h ∘ S.out ∘ S'.out,
+                            left_inv := λ _, eq.trans (linked'.mpr (by { rw [fα,gβ] })) hγ,
+                            right_inv := λ _, eq.trans (linked'.mp hγ) (by { rw [fα,gβ] })
                         },
 
                         use φ, intros a b, split,
                         { rintro ⟨h1,xx,yy,h2,h3,h4,u,v,h5,h6,h7⟩, substs xx yy, split,
                             { exact h1 ∘ (congr_arg (g ∘ f ∘ γ)) },
-                            { exact ⟨u,v,(eqv.mpr h2).trans hγ,(eqv.mpr h3).trans hγ,h7⟩ } },
+                            { exact ⟨u,v,(linked'.mpr h2).trans hγ,(linked'.mpr h3).trans hγ,h7⟩ } },
                         { rintro ⟨h1,x,y,h2,h3,h4⟩, split,
-                            { intro h', dsimp at h', rw [eqv.symm,hγ,hγ] at h', exact h1 h' },
-                            { refine ⟨_,_,eqv.mp (h2.trans hγ.symm),eqv.mp (h3.trans hγ.symm),_,x,y,rfl,rfl,h4⟩,
-                                intro h, substs a b, exact h1 (eqv.mpr (congr_arg g h)) } }
+                            { simpa [linked'.symm,hγ] },
+                            { refine ⟨_,_,linked'.mp (h2.trans hγ.symm),linked'.mp (h3.trans hγ.symm),_,x,y,rfl,rfl,h4⟩,
+                                intro h, substs a b, exact h1 (linked'.mpr (congr_arg g h)) } }
                     }
 
                 def iso' {S : setup G} (S' : setup (G/S)) : G/comp S S' ≃g G/S/S'
@@ -123,8 +121,8 @@ namespace simple_graph
                         let g : S.clusters -> S'.clusters := quotient.mk,
                         let h : V -> (S.comp S').clusters := quotient.mk,
 
-                        have eqv : ∀ {x y : V}, h x = h y <-> g (f x) = g (f y),
-                            by { intros, rw [quotient.eq,quotient.eq], exact linked },
+                        have eqv : ∀ {x y : V}, h x = h y <-> g (f x) = g (f y)
+                            := λ x y, iff.trans quotient.eq (iff.trans linked (@quotient.eq _ S'.setoid _ _).symm),
 
                         let φ₁ : (S.comp S').clusters → S'.clusters := quotient.lift (g ∘ f) (λ a b, eqv.mp ∘ quotient.eq.mpr),
                         let φ₂ : S.clusters -> (S.comp S').clusters := quotient.lift h (λ a b, eqv.mpr ∘ congr_arg g ∘ quotient.eq.mpr),
@@ -135,6 +133,26 @@ namespace simple_graph
                         let φ : (comp S S').clusters ≃ S'.clusters := {
                             to_fun := φ₁,
                             inv_fun := φ₃,
+                            left_inv := sorry,
+                            right_inv := sorry
+                        },
+                        sorry
+                    }
+
+                def setoid.comp (s : setoid V) (s' : setoid (quotient s)) : setoid V
+                    := let f : V -> quotient s := quotient.mk,
+                           g : quotient s -> quotient s' := quotient.mk
+                        in setoid.ker (g ∘ f)
+
+                def iso'' {S : setup G} (S' : setup (G/S)) : G/comp S S' ≃g G/S/S'
+                    := by {
+                        let f₁ : (comp S S').support -> S'.clusters := S'.proj ∘ S.proj,
+                        let f₂ : (comp S S').clusters -> S'.clusters := quotient.lift f₁
+                            (by { sorry }),
+
+                        let φ : (comp S S').clusters ≃ S'.clusters := {
+                            to_fun := f₂,
+                            inv_fun := sorry,
                             left_inv := sorry,
                             right_inv := sorry
                         },
