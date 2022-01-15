@@ -115,49 +115,49 @@ namespace simple_graph
                                 intro h, substs a b, exact h1 (linked'.mpr (congr_arg g h)) } }
                     }
 
-                def iso' {S : setup G} (S' : setup (G/S)) : G/comp S S' ≃g G/S/S'
-                    := by {
-                        let f : V -> S.clusters := quotient.mk,
-                        let g : S.clusters -> S'.clusters := quotient.mk,
-                        let h : V -> (S.comp S').clusters := quotient.mk,
+                -- def iso' {S : setup G} (S' : setup (G/S)) : G/comp S S' ≃g G/S/S'
+                --     := by {
+                --         let f : V -> S.clusters := quotient.mk,
+                --         let g : S.clusters -> S'.clusters := quotient.mk,
+                --         let h : V -> (S.comp S').clusters := quotient.mk,
 
-                        have eqv : ∀ {x y : V}, h x = h y <-> g (f x) = g (f y)
-                            := λ x y, iff.trans quotient.eq (iff.trans linked (@quotient.eq _ S'.setoid _ _).symm),
+                --         have eqv : ∀ {x y : V}, h x = h y <-> g (f x) = g (f y)
+                --             := λ x y, iff.trans quotient.eq (iff.trans linked (@quotient.eq _ S'.setoid _ _).symm),
 
-                        let φ₁ : (S.comp S').clusters → S'.clusters := quotient.lift (g ∘ f) (λ a b, eqv.mp ∘ quotient.eq.mpr),
-                        let φ₂ : S.clusters -> (S.comp S').clusters := quotient.lift h (λ a b, eqv.mpr ∘ congr_arg g ∘ quotient.eq.mpr),
-                        let φ₃ := @quotient.lift _ _ S'.setoid φ₂ (by { intros a b h, dsimp [φ₂],
-                                cases quotient.exists_rep a with x hx, cases quotient.exists_rep b with y hy, substs a b,
-                                rw [quotient.lift_mk,quotient.lift_mk], apply eqv.mpr, replace h := quotient.eq.mpr h, exact h }),
+                --         let φ₁ : (S.comp S').clusters → S'.clusters := quotient.lift (g ∘ f) (λ a b, eqv.mp ∘ quotient.eq.mpr),
+                --         let φ₂ : S.clusters -> (S.comp S').clusters := quotient.lift h (λ a b, eqv.mpr ∘ congr_arg g ∘ quotient.eq.mpr),
+                --         let φ₃ := @quotient.lift _ _ S'.setoid φ₂ (by { intros a b h, dsimp [φ₂],
+                --                 cases quotient.exists_rep a with x hx, cases quotient.exists_rep b with y hy, substs a b,
+                --                 rw [quotient.lift_mk,quotient.lift_mk], apply eqv.mpr, replace h := quotient.eq.mpr h, exact h }),
 
-                        let φ : (comp S S').clusters ≃ S'.clusters := {
-                            to_fun := φ₁,
-                            inv_fun := φ₃,
-                            left_inv := sorry,
-                            right_inv := sorry
-                        },
-                        sorry
-                    }
+                --         let φ : (comp S S').clusters ≃ S'.clusters := {
+                --             to_fun := φ₁,
+                --             inv_fun := φ₃,
+                --             left_inv := sorry,
+                --             right_inv := sorry
+                --         },
+                --         sorry
+                --     }
 
-                def setoid.comp (s : setoid V) (s' : setoid (quotient s)) : setoid V
-                    := let f : V -> quotient s := quotient.mk,
-                           g : quotient s -> quotient s' := quotient.mk
-                        in setoid.ker (g ∘ f)
+                -- def setoid.comp (s : setoid V) (s' : setoid (quotient s)) : setoid V
+                --     := let f : V -> quotient s := quotient.mk,
+                --            g : quotient s -> quotient s' := quotient.mk
+                --         in setoid.ker (g ∘ f)
 
-                def iso'' {S : setup G} (S' : setup (G/S)) : G/comp S S' ≃g G/S/S'
-                    := by {
-                        let f₁ : (comp S S').support -> S'.clusters := S'.proj ∘ S.proj,
-                        let f₂ : (comp S S').clusters -> S'.clusters := quotient.lift f₁
-                            (by { sorry }),
+                -- def iso'' {S : setup G} (S' : setup (G/S)) : G/comp S S' ≃g G/S/S'
+                --     := by {
+                --         let f₁ : (comp S S').support -> S'.clusters := S'.proj ∘ S.proj,
+                --         let f₂ : (comp S S').clusters -> S'.clusters := quotient.lift f₁
+                --             (by { sorry }),
 
-                        let φ : (comp S S').clusters ≃ S'.clusters := {
-                            to_fun := f₂,
-                            inv_fun := sorry,
-                            left_inv := sorry,
-                            right_inv := sorry
-                        },
-                        sorry
-                    }
+                --         let φ : (comp S S').clusters ≃ S'.clusters := {
+                --             to_fun := f₂,
+                --             inv_fun := sorry,
+                --             left_inv := sorry,
+                --             right_inv := sorry
+                --         },
+                --         sorry
+                --     }
             end comp
 
             def fmap_isom (f : G ≃g G') (S : setup G) : setup G'
@@ -183,8 +183,6 @@ namespace simple_graph
                     := by { split, exact linked, intro h,
                         replace h := @linked V' V G' G (S.fmap_isom f) (f x) (f y) f.symm h,
                         simp [setup.fmap_isom.inv] at h, exact h }
-
-
             end fmap_isom
         end setup
 
@@ -279,4 +277,11 @@ namespace simple_graph
 
         @[refl] lemma refl : G ≼c G := ⟨⊥,⟨proj_bot⟩⟩
     end contraction
+
+    @[trans] lemma is_contraction.trans : G ≼c G' -> G' ≼c G'' -> G ≼c G''
+        | ⟨S,⟨f1⟩⟩ ⟨S',⟨f2⟩⟩ :=
+            let T := S.fmap_isom f2,
+                f3 := contraction.fmap_iso f2 S,
+                f4 := contraction.setup.comp.iso T
+            in ⟨S'.comp T,⟨f4.symm.comp (f3.comp f1)⟩⟩
 end simple_graph

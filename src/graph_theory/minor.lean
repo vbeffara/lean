@@ -7,49 +7,49 @@ namespace simple_graph
     open walk
     variables {V V' V'' : Type} {G : simple_graph V} {G' : simple_graph V'} {G'' : simple_graph V''}
 
-    namespace contraction
-        variables {S : setup G} {x y : S.support} {xx yy : S.clusters}
-        open classical quotient
-
-        variables {S' : setup (G/S)}
-
-        def extend {S' : setup G'} (f : G →g G'/S') (h : injective f) (S : setup G) : setup (G'/S')
-            := {
-                g := {
-                    adj := λ xx yy, ∃ x y : V, xx = f x ∧ yy = f y ∧ S.g.adj x y,
-                    symm := λ xx yy, by { rintros ⟨x,y,h1,h2,h3⟩, exact ⟨y,x,h2,h1,h3.symm⟩ },
-                    loopless := λ xx h', by { rcases h' with ⟨x,y,h1,h2,h'⟩, subst h1, refine S.g.ne_of_adj h' (h h2) }
-                },
-                sub := by { rintros xx yy ⟨x,y,h1,h2,h3⟩, substs xx yy, exact f.map_rel' (S.sub h3) }
-            }
-
-
-        @[trans] lemma trans : G ≼c G' -> G' ≼c G'' -> G ≼c G''
-            | ⟨S,⟨f1⟩⟩ ⟨S',⟨f2⟩⟩ := let T := S.fmap_isom f2 in
-                ⟨S'.comp T, ⟨(setup.comp.iso T).symm.comp ((map_isom f2 S).comp f1)⟩⟩
-    end contraction
-    open contraction
-
     def is_minor (G : simple_graph V) (G' : simple_graph V') : Prop
-        := ∃ {V'' : Type} (G'' : simple_graph V''), G ≼s G'' ∧ G'' ≼c G'
+        := ∃ {V'' : Type} (G'' : simple_graph V''), G ≼c G'' ∧ G'' ≼s G'
 
     def is_forbidden (H : simple_graph V) (G : simple_graph V') := ¬ (is_minor H G)
 
     infix ` ≼ `:50 := is_minor
     infix ` ⋠ `:50 := is_forbidden
 
-    lemma minor_contraction : G ≼ G' -> G' ≼c G'' -> G ≼ G''
-        | ⟨U,H,h3,h4⟩ h2 := ⟨U,H,h3,contraction.trans h4 h2⟩
+    lemma is_minor.then_contraction : G ≼ G' -> G' ≼c G'' -> G ≼ G''
+        := sorry
 
-    lemma minor_smaller : G ≼ G' -> G' ≼s G'' -> G ≼ G''
+    lemma is_minor.then_smaller : G ≼ G' -> G' ≼s G'' -> G ≼ G''
         := sorry
 
     namespace minor
-        open contraction quotient
+        lemma alt : G ≼s G' -> G' ≼c G'' -> G ≼ G''
+            | ⟨f₁,h₁⟩ ⟨S,⟨f₂⟩⟩ := by {
+                let U := { v // ∃ u, f₂ u = S.proj v }, use U,
+                let H : simple_graph U := {
+                    adj := G''.adj on subtype.val,
+                    symm := λ _ _ h, G''.symm h,
+                    loopless := λ _ h, G''.loopless _ h
+                }, use H, split,
+                {
+                    let S' : contraction.setup H := {
+                        g := {
+                            adj := S.g.adj on subtype.val,
+                            symm := λ _ _ h, S.g.symm h,
+                            loopless := λ _ h, S.g.loopless _ h
+                        },
+                        sub := λ a b h, S.sub h
+                    }, use S',
+                    let φ : G ≃g H/S' := sorry, use φ
+                },
+                { exact ⟨⟨subtype.val, λ _ _ h, h⟩, subtype.val_injective⟩ }
+            }
 
-        @[refl] lemma refl : G ≼ G := ⟨_,G,smaller_refl,refl⟩
+        @[refl] lemma refl : G ≼ G := ⟨_,G,contraction.refl,is_smaller.refl⟩
 
         @[trans] lemma trans : G ≼ G' -> G' ≼ G'' -> G ≼ G''
-            | h1 ⟨U',H',h3,h4⟩ := minor_contraction (minor_smaller h1 h3) h4
+            | ⟨U,H,h1,h2⟩ ⟨U',H',h3,h4⟩ := by {
+                rcases (alt h2 h3) with ⟨V,K,h5,h6⟩,
+                exact ⟨V,K,h1.trans h5,h6.trans h4⟩
+            }
     end minor
 end simple_graph

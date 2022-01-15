@@ -1,7 +1,7 @@
 import tactic
 import combinatorics.simple_graph.basic
 
-variables {V : Type}
+variables {V V' V'' : Type} {G : simple_graph V} {G' : simple_graph V'} {G'' : simple_graph V''}
 
 namespace sym2
     variables {z z' : sym2 V} {x y : V}
@@ -11,7 +11,7 @@ namespace sym2
 end sym2
 
 namespace simple_graph
-    variables {V': Type} {G : simple_graph V}
+    variables
     open function
 
     def adj.symm := G.symm
@@ -38,5 +38,8 @@ namespace simple_graph
 
     infix ` ≼s `:50 := is_smaller
 
-    lemma smaller_refl : G ≼s G := ⟨⟨id, λ x y, id⟩, injective_id⟩
+    @[refl] lemma is_smaller.refl : G ≼s G := ⟨⟨id, λ x y, id⟩, injective_id⟩
+
+    @[trans] lemma is_smaller.trans : G ≼s G' -> G' ≼s G'' -> G ≼s G''
+        | ⟨f₁,h₁⟩ ⟨f₂,h₂⟩ := ⟨f₂.comp f₁, injective.comp h₂ h₁⟩
 end simple_graph
