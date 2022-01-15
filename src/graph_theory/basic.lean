@@ -12,7 +12,7 @@ end sym2
 
 namespace simple_graph
     variables
-    open function
+    open function classical
 
     def adj.symm := G.symm
 
@@ -42,4 +42,22 @@ namespace simple_graph
 
     @[trans] lemma is_smaller.trans : G ≼s G' -> G' ≼s G'' -> G ≼s G''
         | ⟨f₁,h₁⟩ ⟨f₂,h₂⟩ := ⟨f₂.comp f₁, injective.comp h₂ h₁⟩
+
+    def range (f : V → V') : Type := { y : V' // ∃ x : V, f x = y }
+
+    def embed (f : V -> V') (h : injective f) (G : simple_graph V) : simple_graph (range f)
+        := {
+            adj := λ a b, G.adj (some a.property) (some b.property),
+            symm := λ a b h, G.symm h,
+            loopless := λ a, G.loopless _,
+        }
+
+    -- TODO : computable version of this taking a left inverse of f?
+    noncomputable def embed_iso [nonempty V] (f : V -> V') (h : injective f) (G : simple_graph V) : G ≃g embed f h G
+        := let φ : V -> range f := λ x, ⟨f x, x, rfl⟩,
+               ψ : range f -> V := λ y, some y.property in
+            have left_inv : ∀ x, ψ (φ x) = x := λ x, h (some_spec (subtype.property (φ x))),
+            have right_inv : ∀ y, φ (ψ y) = y := λ y, subtype.ext (some_spec y.property),
+            have rel_iff : ∀ x y, G.adj (ψ (φ x)) (ψ (φ y)) <-> G.adj x y := λ x y, by rw [left_inv,left_inv],
+            ⟨⟨φ,ψ,left_inv,right_inv⟩,rel_iff⟩
 end simple_graph
