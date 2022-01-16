@@ -4,7 +4,7 @@ open function
 open_locale classical
 
 namespace simple_graph
-    variables {V V' V'' : Type} {G : simple_graph V} {G' : simple_graph V'} {G'' : simple_graph V''}
+    variables {V V' V'' : Type} {G H : simple_graph V} {G' : simple_graph V'} {G'' : simple_graph V''}
 
     namespace contraction
         @[ext] structure setup (G : simple_graph V) := (g : simple_graph V) (sub : g ≤ G)
@@ -274,6 +274,10 @@ namespace simple_graph
                     { rintro ⟨h1,x',y',h2,h3,h4⟩, rw [<-proj_bot_inj h2, <-proj_bot_inj h3], exact h4 },
                     { intro h, refine ⟨_,x,y,rfl,rfl,h⟩,
                         intro h1, rw proj_bot_inj h1 at h, exact G.ne_of_adj h rfl } } }
+    end contraction
+
+    namespace is_contraction
+        open contraction
 
         @[refl] lemma refl : G ≼c G := ⟨⊥,⟨proj_bot⟩⟩
 
@@ -282,12 +286,12 @@ namespace simple_graph
 
         lemma iso_right : G ≼c G' -> G' ≃g G'' -> G ≼c G''
             | ⟨S,⟨ψ⟩⟩ φ := ⟨S.fmap_isom φ, ⟨(fmap_iso φ S).comp ψ⟩⟩
-    end contraction
 
-    @[trans] lemma is_contraction.trans : G ≼c G' -> G' ≼c G'' -> G ≼c G''
-        | ⟨S,⟨f1⟩⟩ ⟨S',⟨f2⟩⟩ :=
-            let T := S.fmap_isom f2,
-                f3 := contraction.fmap_iso f2 S,
-                f4 := contraction.setup.comp.iso T
-            in ⟨S'.comp T,⟨f4.symm.comp (f3.comp f1)⟩⟩
+        @[trans] lemma trans : G ≼c G' -> G' ≼c G'' -> G ≼c G''
+            | ⟨S,⟨f1⟩⟩ ⟨S',⟨f2⟩⟩ :=
+                let T := S.fmap_isom f2,
+                    f3 := fmap_iso f2 S,
+                    f4 := setup.comp.iso T
+                in ⟨S'.comp T,⟨f4.symm.comp (f3.comp f1)⟩⟩
+    end is_contraction
 end simple_graph

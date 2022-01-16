@@ -54,14 +54,14 @@ namespace is_smaller
     def range (f : V → V') : Type := { y : V' // ∃ x : V, f x = y }
 
     def embed {f : V -> V'} (h : injective f) (G : simple_graph V) : simple_graph { y : V' // ∃ x : V, f x = y }
-:= {
+        := {
             adj := λ a b, G.adj (some a.property) (some b.property),
             symm := λ a b h, G.symm h,
             loopless := λ a, G.loopless _,
         }
 
     -- TODO : computable version of this taking a left inverse of f?
-    noncomputable def embed_iso {f : V -> V'} (h : injective f) (G : simple_graph V) : G ≃g embed h G
+    noncomputable def embed_iso {f : V -> V'} {h : injective f} {G : simple_graph V} : G ≃g embed h G
         := let φ : V -> range f := λ x, ⟨f x, x, rfl⟩,
                ψ : range f -> V := λ y, some y.property in
             have left_inv : ∀ x, ψ (φ x) = x := λ x, h (some_spec (subtype.property (φ x))),
