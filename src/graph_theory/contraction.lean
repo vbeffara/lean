@@ -19,6 +19,7 @@ namespace simple_graph
 
             @[simp] def proj (S : setup G) : V -> clusters S := quotient.mk
             @[simp] noncomputable def out (S : setup G) : clusters S -> V := quotient.out
+            @[simp] lemma out_eq {S : setup G} {x : clusters S} : S.proj (S.out x) = x := quotient.out_eq x
 
             def adj (S : setup G) (x y : S.clusters) : Prop
                 := x ≠ y ∧ ∃ x' y' : S.support, ⟦x'⟧ = x ∧ ⟦y'⟧ = y ∧ G.adj x' y'
@@ -288,10 +289,55 @@ namespace simple_graph
             | ⟨S,⟨ψ⟩⟩ φ := ⟨S.fmap_isom φ, ⟨(fmap_iso φ S).comp ψ⟩⟩
 
         lemma le_left : G ≤ H -> H ≼c G' -> ∃ H' : simple_graph V', G ≼c H' ∧ H' ≤ G'
-            := sorry
+            := by {
+                rintros h₁ ⟨S,⟨φ⟩⟩,
+                sorry
+            }
 
         lemma select_left {pred : V -> Prop} : G ≼c G' -> ∃ pred' : V' -> Prop, select pred G ≼c select pred' G'
-            := sorry
+            | ⟨S,⟨φ⟩⟩ := by {
+
+                let pred' : V' -> Prop := pred ∘ φ.inv_fun ∘ S.proj, use pred',
+                let ψ : {x : V // pred x} -> {y : V' // pred' y} := by {
+                    intro x,
+                    have : pred' (φ x.val).out := by {
+                        change pred (φ.inv_fun (S.proj (S.out (φ.to_equiv.to_fun x.val)))),
+                        rw setup.out_eq, rw φ.left_inv, exact x.property
+                    },
+                    exact ⟨S.out (φ x.val),this⟩
+                },
+
+                let g' : simple_graph {x // pred' x} := {
+                    adj := S.g.adj on subtype.val,
+                    symm := λ _ _ h, S.g.symm h,
+                    loopless := λ _, S.g.loopless _
+                },
+
+                have sub' : g' ≤ select pred' G' := λ _ _ h, S.sub h,
+                let S' : setup (select pred' G') := ⟨g',sub'⟩,
+
+                let φ : select pred G ≃g select pred' G'/S' := {
+                    to_fun := S'.proj ∘ ψ,
+                    inv_fun := λ y, by {
+                        let a := y.out,
+                        let b := a.val,
+                        let c := S.proj b,
+                        let d := φ.inv_fun c,
+                        have : pred d := by {
+                            change pred (φ.inv_fun (S.proj y.out.val)),
+                            have := y.out.property,
+                            change pred' y.out.val at this,
+                            exact this
+                        },
+                        exact ⟨d,this⟩
+                    },
+                    left_inv := sorry,
+                    right_inv := sorry,
+                    map_rel_iff' := sorry
+                },
+
+                refine ⟨S',⟨φ⟩⟩
+            }
 
         @[trans] lemma trans : G ≼c G' -> G' ≼c G'' -> G ≼c G''
             | ⟨S,⟨f1⟩⟩ ⟨S',⟨f2⟩⟩ :=
