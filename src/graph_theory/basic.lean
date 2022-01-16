@@ -80,7 +80,9 @@ namespace simple_graph
             | h₁ ⟨⟨f,h₂⟩,h₃⟩ := ⟨⟨f,λ _ _ h, h₂ (h₁ h)⟩,h₃⟩
 
         lemma select_left {pred : V -> Prop} : G ≼s G' -> select pred G ≼s G'
-            := sorry
+            | ⟨⟨f,h₁⟩,h₂⟩ :=
+                let g : {x // pred x} -> V' := f ∘ subtype.val
+                in ⟨⟨g,λ a b,h₁⟩,h₂.comp subtype.val_injective⟩
 
         lemma iso_right : G ≼s G' -> G' ≃g G'' -> G ≼s G''
             | ⟨ψ,h⟩ φ := ⟨φ.to_hom.comp ψ, (equiv.comp_injective ψ φ.to_equiv).mpr h⟩
