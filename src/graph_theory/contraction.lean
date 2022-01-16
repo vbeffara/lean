@@ -287,6 +287,12 @@ namespace simple_graph
         lemma iso_right : G ≼c G' -> G' ≃g G'' -> G ≼c G''
             | ⟨S,⟨ψ⟩⟩ φ := ⟨S.fmap_isom φ, ⟨(fmap_iso φ S).comp ψ⟩⟩
 
+        lemma le_left : G ≤ H -> H ≼c G' -> ∃ H' : simple_graph V', G ≼c H' ∧ H' ≤ G'
+            := sorry
+
+        lemma select_left {pred : V -> Prop} : G ≼c G' -> ∃ pred' : V' -> Prop, select pred G ≼c select pred' G'
+            := sorry
+
         @[trans] lemma trans : G ≼c G' -> G' ≼c G'' -> G ≼c G''
             | ⟨S,⟨f1⟩⟩ ⟨S',⟨f2⟩⟩ :=
                 let T := S.fmap_isom f2,

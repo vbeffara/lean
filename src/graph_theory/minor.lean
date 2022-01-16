@@ -20,10 +20,15 @@ namespace simple_graph
             | h₁ ⟨U,H,h₂,h₃⟩ := ⟨_,_,h₂.iso_left h₁,h₃⟩
 
         lemma le_left : G ≤ H -> H ≼ G' -> G ≼ G'
-            := sorry
+            | h₁ ⟨U,H',h₂,h₃⟩ := by {
+                obtain ⟨H'',h₄,h₅⟩ := h₂.le_left h₁,
+                exact ⟨_,_,h₄,h₃.le_left h₅⟩ }
 
         lemma select_left {pred : V -> Prop} : G ≼ G' -> select pred G ≼ G'
-            := sorry
+            | ⟨U,H',h₂,h₃⟩ := by {
+                obtain ⟨pred,h₄⟩ := h₂.select_left,
+                exact ⟨_,_,h₄,h₃.select_left⟩
+            }
 
         lemma smaller_left : G ≼s G' -> G' ≼ G'' -> G ≼ G''
             | ⟨f₁,h₁⟩ h₂ :=
