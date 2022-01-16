@@ -77,7 +77,7 @@ namespace simple_graph
             | φ ⟨ψ,h⟩ := ⟨ψ.comp φ, (φ.to_equiv.injective_comp ⇑ψ).mpr h⟩
 
         lemma le_left : G ≤ H -> H ≼s G' -> G ≼s G'
-            := sorry
+            | h₁ ⟨⟨f,h₂⟩,h₃⟩ := ⟨⟨f,λ _ _ h, h₂ (h₁ h)⟩,h₃⟩
 
         lemma select_left {pred : V -> Prop} : G ≼s G' -> select pred G ≼s G'
             := sorry
