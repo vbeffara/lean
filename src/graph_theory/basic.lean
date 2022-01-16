@@ -76,7 +76,7 @@ namespace is_smaller
             loopless := λ x, G.loopless _,
         }
 
-    lemma embed_le_select {f : G →g G'} {h : injective f} : embed h G ≤ select (λ y, ∃ x, f x = y) G'
-        := by { intros x y, simp only [embed,select], let Ψ := f, --apply ,
-        }
+    lemma embed_le_select {f : G →g G'} {f_inj : injective f} : embed f_inj G ≤ select (λ y, ∃ x, f x = y) G'
+        := by { intros x y h, simp [select,on_fun], convert f.map_rel' h,
+            exact (some_spec x.property).symm, exact (some_spec y.property).symm }
 end simple_graph
