@@ -15,13 +15,24 @@ namespace simple_graph
     infix ` ≼ `:50 := is_minor
     infix ` ⋠ `:50 := is_forbidden
 
-    lemma is_minor.then_contraction : G ≼ G' -> G' ≼c G'' -> G ≼ G''
-        := sorry
+    namespace is_minor
+        lemma iso_left : G ≃g G' -> G' ≼ G'' -> G ≼ G''
+            := sorry
 
-    lemma is_minor.then_smaller : G ≼ G' -> G' ≼s G'' -> G ≼ G''
-        := sorry
+        lemma then_contraction : G ≼ G' -> G' ≼c G'' -> G ≼ G''
+            := sorry
+
+        lemma then_smaller : G ≼ G' -> G' ≼s G'' -> G ≼ G''
+            := sorry
+    end is_minor
 
     namespace minor
+        lemma toto : G ≼s G' -> G' ≼c G'' -> G ≼ G''
+            := by {
+                rintros ⟨f₁,h₁⟩ ⟨S,⟨f₂⟩⟩,
+                have h₂ := embed_iso h₁ G, refine is_minor.iso_left h₂ _,
+            }
+
         lemma alt : G ≼s G' -> G' ≼c G'' -> G ≼ G''
             | ⟨f₁,h₁⟩ ⟨S,⟨f₂⟩⟩ := by {
                 let U₀ := { y : V' // ∃ x : V, y = f₁ x },

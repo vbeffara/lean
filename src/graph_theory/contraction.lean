@@ -276,6 +276,12 @@ namespace simple_graph
                         intro h1, rw proj_bot_inj h1 at h, exact G.ne_of_adj h rfl } } }
 
         @[refl] lemma refl : G ≼c G := ⟨⊥,⟨proj_bot⟩⟩
+
+        lemma iso_left : G ≃g G' -> G' ≼c G'' -> G ≼c G''
+            | φ ⟨S,⟨ψ⟩⟩ := ⟨S,⟨ψ.comp φ⟩⟩
+
+        lemma iso_right : G ≼c G' -> G' ≃g G'' -> G ≼c G''
+            | ⟨S,⟨ψ⟩⟩ φ := ⟨S.fmap_isom φ, ⟨(fmap_iso φ S).comp ψ⟩⟩
     end contraction
 
     @[trans] lemma is_contraction.trans : G ≼c G' -> G' ≼c G'' -> G ≼c G''
