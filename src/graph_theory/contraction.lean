@@ -323,16 +323,13 @@ namespace simple_graph
                             },
                             { intro h₁, split,
                                 { exact H.ne_of_adj h₁ },
-                                { have h₂ := sub h₁, simp [contraction,setup.adj] at h₂,
-                                    rcases h₂ with ⟨h₂,x',h₃,y',h₄,h₅⟩,
-                                    use x',
-                                    use y',
-                                    split, exact h₃,
-                                    split, exact h₄,
-                                    right, split, exact h₅, rw [<-h₃,<-h₄] at h₁, exact h₁
+                                {
+                                    rcases sub h₁ with ⟨h₂,x',y',h₃,h₄,h₅⟩,
+                                    substs h₃ h₄,
+                                    refine ⟨x',y',rfl,rfl,or.inr ⟨h₅,h₁⟩⟩
                                 }
                             }
-                        },
+                        }
                     }
         end detail_le_contraction
 
