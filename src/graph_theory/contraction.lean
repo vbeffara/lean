@@ -292,9 +292,8 @@ namespace simple_graph
             def lift_le {S : setup G} (H : simple_graph S.clusters) : simple_graph V
                 := {
                     adj := λ x y, S.g.adj x y ∨ (G.adj x y ∧ H.adj (S.proj x) (S.proj y)),
-                    symm := λ x y, by { intro h, cases h, left, symmetry, exact h,
-                        right, split, symmetry, exact h.1, symmetry, exact h.2 },
-                    loopless := λ x, by simp
+                    symm := λ x y h, by { cases h, exact or.inl h.symm, exact or.inr ⟨h.1.symm,h.2.symm⟩ },
+                    loopless := λ x h, by { cases h, exact S.g.irrefl h, exact G.irrefl h.1 }
                 }
 
             lemma lift_le_le {S : setup G} (H : simple_graph S.clusters) : lift_le H ≤ G
@@ -309,39 +308,23 @@ namespace simple_graph
                         inv_fun := λ y, y,
                         left_inv := λ x, rfl,
                         right_inv := λ y, rfl,
-                        map_rel_iff' := λ x y, by {
-                            simp only [setup.adj, equiv.coe_fn_mk, contraction],
-                            split,
-                            { rintros ⟨h₁,x',y',h₂,h₃,h₄⟩, cases h₄,
-                                { have : S.g.linked x' y' := linked.step h₄,
-                                    have : ⟦x'⟧ = ⟦y'⟧,
-                                        { change (lift_setup S H).proj x' = (lift_setup S H).proj y',
-                                            simp only [setup.proj, quotient.eq],
-                                            exact this },
-                                    rw [h₂,h₃] at this, contradiction },
-                                { rw [<-h₂,<-h₃], exact h₄.2 }
+                        map_rel_iff' := λ x y, by { simp only [setup.adj, equiv.coe_fn_mk, contraction], split,
+                            { rintros ⟨h₁,x',y',h₂,h₃,h₄⟩, substs h₂ h₃, cases h₄,
+                                { have : ⟦x'⟧ = ⟦y'⟧ := quotient.eq.mpr (linked.step h₄), contradiction },
+                                { exact h₄.2 }
                             },
-                            { intro h₁, split,
-                                { exact H.ne_of_adj h₁ },
-                                {
-                                    rcases sub h₁ with ⟨h₂,x',y',h₃,h₄,h₅⟩,
-                                    substs h₃ h₄,
-                                    refine ⟨x',y',rfl,rfl,or.inr ⟨h₅,h₁⟩⟩
-                                }
-                            }
+                            { intro h₁, refine ⟨H.ne_of_adj h₁, _⟩, rcases sub h₁ with ⟨h₂,x',y',h₃,h₄,h₅⟩,
+                                substs h₃ h₄, exact ⟨x',y',rfl,rfl,or.inr ⟨h₅,h₁⟩⟩ }
                         }
                     }
         end detail_le_contraction
 
         lemma le_contraction {S : setup G} {H : simple_graph S.clusters} (sub : H ≤ (G/S)) : ∃ H' : simple_graph V, H ≼c H' ∧ H' ≤ G
-            := by {
-                have sub' := detail_le_contraction.lift_le_le H,
-                set H' := detail_le_contraction.lift_le H,
-                set ψ := detail_le_contraction.iso sub,
-                refine ⟨H',_,sub'⟩, exact ⟨_,⟨ψ⟩⟩
-            }
+            :=  let H' := detail_le_contraction.lift_le H,
+                    ψ := detail_le_contraction.iso sub
+                in ⟨H',⟨_,⟨ψ⟩⟩,detail_le_contraction.lift_le_le H⟩
 
-        namespace detail_le_left
+        namespace le_left
             def push_iso (H : simple_graph V) (φ : V ≃ V') : simple_graph V'
                 := ⟨H.adj on φ.inv_fun, λ _ _ h, H.symm h, λ _, H.loopless _⟩
 
@@ -351,27 +334,20 @@ namespace simple_graph
                     inv_fun := φ.inv_fun,
                     left_inv := φ.left_inv,
                     right_inv := φ.right_inv,
-                    map_rel_iff' := by {
-                        have : ∀ x, φ.symm (φ x) = x := equiv.symm_apply_apply φ,
-                        intros x y, simp [push_iso,on_fun], rw [this x, this y]
-                    }
+                    map_rel_iff' := λ x y, by { unfold push_iso, simp only [on_fun], simp }
                 }
 
             lemma push_iso_le {H G : simple_graph V} {G' : simple_graph V'} (φ : G ≃g G') (sub : H ≤ G) : push_iso H φ.to_equiv ≤ G'
-                := by { intros x y,
-                    let x' := φ.inv_fun x, have : x = φ.to_fun x' := (φ.right_inv x).symm, rw this,
-                    let y' := φ.inv_fun y, have : y = φ.to_fun y' := (φ.right_inv y).symm, rw this,
-                    intro h, simp [push_iso,on_fun] at h, have h' := sub h,
-                    change G.adj (φ.inv_fun (φ.to_fun x')) (φ.inv_fun (φ.to_fun y')) at h',
-                    rw [φ.left_inv,φ.left_inv] at h', exact φ.map_rel_iff.mpr h' }
-        end detail_le_left
+                := by { intros x y h, rw [<-(φ.right_inv x),<-(φ.right_inv y)] at h ⊢,
+                    have h' := sub h, rw [φ.left_inv,φ.left_inv] at h', exact φ.map_rel_iff.mpr h' }
+        end le_left
 
         lemma le_left : G ≤ H -> H ≼c G' -> ∃ H' : simple_graph V', G ≼c H' ∧ H' ≤ G'
             := by {
                 rintros h₁ ⟨S,⟨φ⟩⟩,
-                have sub := detail_le_left.push_iso_le φ h₁,
-                have iso := detail_le_left.push_iso_iso G φ.to_equiv,
-                set K := detail_le_left.push_iso G φ.to_equiv,
+                have sub := le_left.push_iso_le φ h₁,
+                have iso := le_left.push_iso_iso G φ.to_equiv,
+                set K := le_left.push_iso G φ.to_equiv,
                 rcases le_contraction sub with ⟨L,L_c,L_le⟩,
                 refine ⟨L, iso_left iso L_c, L_le⟩
             }
