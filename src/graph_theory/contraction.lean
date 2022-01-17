@@ -352,14 +352,39 @@ namespace simple_graph
                 refine ⟨L, iso_left iso L_c, L_le⟩
             }
 
-        lemma select_left {pred : V -> Prop} : G ≼c G' -> ∃ pred' : V' -> Prop, select pred G ≼c select pred' G'
-            := sorry
-
         @[trans] lemma trans : G ≼c G' -> G' ≼c G'' -> G ≼c G''
             | ⟨S,⟨f1⟩⟩ ⟨S',⟨f2⟩⟩ :=
                 let T := S.fmap_isom f2,
                     f3 := fmap_iso f2 S,
                     f4 := setup.comp.iso T
                 in ⟨S'.comp T,⟨f4.symm.comp (f3.comp f1)⟩⟩
+
+        namespace select_left.detail
+            variables {S : setup G} {P : S.clusters -> Prop}
+
+            def push_pred (P : V -> Prop) (φ : V ≃ V') : V' -> Prop := P ∘ φ.inv_fun
+
+            lemma push_pred_iso (P : V -> Prop) (φ : G ≃g G') : select P G ≃g select (push_pred P φ.to_equiv) G'
+                := {
+                    to_fun := λ x, ⟨φ x.val,
+                        by { have h₁ := x.property, rw <-equiv.symm_apply_apply φ.to_equiv x.val at h₁, exact h₁ }⟩,
+                    inv_fun := λ y, ⟨φ.symm y.val, y.property⟩,
+                    left_inv := λ x, by simp,
+                    right_inv := λ x, by simp,
+                    map_rel_iff' := λ a b, by { simp [push_pred,select,on_fun], have := φ.map_rel_iff', exact this }
+                }
+
+            lemma select_contraction (P : S.clusters -> Prop) : ∃ (P' : V -> Prop), select P (G/S) ≼c select P' G
+                := sorry
+        end select_left.detail
+
+        lemma select_left {P : V -> Prop} : G ≼c G' -> ∃ P' : V' -> Prop, select P G ≼c select P' G'
+            := by {
+                rintros ⟨S,⟨φ⟩⟩,
+                let P'' : S.clusters -> Prop := select_left.detail.push_pred P φ.to_equiv,
+                have h₁ := select_left.detail.push_pred_iso P φ,
+                cases select_left.detail.select_contraction P'' with P' h₂,
+                exact ⟨P', trans (iso_left h₁ refl) h₂⟩
+            }
     end is_contraction
 end simple_graph
