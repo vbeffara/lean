@@ -327,11 +327,15 @@ namespace simple_graph
                     let P' : V -> Prop := P ∘ S.proj, use P',
                     let S' : setup (subtype_graph G P') := subtype_setup S P', use S',
                     let φ : subtype_graph (G/S) P ≃g subtype_graph G P'/S' := {
-                        to_fun := sorry,
-                        inv_fun := sorry,
-                        left_inv := sorry,
-                        right_inv := sorry,
-                        map_rel_iff' := sorry
+                        to_fun := λ x, S'.proj ⟨S.out x.val, by { have h := x.property, simp [P'], exact h }⟩,
+                        inv_fun := λ y, ⟨S.proj (S'.out y).val, (S'.out y).property⟩,
+                        left_inv := λ x, by { cases x with x h, ext,
+                            change S.proj (S'.out (S'.proj ⟨S.out x, _⟩)).val = x,
+                            sorry },
+                        right_inv := λ y, by {
+                            change S'.proj ⟨S.out (S.proj (S'.out y).val), _⟩ = y,
+                            sorry },
+                        map_rel_iff' := by { sorry }
                     },
                     use φ
                 }
