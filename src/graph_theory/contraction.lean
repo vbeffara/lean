@@ -288,136 +288,48 @@ namespace simple_graph
         lemma iso_right : G ≼c G' -> G' ≃g G'' -> G ≼c G''
             | ⟨S,⟨ψ⟩⟩ φ := ⟨S.fmap_isom φ, ⟨(fmap_iso φ S).comp ψ⟩⟩
 
-        lemma le_left : G ≤ H -> H ≼c G' -> ∃ H' : simple_graph V', G ≼c H' ∧ H' ≤ G'
+        lemma le_contraction {S : setup G} {H : simple_graph S.clusters} : H ≤ (G/S) -> ∃ H' : simple_graph V, H ≼c H' ∧ H' ≤ G
             := by {
-                rintros h₁ ⟨S,⟨φ⟩⟩,
                 sorry
             }
 
-        namespace detail
-            -- want : H ≼p G and G ≼c G' -> ∃ H', H ≼c H' and H' ≼p G'
-            -- want : H = select pred G and G ≃g G'/S -> H ≃g (select pred' G')/S'
-            -- data : (G : simple_graph V) (G' : simple_graph V') (pred : V -> Prop) (S : setup G') (φ : G ≃g G'/S)
-            -- construction : (pred' : V' -> Prop) (S' : setup (select pred' G'))
+        namespace detail_le_left
+            def push_iso (H : simple_graph V) (φ : V ≃ V') : simple_graph V'
+                := ⟨H.adj on φ.inv_fun, λ _ _ h, H.symm h, λ _, H.loopless _⟩
 
-            variables {P : V -> Prop} {S' : setup G'} {φ : G ≃g G'/S'}
-
-            def cluster_pred (P : V -> Prop) (φ : G ≃g G'/S') : S'.clusters -> Prop
-                := P ∘ φ.inv_fun
-
-            def restrict_φ (P : V -> Prop) (φ : G ≃g G'/S') : subtype P -> subtype (cluster_pred P φ)
-                | ⟨x,h⟩ := ⟨φ x, by { change P (φ.to_equiv.inv_fun (φ.to_equiv.to_fun x)), rw φ.left_inv, exact h }⟩
-
-            def lift_pred (P : V -> Prop) (φ : G ≃g G'/S') : V' -> Prop
-                := (cluster_pred P φ) ∘ S'.proj
-
-            def subtype_graph (G : simple_graph V) (P : V -> Prop) : simple_graph (subtype P)
+            def push_iso_iso (H : simple_graph V) (φ : V ≃ V') : H ≃g push_iso H φ
                 := {
-                    adj := G.adj on subtype.val,
-                    symm := λ _ _ h, G.symm h,
-                    loopless := λ _, G.loopless _
+                    to_fun := φ.to_fun,
+                    inv_fun := φ.inv_fun,
+                    left_inv := φ.left_inv,
+                    right_inv := φ.right_inv,
+                    map_rel_iff' := by {
+                        have : ∀ x, φ.symm (φ x) = x := equiv.symm_apply_apply φ,
+                        intros x y, simp [push_iso,on_fun], rw [this x, this y]
+                    }
                 }
 
-            def subtype_setup (S : setup G) (P : V -> Prop) : setup (subtype_graph G P)
-                := ⟨subtype_graph S.g P, λ _ _ h, S.sub h⟩
+            lemma push_iso_le {H G : simple_graph V} {G' : simple_graph V'} (φ : G ≃g G') (sub : H ≤ G) : push_iso H φ.to_equiv ≤ G'
+                := by { intros x y,
+                    let x' := φ.inv_fun x, have : x = φ.to_fun x' := (φ.right_inv x).symm, rw this,
+                    let y' := φ.inv_fun y, have : y = φ.to_fun y' := (φ.right_inv y).symm, rw this,
+                    intro h, simp [push_iso,on_fun] at h, have h' := sub h,
+                    change G.adj (φ.inv_fun (φ.to_fun x')) (φ.inv_fun (φ.to_fun y')) at h',
+                    rw [φ.left_inv,φ.left_inv] at h', exact φ.map_rel_iff.mpr h' }
+        end detail_le_left
 
-            lemma pred_left (S : setup G) (P : S.clusters -> Prop) : ∃ (P' : V -> Prop), ∃ (S' : setup (subtype_graph G P')),
-                                                                        nonempty (subtype_graph (G/S) P ≃g (subtype_graph G P')/S')
-                := by {
-                    let P' : V -> Prop := P ∘ S.proj, use P',
-                    let S' : setup (subtype_graph G P') := subtype_setup S P', use S',
-                    let φ : subtype_graph (G/S) P ≃g subtype_graph G P'/S' := {
-                        to_fun := λ x, S'.proj ⟨S.out x.val, by { have h := x.property, simp [P'], exact h }⟩,
-                        inv_fun := λ y, ⟨S.proj (S'.out y).val, (S'.out y).property⟩,
-                        left_inv := λ x, by { cases x with x h, ext,
-                            change S.proj (S'.out (S'.proj ⟨S.out x, _⟩)).val = x,
-                            sorry },
-                        right_inv := λ y, by {
-                            change S'.proj ⟨S.out (S.proj (S'.out y).val), _⟩ = y,
-                            sorry },
-                        map_rel_iff' := by { sorry }
-                    },
-                    use φ
-                }
-
-            def lift_setup (P : V -> Prop) (φ : G ≃g G'/S') : setup (select (lift_pred P φ) G')
-                := subtype_setup S' (lift_pred P φ)
-
-            noncomputable def toto : (lift_setup P φ).clusters ≃ subtype (cluster_pred P φ)
-                := {
-                    to_fun := λ xx, ⟨S'.proj xx.out.val, xx.out.property⟩,
-                    inv_fun := λ yy, (lift_setup P φ).proj ⟨yy.val.out, by { have h := yy.property, simpa [lift_pred] }⟩,
-                    left_inv := λ xx, by {
-                        change ((lift_setup P φ).proj ⟨(S'.proj xx.out.val).out, by { have h := xx.out.property, simpa [lift_pred] }⟩) = xx,
-                        sorry
-                    },
-                    right_inv := λ yy, by { sorry }
-                }
-
-            def adapted (P' : V' -> Prop) (S' : setup G') : Prop := ∀ {x y : V'}, S'.proj x = S'.proj y -> (P' x <-> P' y)
-
-            lemma lemma1 : adapted (lift_pred P φ) S'
-                := λ x y h, by simp only [lift_pred,function.comp_app,h]
-
-            noncomputable def restrict (φ : G ≃g G'/S') (P : V -> Prop) : subtype P -> (lift_setup P φ).clusters
-                | ⟨x,hₓ⟩ := (lift_setup P φ).proj ⟨(φ x).out,
-                    by { change P (φ.inv_fun (S'.proj (S'.out (φ.to_fun x)))), rw [setup.out_eq,φ.left_inv], exact hₓ }⟩
-
-            -- φ.to_fun : V -> S'.clusters
-            --
-            def restrict' (φ : G ≃g G'/S') (P : V -> Prop) : subtype P -> (lift_setup P φ).clusters
-                := by {
-                    intro x, let y := φ x,
-                }
-
-            noncomputable def restrict_inv (φ : G ≃g G'/S') (P : V -> Prop) : (lift_setup P φ).clusters -> subtype P
-                | y := ⟨φ.inv_fun (S'.proj y.out.val), y.out.property⟩
-
-            lemma lemma3 {x : V} {h : P x} : restrict φ P ⟨x,h⟩ = (lift_setup P φ).proj (_ : { o : V' // P (φ.inv_fun (S'.proj o)) })
-
-            lemma lemma2 : left_inverse (restrict_inv φ P) (restrict φ P)
-                := by {
-                    intro x, ext,
-                    -- change φ.inv_fun (S'.proj (subtype.val ((lift_setup P φ).out (restrict φ P x)))) = x.val,
-                    apply φ.left_inv.injective,
-                    change φ (restrict_inv φ P (restrict φ P x)) = φ x,
-                    sorry
-                }
-
-            lemma lemma3 : right_inverse (restrict_inv φ P) (restrict φ P) := sorry
-        end detail
+        lemma le_left : G ≤ H -> H ≼c G' -> ∃ H' : simple_graph V', G ≼c H' ∧ H' ≤ G'
+            := by {
+                rintros h₁ ⟨S,⟨φ⟩⟩,
+                have sub := detail_le_left.push_iso_le φ h₁,
+                have iso := detail_le_left.push_iso_iso G φ.to_equiv,
+                set K := detail_le_left.push_iso G φ.to_equiv,
+                rcases le_contraction sub with ⟨L,L_c,L_le⟩,
+                refine ⟨L, iso_left iso L_c, L_le⟩
+            }
 
         lemma select_left {pred : V -> Prop} : G ≼c G' -> ∃ pred' : V' -> Prop, select pred G ≼c select pred' G'
-            | ⟨S,⟨φ⟩⟩ := by {
-                let pred' : V' -> Prop := detail.lift_pred pred φ, use pred',
-                let S' := detail.lift_setup pred φ, use S',
-                refine ⟨_⟩,
-
-                --------
-
-                have lemma3 : ∀ {x y : { y // pred' y }}, S'.g.adj x y <-> S.g.adj x.val y.val := λ x y, iff.rfl,
-
-                have lemma1 : ∀ {x y : { y // pred' y }}, S'.g.linked x y <-> S.g.linked x.val y.val
-                    := by {
-                        intros x y, split,
-                        { rintro ⟨p⟩, induction p with a a b c h p ih, refl, exact linked.cons (lemma3.mp h) ih },
-                        { rintro ⟨p⟩, induction p with a a b c h p ih generalizing x y, sorry, sorry }
-                    },
-
-                have lemma2 : ∀ x y : { y // pred' y }, S'.proj x = S'.proj y <-> S.proj x.val = S.proj y.val := sorry,
-
-                have := detail.lemma2,
-
-                let Φ : select pred G ≃g (select pred' G')/S' := {
-                    to_fun := detail.restrict φ pred,
-                    inv_fun := detail.restrict_inv φ pred,
-                    left_inv := detail.lemma2,
-                    right_inv := detail.lemma3,
-                    map_rel_iff' := sorry
-                },
-
-                refine ⟨S',⟨Φ⟩⟩
-            }
+            := sorry
 
         @[trans] lemma trans : G ≼c G' -> G' ≼c G'' -> G ≼c G''
             | ⟨S,⟨f1⟩⟩ ⟨S',⟨f2⟩⟩ :=
