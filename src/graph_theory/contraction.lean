@@ -288,9 +288,64 @@ namespace simple_graph
         lemma iso_right : G ≼c G' -> G' ≃g G'' -> G ≼c G''
             | ⟨S,⟨ψ⟩⟩ φ := ⟨S.fmap_isom φ, ⟨(fmap_iso φ S).comp ψ⟩⟩
 
-        lemma le_contraction {S : setup G} {H : simple_graph S.clusters} : H ≤ (G/S) -> ∃ H' : simple_graph V, H ≼c H' ∧ H' ≤ G
+        namespace detail_le_contraction
+            def lift_le {S : setup G} (H : simple_graph S.clusters) : simple_graph V
+                := {
+                    adj := λ x y, S.g.adj x y ∨ (G.adj x y ∧ H.adj (S.proj x) (S.proj y)),
+                    symm := λ x y, by { intro h, cases h, left, symmetry, exact h,
+                        right, split, symmetry, exact h.1, symmetry, exact h.2 },
+                    loopless := λ x, by simp
+                }
+
+            lemma lift_le_le {S : setup G} (H : simple_graph S.clusters) : lift_le H ≤ G
+                := by { intros x y h, cases h, exact S.sub h, exact h.1 }
+
+            def lift_setup (S : setup G) (H : simple_graph S.clusters) : setup (lift_le H)
+                := ⟨S.g, λ x y, or.inl⟩
+
+            def iso {S : setup G} {H : simple_graph S.clusters} (sub : H ≤ G/S) : H ≃g (lift_le H)/(lift_setup S H)
+                := by {
+                    have same_setoid : S.setoid = (lift_setup S H).setoid,
+                        by { ext, simp [setup.setoid,setoid.rel,lift_setup] },
+                    have same_clusters : S.clusters = (lift_setup S H).clusters,
+                        by { refl },
+                    have same_proj : S.proj = (lift_setup S H).proj,
+                        by { refl },
+                    exact {
+                        to_fun := λ x, x,
+                        inv_fun := λ y, y,
+                        left_inv := λ x, rfl,
+                        right_inv := λ y, rfl,
+                        map_rel_iff' := by {
+                            intros x y, simp [lift_setup,lift_le,contraction,setup.adj], split,
+                            { rintros ⟨h₁,x',h₂,y',h₃,h₄⟩, cases h₄,
+                                { have : S.g.linked x' y' := linked.step h₄,
+                                    have : ⟦x'⟧ = ⟦y'⟧,
+                                        { change (lift_setup S H).proj x' = (lift_setup S H).proj y',
+                                            rw <-same_proj, simp, exact this },
+                                    rw [h₂,h₃] at this, contradiction },
+                                { rw [<-h₂,<-h₃], exact h₄.2 }
+                            },
+                            { intro h₁, split,
+                                { exact H.ne_of_adj h₁ },
+                                { have h₂ := sub h₁, simp [contraction,setup.adj] at h₂,
+                                    rcases h₂ with ⟨h₂,x',h₃,y',h₄,h₅⟩,
+                                    use x', split, exact h₃,
+                                    use y', split, exact h₄,
+                                    right, split, exact h₅, rw h₃, rw h₄, exact h₁
+                                }
+                            }
+                        },
+                    }
+                }
+        end detail_le_contraction
+
+        lemma le_contraction {S : setup G} {H : simple_graph S.clusters} (sub : H ≤ (G/S)) : ∃ H' : simple_graph V, H ≼c H' ∧ H' ≤ G
             := by {
-                sorry
+                have sub' := detail_le_contraction.lift_le_le H,
+                set H' := detail_le_contraction.lift_le H,
+                set ψ := detail_le_contraction.iso sub,
+                refine ⟨H',_,sub'⟩, exact ⟨_,⟨ψ⟩⟩
             }
 
         namespace detail_le_left
