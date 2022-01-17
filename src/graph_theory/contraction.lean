@@ -1,4 +1,4 @@
-import tactic
+import tactic data.equiv.basic
 import graph_theory.basic graph_theory.path_embedding
 open function
 open_locale classical
@@ -115,50 +115,6 @@ namespace simple_graph
                             { refine ⟨_,_,linked'.mp (h2.trans hγ.symm),linked'.mp (h3.trans hγ.symm),_,x,y,rfl,rfl,h4⟩,
                                 intro h, substs a b, exact h1 (linked'.mpr (congr_arg g h)) } }
                     }
-
-                -- def iso' {S : setup G} (S' : setup (G/S)) : G/comp S S' ≃g G/S/S'
-                --     := by {
-                --         let f : V -> S.clusters := quotient.mk,
-                --         let g : S.clusters -> S'.clusters := quotient.mk,
-                --         let h : V -> (S.comp S').clusters := quotient.mk,
-
-                --         have eqv : ∀ {x y : V}, h x = h y <-> g (f x) = g (f y)
-                --             := λ x y, iff.trans quotient.eq (iff.trans linked (@quotient.eq _ S'.setoid _ _).symm),
-
-                --         let φ₁ : (S.comp S').clusters → S'.clusters := quotient.lift (g ∘ f) (λ a b, eqv.mp ∘ quotient.eq.mpr),
-                --         let φ₂ : S.clusters -> (S.comp S').clusters := quotient.lift h (λ a b, eqv.mpr ∘ congr_arg g ∘ quotient.eq.mpr),
-                --         let φ₃ := @quotient.lift _ _ S'.setoid φ₂ (by { intros a b h, dsimp [φ₂],
-                --                 cases quotient.exists_rep a with x hx, cases quotient.exists_rep b with y hy, substs a b,
-                --                 rw [quotient.lift_mk,quotient.lift_mk], apply eqv.mpr, replace h := quotient.eq.mpr h, exact h }),
-
-                --         let φ : (comp S S').clusters ≃ S'.clusters := {
-                --             to_fun := φ₁,
-                --             inv_fun := φ₃,
-                --             left_inv := sorry,
-                --             right_inv := sorry
-                --         },
-                --         sorry
-                --     }
-
-                -- def setoid.comp (s : setoid V) (s' : setoid (quotient s)) : setoid V
-                --     := let f : V -> quotient s := quotient.mk,
-                --            g : quotient s -> quotient s' := quotient.mk
-                --         in setoid.ker (g ∘ f)
-
-                -- def iso'' {S : setup G} (S' : setup (G/S)) : G/comp S S' ≃g G/S/S'
-                --     := by {
-                --         let f₁ : (comp S S').support -> S'.clusters := S'.proj ∘ S.proj,
-                --         let f₂ : (comp S S').clusters -> S'.clusters := quotient.lift f₁
-                --             (by { sorry }),
-
-                --         let φ : (comp S S').clusters ≃ S'.clusters := {
-                --             to_fun := f₂,
-                --             inv_fun := sorry,
-                --             left_inv := sorry,
-                --             right_inv := sorry
-                --         },
-                --         sorry
-                --     }
             end comp
 
             def fmap_isom (f : G ≃g G') (S : setup G) : setup G'
@@ -374,8 +330,33 @@ namespace simple_graph
                     map_rel_iff' := λ a b, by { simp [push_pred,select,on_fun], have := φ.map_rel_iff', exact this }
                 }
 
+            lemma pred_iff : ∀ (a : S.support), (P ∘ quotient.mk) a ↔ P ⟦a⟧ := λ a, iff.rfl
+
+            lemma rel_iff : ∀ (x y : subtype (P ∘ quotient.mk)), setoid.r x y ↔ x ≈ y := sorry
+
             lemma select_contraction (P : S.clusters -> Prop) : ∃ (P' : V -> Prop), select P (G/S) ≼c select P' G
-                := sorry
+                := by {
+                    let P' := P ∘ quotient.mk, use P',
+                    let φ := equiv.subtype_quotient_equiv_quotient_subtype P' P pred_iff rel_iff,
+                    refine ⟨_,⟨_⟩⟩,
+                        sorry,
+                        exact {
+                            to_fun := φ.to_fun,
+                            inv_fun := φ.inv_fun,
+                            left_inv := φ.left_inv,
+                            right_inv := φ.right_inv,
+                            map_rel_iff' := sorry
+                        },
+                    -- refine ⟨sorry,⟨_⟩⟩,
+                    -- exact {
+                    --     to_fun := φ.to_fun,
+                    --     inv_fun := φ.inv_fun,
+                    --     left_inv := sorry,
+                    --     right_inv := sorry,
+                    --     map_rel_iff' := sorry
+                    -- },
+                    sorry
+                }
         end select_left.detail
 
         lemma select_left {P : V -> Prop} : G ≼c G' -> ∃ P' : V' -> Prop, select P G ≼c select P' G'
