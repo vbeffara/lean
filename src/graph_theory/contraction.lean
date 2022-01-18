@@ -378,9 +378,8 @@ namespace simple_graph
                     let φ := @equiv.subtype_quotient_equiv_quotient_subtype V (lift_pred P) S.setoid
                             (setup_select S (lift_pred P)).setoid P (λ a, iff.rfl) rel_iff,
 
-                    have l1 := @equiv.subtype_quotient_equiv_quotient_subtype_mk V (lift_pred P) S.setoid
-                            (setup_select S (lift_pred P)).setoid P (λ a, iff.rfl) rel_iff,
-                    change ∀ (x : V) (hx : P ⟦x⟧), φ ⟨⟦x⟧, hx⟩ = ⟦⟨x, _⟩⟧ at l1,
+                    have φ_mk : ∀ (x : V) (hx : P ⟦x⟧), φ ⟨⟦x⟧, hx⟩ = ⟦⟨x, _⟩⟧
+                        := equiv.subtype_quotient_equiv_quotient_subtype_mk (lift_pred P) P (λ a, iff.rfl) rel_iff,
 
                     exact {
                         to_fun := φ.to_fun,
@@ -388,24 +387,24 @@ namespace simple_graph
                         left_inv := φ.left_inv,
                         right_inv := φ.right_inv,
                         map_rel_iff' := λ x y, by {
-                            cases x with x hx, have h₁ := quotient.out_eq x, rw <-h₁ at hx,
-                            cases y with y hy, have h₂ := quotient.out_eq y, rw <-h₂ at hy,
-                            have h₃ := l1 x.out hx, simp at h₃,
-                            have h₄ := l1 y.out hy, simp at h₄,
-                            simp [*,select,on_fun,setup_select,setup.adj,contraction], split,
-                            { rintros ⟨H₁,x',H₂,y',H₃,H₄⟩, refine ⟨_,x'.val,_,y'.val,_,H₄⟩,
-                                { intro h, apply H₁, subst h },
-                                { rw <-(quotient.out_eq x), exact quotient.eq.mpr ((rel_iff _ _).mp H₂) },
-                                { rw <-(quotient.out_eq y), exact quotient.eq.mpr ((rel_iff _ _).mp H₃) }
+                            cases x with x hx, rw <-(quotient.out_eq x) at hx,
+                            cases y with y hy, rw <-(quotient.out_eq y) at hy,
+                            have h₃ := φ_mk x.out hx, simp only [quotient.out_eq] at h₃,
+                            have h₄ := φ_mk y.out hy, simp only [quotient.out_eq] at h₄,
+                            simp only [select,on_fun,setup_select,setup.adj,contraction],
+                            simp only [equiv.to_fun_as_coe, equiv.apply_eq_iff_eq, equiv.coe_fn_mk,
+                                ne.def, and.congr_right_iff, equiv.inv_fun_as_coe],
+                            simp only [h₃,h₄],
+                            intro h₀, split,
+                            { rintros ⟨x',y',H₂,H₃,H₄⟩, refine ⟨x'.val,y'.val,_,_,H₄⟩,
+                                { rw <-(quotient.out_eq x), exact quotient.eq.mpr ((rel_iff _ _).mp (quotient.eq.mp H₂)) },
+                                { rw <-(quotient.out_eq y), exact quotient.eq.mpr ((rel_iff _ _).mp (quotient.eq.mp H₃)) }
                             },
-                            { rintros ⟨H₁,x',H₂,y',H₃,H₄⟩, refine ⟨_,⟨x',_⟩,_,⟨y',_⟩,_,H₄⟩,
-                                { intro HH, replace HH := (rel_iff _ _).mp HH, simp at HH,
-                                    change x.out ≈ y.out at HH, replace HH := quotient.eq.mpr HH,
-                                    simp at HH, exact H₁ HH },
-                                { simp [lift_pred], rw [H₂,<-h₁], exact hx },
-                                { apply (rel_iff _ _).mpr, simp, rw <-(quotient.out_eq x) at H₂, exact quotient.eq.mp H₂ },
-                                { simp [lift_pred], rw [H₃,<-h₂], exact hy },
-                                { apply (rel_iff _ _).mpr, simp, rw <-(quotient.out_eq y) at H₃, exact quotient.eq.mp H₃ }
+                            { rintros ⟨x',y',H₂,H₃,H₄⟩, refine ⟨⟨x',_⟩,⟨y',_⟩,_,_,H₄⟩,
+                                { simp [lift_pred], rw (quotient.out_eq x) at hx, rw [H₂], exact hx },
+                                { simp [lift_pred], rw (quotient.out_eq y) at hy, rw [H₃], exact hy },
+                                { apply quotient.eq.mpr, apply (rel_iff _ _).mpr, simp, rw <-(quotient.out_eq x) at H₂, exact quotient.eq.mp H₂ },
+                                { apply quotient.eq.mpr, apply (rel_iff _ _).mpr, simp, rw <-(quotient.out_eq y) at H₃, exact quotient.eq.mp H₃ }
                             }
                         }
                     }
