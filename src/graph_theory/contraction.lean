@@ -355,7 +355,9 @@ namespace simple_graph
                         simp [good] at hₚ, exact linked.cons h₂ (ih h₁ hy hₚ.2) }
                 }
 
-            lemma pred_of_adj {x y} : S.g.adj x y -> lift_pred P x -> lift_pred P y := sorry
+            lemma pred_of_adj {x y} : S.g.adj x y -> lift_pred P x -> lift_pred P y
+                := by { intros h₁, simp [lift_pred],
+                    rw (@quotient.eq _ S.setoid x y).mpr (linked.step h₁), exact id }
 
             lemma all_good {x y : V} (p : walk S.g x y) : lift_pred P x -> ∀ z ∈ p.support, lift_pred P z
                 := by { induction p with a a b c h p ih; rintros h₁ z h₂; cases h₂,
