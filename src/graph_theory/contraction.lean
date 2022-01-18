@@ -399,7 +399,9 @@ namespace simple_graph
                                 { rw <-(quotient.out_eq y), exact quotient.eq.mpr ((rel_iff _ _).mp H₃) }
                             },
                             { rintros ⟨H₁,x',H₂,y',H₃,H₄⟩, refine ⟨_,⟨x',_⟩,_,⟨y',_⟩,_,H₄⟩,
-                                { sorry },
+                                { intro HH, replace HH := (rel_iff _ _).mp HH, simp at HH,
+                                    change x.out ≈ y.out at HH, replace HH := quotient.eq.mpr HH,
+                                    simp at HH, exact H₁ HH },
                                 { sorry },
                                 { sorry },
                                 { sorry },
