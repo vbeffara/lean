@@ -334,23 +334,24 @@ namespace simple_graph
             def setup_select (S : setup G) (P' : pred_on G) : setup (select P')
                 := ⟨@select _ S.g P', λ x y, by { apply S.sub }⟩
 
-            lemma select_contraction : select P ≼c select (lift_pred P) := sorry
+            def support_iso (S : setup G) (P : pred_on (G/S)) : subtype P ≃ (setup_select S (lift_pred P)).clusters
+                := let go := @equiv.subtype_quotient_equiv_quotient_subtype
+                    in @go V (lift_pred P) S.setoid (setup_select S (lift_pred P)).setoid P sorry sorry
 
-            lemma rel_iff : ∀ (x y : subtype (P ∘ quotient.mk)), setoid.r x y ↔ x ≈ y := sorry
-
-            lemma same_setoid : subtype.setoid (P ∘ quotient.mk) = (setup_select S (P ∘ quotient.mk)).setoid
+            def iso (S : setup G) (P : pred_on (G/S)) : select P ≃g select (lift_pred P)/(setup_select S (lift_pred P))
                 := by {
-                    ext, simp [setup_select,subtype.setoid,setoid.rel], symmetry, sorry,
+                    let φ := support_iso S P,
+                    exact {
+                        to_fun := φ.to_fun,
+                        inv_fun := φ.inv_fun,
+                        left_inv := φ.left_inv,
+                        right_inv := φ.right_inv,
+                        map_rel_iff' := sorry
+                    }
                 }
 
-            def iso (S : setup G) (P : S.clusters -> Type) : sorry := sorry
-
-            lemma pred_iff : ∀ (a : S.support), (P ∘ quotient.mk) a ↔ P ⟦a⟧ := λ a, iff.rfl
-
-            -- lemma adj_iff : (select P' G/S').adj (⇑φ a) (⇑φ b) ↔ (select P (G/S)).adj a b
-
-            lemma select_contraction' (P : pred_on (G/S)) : ∃ (P' : pred_on G), select P ≼c select P'
-                := by { use lift_pred P, exact select_contraction }
+            lemma select_contraction : select P ≼c select (lift_pred P)
+                := ⟨_,⟨iso S P⟩⟩
         end select_left.detail
 
         lemma select_left {P : pred_on G} : G ≼c G' -> ∃ P' : pred_on G', select P ≼c select P'
