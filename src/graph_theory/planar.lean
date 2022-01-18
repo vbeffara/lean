@@ -44,5 +44,5 @@ namespace simple_graph
     def K5 := complete_graph (finset.range 5)
     def K33 := complete_bipartite_graph (finset.range 3) (finset.range 3)
 
-    theorem kuratowski [fintype V] : G ≼ plane <-> K5 ⋠ G ∧ K33 ⋠ G := sorry
+    -- theorem kuratowski [fintype V] : G ≼ plane <-> K5 ⋠ G ∧ K33 ⋠ G := sorry
 end simple_graph
