@@ -320,14 +320,13 @@ namespace simple_graph
 
             def push_pred (P : V -> Prop) (φ : V ≃ V') : V' -> Prop := P ∘ φ.inv_fun
 
-            lemma push_pred_iso (P : V -> Prop) (φ : G ≃g G') : select P G ≃g select (push_pred P φ.to_equiv) G'
+            def push_pred_iso (P : V -> Prop) (φ : G ≃g G') : select P G ≃g select (push_pred P φ.to_equiv) G'
                 := {
-                    to_fun := λ x, ⟨φ x.val,
-                        by { have h₁ := x.property, rw <-equiv.symm_apply_apply φ.to_equiv x.val at h₁, exact h₁ }⟩,
+                    to_fun := λ x, ⟨φ x.val, by { rw [push_pred,comp_app], convert x.property, apply φ.left_inv }⟩,
                     inv_fun := λ y, ⟨φ.symm y.val, y.property⟩,
                     left_inv := λ x, by simp,
                     right_inv := λ x, by simp,
-                    map_rel_iff' := λ a b, by { simp [push_pred,select,on_fun], have := φ.map_rel_iff', exact this }
+                    map_rel_iff' := λ a b, by { apply φ.map_rel_iff' }
                 }
 
             def lift_pred (P : S.clusters -> Prop) : V -> Prop
@@ -343,14 +342,16 @@ namespace simple_graph
             def subtype_setup (S : setup G) (P' : V -> Prop) : setup (select P' G)
                 := { g := subtype_graph S.g P', sub := sorry }
 
+            lemma rel_iff : ∀ (x y : subtype (P ∘ quotient.mk)), setoid.r x y ↔ x ≈ y := sorry
+
             lemma same_setoid : subtype.setoid (P ∘ quotient.mk) = (subtype_setup S (P ∘ quotient.mk)).setoid
-                := sorry,
+                := by {
+                    ext, simp [subtype_setup,subtype.setoid,setoid.rel], symmetry, sorry,
+                }
 
             def iso (S : setup G) (P : S.clusters -> Type) : sorry := sorry
 
             lemma pred_iff : ∀ (a : S.support), (P ∘ quotient.mk) a ↔ P ⟦a⟧ := λ a, iff.rfl
-
-            lemma rel_iff : ∀ (x y : subtype (P ∘ quotient.mk)), setoid.r x y ↔ x ≈ y := sorry
 
             -- lemma adj_iff : (select P' G/S').adj (⇑φ a) (⇑φ b) ↔ (select P (G/S)).adj a b
 
