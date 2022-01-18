@@ -334,9 +334,45 @@ namespace simple_graph
             def setup_select (S : setup G) (P' : pred_on G) : setup (select P')
                 := ⟨@select _ S.g P', λ x y, by { apply S.sub }⟩
 
+            def good (P : pred_on G) : ∀ {x y}, walk G x y -> Prop
+                | x _ walk.nil                      := P x
+                | x _ (walk.cons (h : G.adj x _) p) := P x ∧ good p
+
+            lemma good_iff (P : pred_on G) {x y : V} {p : walk G x y} : good P p <-> ∀ z ∈ p.support, P z
+                := sorry
+
+            lemma adj_iff {P : pred_on G} {x y : subtype P} : (select P).adj x y <-> G.adj x.val y.val
+                := iff.rfl
+
+            def map₁ {P : pred_on G} : ∀ {x y}, walk (select P) x y -> walk G x.val y.val
+                | _ _ walk.nil        := walk.nil
+                | _ _ (walk.cons h p) := walk.cons (adj_iff.mp h) (map₁ p)
+
+            lemma linked_iff (P : pred_on G) {x y : subtype P} : (select P).linked x y <-> ∃ p : walk G x.val y.val, good P p
+                := by { split,
+                    { rintros ⟨p⟩, use map₁ p, induction p with a a b c h p ih, exact a.property, exact ⟨a.property,ih⟩ },
+                    { rintros ⟨p,hₚ⟩, cases x with x hx, cases y with y hy, change G.walk x y at p,
+                        induction p with a a b c h p ih, refl,
+                        have h₁ : P b, by { cases p, exact hy, exact hₚ.2.1 },
+                        have h₂ : (select P).adj ⟨a,hx⟩ ⟨b,h₁⟩ := adj_iff.mpr h, exact linked.cons h₂ (ih h₁ hy hₚ.2) }
+                }
+
+            lemma all_good {x y : V} (p : walk S.g x y) : lift_pred P x -> ∀ z ∈ p.support, lift_pred P z
+                := sorry
+
+            lemma rel_iff {S : setup G} {P : pred_on (G/S)} (x y : subtype (lift_pred P)) :
+                    (setup_select S (lift_pred P)).setoid.rel x y <-> S.setoid.rel x.val y.val
+                := by {
+                    simp only [setup.setoid,setoid.rel,setup_select], split,
+                    { rintros ⟨p⟩, let p' := map₁ p, use p' },
+                    { rintros ⟨p⟩, have h₁ := all_good p x.property, have h₂ := (good_iff _).mpr h₁,
+                        apply (linked_iff _).mpr, use p, exact h₂ }
+                }
+
             def support_iso (S : setup G) (P : pred_on (G/S)) : subtype P ≃ (setup_select S (lift_pred P)).clusters
                 := let go := @equiv.subtype_quotient_equiv_quotient_subtype
-                    in @go V (lift_pred P) S.setoid (setup_select S (lift_pred P)).setoid P sorry sorry
+                    in @go V (lift_pred P) S.setoid (setup_select S (lift_pred P)).setoid P
+                        (λ a, iff.rfl) rel_iff
 
             def iso (S : setup G) (P : pred_on (G/S)) : select P ≃g select (lift_pred P)/(setup_select S (lift_pred P))
                 := by {
@@ -346,7 +382,7 @@ namespace simple_graph
                         inv_fun := φ.inv_fun,
                         left_inv := φ.left_inv,
                         right_inv := φ.right_inv,
-                        map_rel_iff' := sorry
+                        map_rel_iff' := λ x y, sorry
                     }
                 }
 
