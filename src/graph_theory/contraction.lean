@@ -373,20 +373,39 @@ namespace simple_graph
                     { rintros ⟨p⟩, exact (linked_iff _).mpr ⟨p,all_good p x.property⟩ }
                 }
 
-            def support_iso (S : setup G) (P : pred_on (G/S)) : subtype P ≃ (setup_select S (lift_pred P)).clusters
-                := let go := @equiv.subtype_quotient_equiv_quotient_subtype
-                    in @go V (lift_pred P) S.setoid (setup_select S (lift_pred P)).setoid P
-                        (λ a, iff.rfl) rel_iff
-
             def iso (S : setup G) (P : pred_on (G/S)) : select P ≃g select (lift_pred P)/(setup_select S (lift_pred P))
                 := by {
-                    let φ := support_iso S P,
+                    let φ := @equiv.subtype_quotient_equiv_quotient_subtype V (lift_pred P) S.setoid
+                            (setup_select S (lift_pred P)).setoid P (λ a, iff.rfl) rel_iff,
+
+                    have l1 := @equiv.subtype_quotient_equiv_quotient_subtype_mk V (lift_pred P) S.setoid
+                            (setup_select S (lift_pred P)).setoid P (λ a, iff.rfl) rel_iff,
+                    change ∀ (x : V) (hx : P ⟦x⟧), φ ⟨⟦x⟧, hx⟩ = ⟦⟨x, _⟩⟧ at l1,
+
                     exact {
                         to_fun := φ.to_fun,
                         inv_fun := φ.inv_fun,
                         left_inv := φ.left_inv,
                         right_inv := φ.right_inv,
-                        map_rel_iff' := λ x y, sorry
+                        map_rel_iff' := λ x y, by {
+                            cases x with x hx, have h₁ := quotient.out_eq x, rw <-h₁ at hx,
+                            cases y with y hy, have h₂ := quotient.out_eq y, rw <-h₂ at hy,
+                            have h₃ := l1 x.out hx, simp at h₃,
+                            have h₄ := l1 y.out hy, simp at h₄,
+                            simp [*,select,on_fun,setup_select,setup.adj,contraction], split,
+                            { rintros ⟨H₁,x',H₂,y',H₃,H₄⟩, refine ⟨_,x'.val,_,y'.val,_,H₄⟩,
+                                { intro h, apply H₁, subst h },
+                                { rw <-(quotient.out_eq x), exact quotient.eq.mpr ((rel_iff _ _).mp H₂) },
+                                { rw <-(quotient.out_eq y), exact quotient.eq.mpr ((rel_iff _ _).mp H₃) }
+                            },
+                            { rintros ⟨H₁,x',H₂,y',H₃,H₄⟩, refine ⟨_,⟨x',_⟩,_,⟨y',_⟩,_,H₄⟩,
+                                { sorry },
+                                { sorry },
+                                { sorry },
+                                { sorry },
+                                { sorry }
+                            }
+                        }
                     }
                 }
 
