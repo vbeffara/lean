@@ -316,7 +316,7 @@ namespace simple_graph
                 in ⟨S'.comp T,⟨f4.symm.comp (f3.comp f1)⟩⟩
 
         namespace select_left.detail
-            variables {S : setup G} {P : S.clusters -> Prop}
+            variables {S : setup G} {P : pred_on (G/S)}
 
             def push_pred (P : pred_on G) (φ : G ≃g G') : pred_on G' := P ∘ φ.inv_fun
 
@@ -331,14 +331,16 @@ namespace simple_graph
                     map_rel_iff' := λ a b, by { apply φ.map_rel_iff' }
                 }
 
-            def subtype_setup (S : setup G) (P' : pred_on G) : setup (select P')
-                := { g := @select _ S.g P', sub := sorry }
+            def setup_select (S : setup G) (P' : pred_on G) : setup (select P')
+                := ⟨@select _ S.g P', λ x y, by { apply S.sub }⟩
+
+            lemma select_contraction : select P ≼c select (lift_pred P) := sorry
 
             lemma rel_iff : ∀ (x y : subtype (P ∘ quotient.mk)), setoid.r x y ↔ x ≈ y := sorry
 
-            lemma same_setoid : subtype.setoid (P ∘ quotient.mk) = (subtype_setup S (P ∘ quotient.mk)).setoid
+            lemma same_setoid : subtype.setoid (P ∘ quotient.mk) = (setup_select S (P ∘ quotient.mk)).setoid
                 := by {
-                    ext, simp [subtype_setup,subtype.setoid,setoid.rel], symmetry, sorry,
+                    ext, simp [setup_select,subtype.setoid,setoid.rel], symmetry, sorry,
                 }
 
             def iso (S : setup G) (P : S.clusters -> Type) : sorry := sorry
@@ -347,37 +349,17 @@ namespace simple_graph
 
             -- lemma adj_iff : (select P' G/S').adj (⇑φ a) (⇑φ b) ↔ (select P (G/S)).adj a b
 
-            lemma select_contraction (P : pred_on (G/S)) : ∃ (P' : pred_on G), select P ≼c select P'
-                := by {
-                    let P' := lift_pred P, use P',
-                    let G' := select P',
-                    let S' := subtype_setup S P',
-                    have same_setoid : subtype.setoid (P ∘ quotient.mk) = S'.setoid := same_setoid,
-                    let φ := equiv.subtype_quotient_equiv_quotient_subtype P' P pred_iff rel_iff,
-                    rw same_setoid at φ,
-
-                    have rel_iff := rel_iff _ _, rw same_setoid at rel_iff,
-                    simp [setoid.r,setup.linked] at rel_iff,
-
-                    refine ⟨S',⟨_⟩⟩,
-                    exact {
-                        to_fun := φ.to_fun,
-                        inv_fun := φ.inv_fun,
-                        left_inv := φ.left_inv,
-                        right_inv := φ.right_inv,
-                        map_rel_iff' := sorry
-                    },
-                    sorry,
-                    sorry
-                }
+            lemma select_contraction' (P : pred_on (G/S)) : ∃ (P' : pred_on G), select P ≼c select P'
+                := by { use lift_pred P, exact select_contraction }
         end select_left.detail
 
         lemma select_left {P : pred_on G} : G ≼c G' -> ∃ P' : pred_on G', select P ≼c select P'
             := by {
                 rintros ⟨S,⟨φ⟩⟩,
                 let P'' := select_left.detail.push_pred P φ,
+                let P' := select_left.detail.lift_pred P'',
                 have h₁ := select_left.detail.push_pred_iso P φ,
-                cases select_left.detail.select_contraction P'' with P' h₂,
+                have h₂ := select_left.detail.select_contraction,
                 exact ⟨P', trans (iso_left h₁ refl) h₂⟩
             }
     end is_contraction
