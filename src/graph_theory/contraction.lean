@@ -402,10 +402,10 @@ namespace simple_graph
                                 { intro HH, replace HH := (rel_iff _ _).mp HH, simp at HH,
                                     change x.out ≈ y.out at HH, replace HH := quotient.eq.mpr HH,
                                     simp at HH, exact H₁ HH },
-                                { sorry },
-                                { sorry },
-                                { sorry },
-                                { sorry }
+                                { simp [lift_pred], rw [H₂,<-h₁], exact hx },
+                                { apply (rel_iff _ _).mpr, simp, rw <-(quotient.out_eq x) at H₂, exact quotient.eq.mp H₂ },
+                                { simp [lift_pred], rw [H₃,<-h₂], exact hy },
+                                { apply (rel_iff _ _).mpr, simp, rw <-(quotient.out_eq y) at H₃, exact quotient.eq.mp H₃ }
                             }
                         }
                     }
