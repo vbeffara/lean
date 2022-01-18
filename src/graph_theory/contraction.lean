@@ -318,9 +318,11 @@ namespace simple_graph
         namespace select_left.detail
             variables {S : setup G} {P : S.clusters -> Prop}
 
-            def push_pred (P : V -> Prop) (φ : V ≃ V') : V' -> Prop := P ∘ φ.inv_fun
+            def push_pred (P : pred_on G) (φ : G ≃g G') : pred_on G' := P ∘ φ.inv_fun
 
-            def push_pred_iso (P : V -> Prop) (φ : G ≃g G') : select P G ≃g select (push_pred P φ.to_equiv) G'
+            def lift_pred (P : pred_on (G/S)) : pred_on G := P ∘ quotient.mk
+
+            def push_pred_iso (P : pred_on G) (φ : G ≃g G') : select P ≃g select (push_pred P φ)
                 := {
                     to_fun := λ x, ⟨φ x.val, by { rw [push_pred,comp_app], convert x.property, apply φ.left_inv }⟩,
                     inv_fun := λ y, ⟨φ.symm y.val, y.property⟩,
@@ -329,18 +331,8 @@ namespace simple_graph
                     map_rel_iff' := λ a b, by { apply φ.map_rel_iff' }
                 }
 
-            def lift_pred (P : S.clusters -> Prop) : V -> Prop
-                := P ∘ quotient.mk
-
-            def subtype_graph (G : simple_graph V) (P : V -> Prop) : simple_graph (subtype P)
-                := {
-                    adj := G.adj on subtype.val,
-                    symm := λ _ _ h, G.symm h,
-                    loopless := λ _, G.loopless _
-                }
-
-            def subtype_setup (S : setup G) (P' : V -> Prop) : setup (select P' G)
-                := { g := subtype_graph S.g P', sub := sorry }
+            def subtype_setup (S : setup G) (P' : pred_on G) : setup (select P')
+                := { g := @select _ S.g P', sub := sorry }
 
             lemma rel_iff : ∀ (x y : subtype (P ∘ quotient.mk)), setoid.r x y ↔ x ≈ y := sorry
 
@@ -355,10 +347,10 @@ namespace simple_graph
 
             -- lemma adj_iff : (select P' G/S').adj (⇑φ a) (⇑φ b) ↔ (select P (G/S)).adj a b
 
-            lemma select_contraction (P : S.clusters -> Prop) : ∃ (P' : V -> Prop), select P (G/S) ≼c select P' G
+            lemma select_contraction (P : pred_on (G/S)) : ∃ (P' : pred_on G), select P ≼c select P'
                 := by {
                     let P' := lift_pred P, use P',
-                    let G' := subtype_graph S.g P',
+                    let G' := select P',
                     let S' := subtype_setup S P',
                     have same_setoid : subtype.setoid (P ∘ quotient.mk) = S'.setoid := same_setoid,
                     let φ := equiv.subtype_quotient_equiv_quotient_subtype P' P pred_iff rel_iff,
@@ -380,10 +372,10 @@ namespace simple_graph
                 }
         end select_left.detail
 
-        lemma select_left {P : V -> Prop} : G ≼c G' -> ∃ P' : V' -> Prop, select P G ≼c select P' G'
+        lemma select_left {P : pred_on G} : G ≼c G' -> ∃ P' : pred_on G', select P ≼c select P'
             := by {
                 rintros ⟨S,⟨φ⟩⟩,
-                let P'' : S.clusters -> Prop := select_left.detail.push_pred P φ.to_equiv,
+                let P'' := select_left.detail.push_pred P φ,
                 have h₁ := select_left.detail.push_pred_iso P φ,
                 cases select_left.detail.select_contraction P'' with P' h₂,
                 exact ⟨P', trans (iso_left h₁ refl) h₂⟩

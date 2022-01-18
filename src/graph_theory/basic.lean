@@ -56,14 +56,16 @@ namespace simple_graph
             have rel_iff : ∀ x y, G.adj (ψ (φ x)) (ψ (φ y)) <-> G.adj x y := λ x y, by rw [left_inv,left_inv],
             ⟨⟨φ,ψ,left_inv,right_inv⟩,rel_iff⟩
 
-    def select (pred : V -> Prop) (G : simple_graph V) : simple_graph { x // pred x }
+    def pred_on (G : simple_graph V) : Type := V -> Prop
+
+    def select (P : pred_on G) : simple_graph (subtype P)
         := {
             adj := G.adj on subtype.val,
             symm := λ x y h, G.symm h,
             loopless := λ x, G.loopless _,
         }
 
-    lemma embed_le_select {f : G →g G'} {f_inj : injective f} : embed f_inj G ≤ select (λ y, ∃ x, f x = y) G'
+    lemma embed_le_select {f : G →g G'} {f_inj : injective f} : embed f_inj G ≤ @select V' G' (λ y, ∃ x, f x = y)
         := by { intros x y h, simp [select,on_fun], convert f.map_rel' h,
             exact (some_spec x.property).symm, exact (some_spec y.property).symm }
 
@@ -79,7 +81,7 @@ namespace simple_graph
         lemma le_left : G ≤ H -> H ≼s G' -> G ≼s G'
             | h₁ ⟨⟨f,h₂⟩,h₃⟩ := ⟨⟨f,λ _ _ h, h₂ (h₁ h)⟩,h₃⟩
 
-        lemma select_left {pred : V -> Prop} : G ≼s G' -> select pred G ≼s G'
+        lemma select_left {pred : pred_on G} : G ≼s G' -> select pred ≼s G'
             | ⟨⟨f,h₁⟩,h₂⟩ :=
                 let g : {x // pred x} -> V' := f ∘ subtype.val
                 in ⟨⟨g,λ a b,h₁⟩,h₂.comp subtype.val_injective⟩
