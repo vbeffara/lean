@@ -330,31 +330,51 @@ namespace simple_graph
                     map_rel_iff' := λ a b, by { simp [push_pred,select,on_fun], have := φ.map_rel_iff', exact this }
                 }
 
+            def lift_pred (P : S.clusters -> Prop) : V -> Prop
+                := P ∘ quotient.mk
+
+            def subtype_graph (G : simple_graph V) (P : V -> Prop) : simple_graph (subtype P)
+                := {
+                    adj := G.adj on subtype.val,
+                    symm := λ _ _ h, G.symm h,
+                    loopless := λ _, G.loopless _
+                }
+
+            def subtype_setup (S : setup G) (P' : V -> Prop) : setup (select P' G)
+                := { g := subtype_graph S.g P', sub := sorry }
+
+            lemma same_setoid : subtype.setoid (P ∘ quotient.mk) = (subtype_setup S (P ∘ quotient.mk)).setoid
+                := sorry,
+
+            def iso (S : setup G) (P : S.clusters -> Type) : sorry := sorry
+
             lemma pred_iff : ∀ (a : S.support), (P ∘ quotient.mk) a ↔ P ⟦a⟧ := λ a, iff.rfl
 
             lemma rel_iff : ∀ (x y : subtype (P ∘ quotient.mk)), setoid.r x y ↔ x ≈ y := sorry
 
+            -- lemma adj_iff : (select P' G/S').adj (⇑φ a) (⇑φ b) ↔ (select P (G/S)).adj a b
+
             lemma select_contraction (P : S.clusters -> Prop) : ∃ (P' : V -> Prop), select P (G/S) ≼c select P' G
                 := by {
-                    let P' := P ∘ quotient.mk, use P',
+                    let P' := lift_pred P, use P',
+                    let G' := subtype_graph S.g P',
+                    let S' := subtype_setup S P',
+                    have same_setoid : subtype.setoid (P ∘ quotient.mk) = S'.setoid := same_setoid,
                     let φ := equiv.subtype_quotient_equiv_quotient_subtype P' P pred_iff rel_iff,
-                    refine ⟨_,⟨_⟩⟩,
-                        sorry,
-                        exact {
-                            to_fun := φ.to_fun,
-                            inv_fun := φ.inv_fun,
-                            left_inv := φ.left_inv,
-                            right_inv := φ.right_inv,
-                            map_rel_iff' := sorry
-                        },
-                    -- refine ⟨sorry,⟨_⟩⟩,
-                    -- exact {
-                    --     to_fun := φ.to_fun,
-                    --     inv_fun := φ.inv_fun,
-                    --     left_inv := sorry,
-                    --     right_inv := sorry,
-                    --     map_rel_iff' := sorry
-                    -- },
+                    rw same_setoid at φ,
+
+                    have rel_iff := rel_iff _ _, rw same_setoid at rel_iff,
+                    simp [setoid.r,setup.linked] at rel_iff,
+
+                    refine ⟨S',⟨_⟩⟩,
+                    exact {
+                        to_fun := φ.to_fun,
+                        inv_fun := φ.inv_fun,
+                        left_inv := φ.left_inv,
+                        right_inv := φ.right_inv,
+                        map_rel_iff' := sorry
+                    },
+                    sorry,
                     sorry
                 }
         end select_left.detail
