@@ -393,18 +393,18 @@ namespace simple_graph
                             have h₄ := φ_mk y.out hy, simp only [quotient.out_eq] at h₄,
                             rw [equiv.coe_fn_mk,equiv.to_fun_as_coe], unfold select,
                             simp only [setup.adj,on_fun,contraction],
-                            rw [ne.def,ne.def,equiv.apply_eq_iff_eq],
-                            simp only [and.congr_right_iff], rw [h₃,h₄],
-                            intro h₀, split,
+                            rw [ne.def,ne.def,equiv.apply_eq_iff_eq,h₃,h₄],
+                            simp only [and.congr_right_iff], intro h₀, split,
                             { rintros ⟨x',y',H₂,H₃,H₄⟩, refine ⟨x'.val,y'.val,_,_,H₄⟩,
                                 { rw <-(quotient.out_eq x), exact quotient.eq.mpr ((rel_iff _ _).mp (quotient.eq.mp H₂)) },
                                 { rw <-(quotient.out_eq y), exact quotient.eq.mpr ((rel_iff _ _).mp (quotient.eq.mp H₃)) }
                             },
-                            { rintros ⟨x',y',H₂,H₃,H₄⟩, refine ⟨⟨x',_⟩,⟨y',_⟩,_,_,H₄⟩,
-                                { simp [lift_pred], rw (quotient.out_eq x) at hx, rw [H₂], exact hx },
-                                { simp [lift_pred], rw (quotient.out_eq y) at hy, rw [H₃], exact hy },
-                                { apply quotient.eq.mpr, apply (rel_iff _ _).mpr, simp, rw <-(quotient.out_eq x) at H₂, exact quotient.eq.mp H₂ },
-                                { apply quotient.eq.mpr, apply (rel_iff _ _).mpr, simp, rw <-(quotient.out_eq y) at H₃, exact quotient.eq.mp H₃ }
+                            { rintros ⟨x',y',H₂,H₃,H₄⟩, rw <-(quotient.out_eq x) at H₂, rw <-(quotient.out_eq y) at H₃,
+                                refine ⟨⟨x',_⟩,⟨y',_⟩,_,_,H₄⟩,
+                                { rw [<-H₂] at hx, simpa [lift_pred] },
+                                { rw [<-H₃] at hy, simpa [lift_pred], },
+                                { apply quotient.eq.mpr, apply (rel_iff _ _).mpr, exact quotient.eq.mp H₂ },
+                                { apply quotient.eq.mpr, apply (rel_iff _ _).mpr, exact quotient.eq.mp H₃ }
                             }
                         }
                     }
