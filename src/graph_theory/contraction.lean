@@ -286,10 +286,7 @@ namespace simple_graph
 
             def push_iso_iso (H : simple_graph V) (φ : V ≃ V') : H ≃g push_iso H φ
                 := {
-                    to_fun := φ.to_fun,
-                    inv_fun := φ.inv_fun,
-                    left_inv := φ.left_inv,
-                    right_inv := φ.right_inv,
+                    to_equiv := φ,
                     map_rel_iff' := λ x y, by { unfold push_iso, simp only [on_fun], simp }
                 }
 
@@ -382,17 +379,13 @@ namespace simple_graph
                         := equiv.subtype_quotient_equiv_quotient_subtype_mk (lift_pred P) P (λ a, iff.rfl) rel_iff,
 
                     exact {
-                        to_fun := φ.to_fun,
-                        inv_fun := φ.inv_fun,
-                        left_inv := φ.left_inv,
-                        right_inv := φ.right_inv,
+                        to_equiv := φ,
                         map_rel_iff' := λ x y, by {
                             cases x with x hx, rw <-(quotient.out_eq x) at hx,
                             cases y with y hy, rw <-(quotient.out_eq y) at hy,
                             have h₃ := φ_mk x.out hx, simp only [quotient.out_eq] at h₃,
                             have h₄ := φ_mk y.out hy, simp only [quotient.out_eq] at h₄,
-                            rw [equiv.coe_fn_mk,equiv.to_fun_as_coe], unfold select,
-                            simp only [setup.adj,on_fun,contraction],
+                            simp only [select,setup.adj,on_fun,contraction],
                             rw [ne.def,ne.def,equiv.apply_eq_iff_eq,h₃,h₄],
                             simp only [and.congr_right_iff], intro h₀, split,
                             { rintros ⟨x',y',H₂,H₃,H₄⟩, refine ⟨x'.val,y'.val,_,_,H₄⟩,
@@ -403,8 +396,8 @@ namespace simple_graph
                                 refine ⟨⟨x',_⟩,⟨y',_⟩,_,_,H₄⟩,
                                 { rw [<-H₂] at hx, simpa [lift_pred] },
                                 { rw [<-H₃] at hy, simpa [lift_pred], },
-                                { apply quotient.eq.mpr, apply (rel_iff _ _).mpr, exact quotient.eq.mp H₂ },
-                                { apply quotient.eq.mpr, apply (rel_iff _ _).mpr, exact quotient.eq.mp H₃ }
+                                { exact quotient.eq.mpr ((rel_iff _ _).mpr (quotient.eq.mp H₂)) },
+                                { exact quotient.eq.mpr ((rel_iff _ _).mpr (quotient.eq.mp H₃)) }
                             }
                         }
                     }
