@@ -40,28 +40,32 @@ namespace simple_graph
 
     def range (f : V → V') : Type := { y : V' // ∃ x : V, f x = y }
 
-    def embed {f : V -> V'} (h : injective f) (G : simple_graph V) : simple_graph { y : V' // ∃ x : V, f x = y }
+    def embed {f : V -> V'} (h : injective f) (G : simple_graph V) : simple_graph (range f)
         := {
-            adj := λ a b, G.adj (some a.property) (some b.property),
-            symm := λ a b h, G.symm h,
-            loopless := λ a, G.loopless _,
+            adj := G.adj on (λ x, some x.prop),
+            symm := λ _ _ h, G.symm h,
+            loopless := λ _, G.loopless _,
         }
 
     -- TODO : computable version of this taking a left inverse of f?
-    noncomputable def embed_iso {f : V -> V'} {h : injective f} {G : simple_graph V} : G ≃g embed h G
-        := let φ : V -> range f := λ x, ⟨f x, x, rfl⟩,
-               ψ : range f -> V := λ y, some y.property in
-            have left_inv : ∀ x, ψ (φ x) = x := λ x, h (some_spec (subtype.property (φ x))),
-            have right_inv : ∀ y, φ (ψ y) = y := λ y, subtype.ext (some_spec y.property),
-            have rel_iff : ∀ x y, G.adj (ψ (φ x)) (ψ (φ y)) <-> G.adj x y := λ x y, by rw [left_inv,left_inv],
-            ⟨⟨φ,ψ,left_inv,right_inv⟩,rel_iff⟩
+    noncomputable def embed_iso {f : V -> V'} {f_inj : injective f} {G : simple_graph V} : G ≃g embed f_inj G
+        := let  φ : V -> range f := λ x, ⟨f x, x, rfl⟩,
+                ψ : range f -> V := λ y, some y.prop,
+                α : ∀ x, ψ (φ x) = x := λ x, f_inj (some_spec (subtype.prop (φ x))),
+                β : ∀ x y, G.adj (ψ (φ x)) (ψ (φ y)) <-> G.adj x y := λ x y, by { rw [α,α] } in {
+            to_fun := φ,
+            inv_fun := ψ,
+            left_inv := α,
+            right_inv := λ y, subtype.ext (some_spec y.prop),
+            map_rel_iff' := β
+        }
 
     def pred_on (G : simple_graph V) : Type := V -> Prop
 
     def select (P : pred_on G) : simple_graph (subtype P)
         := {
             adj := G.adj on subtype.val,
-            symm := λ x y h, G.symm h,
+            symm := λ _ _ h, G.symm h,
             loopless := λ x, G.loopless _,
         }
 

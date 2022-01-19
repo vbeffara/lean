@@ -20,19 +20,26 @@ namespace simple_graph
 
         @[simp] lemma cancel (a x y : G) : (a * x)⁻¹ * (a * y) = x⁻¹ * y := by group
 
-        lemma shift_adj : adj S x y -> adj S (a*x) (a*y)
+        lemma shift_adj {S : genset G} : adj S x y -> adj S (a*x) (a*y)
             | ⟨h1,h2⟩ := ⟨(mul_ne_mul_right a).mpr h1, (cancel a x y).symm ▸ h2⟩
 
         @[symm] lemma adj_symm (x y) : adj S x y -> adj S y x
             | ⟨h1,h2⟩ := ⟨h1.symm, by { convert S.sym h2, group }⟩
 
-        def Cay (S : genset G) : simple_graph G := ⟨adj S, adj_symm S, (λ _, not_and.mpr (λ h1 _, h1 rfl))⟩
+        def Cay (S : genset G) : simple_graph G
+            := {
+                adj := adj S,
+                symm := adj_symm S,
+                loopless := λ _, not_and.mpr (λ h1 _, h1 rfl)
+            }
 
-        def left_shift : (Cay S) →g (Cay S) := ⟨(*) a, @shift_adj G _ S a⟩
+        def left_shift : (Cay S) →g (Cay S)
+            := ⟨(*) a, λ x y, shift_adj a⟩
 
-        def shift_path : walk (Cay S) x y -> walk (Cay S) (a*x : G) (a*y : G) := fmap (left_shift S a)
+        def shift_path : walk (Cay S) x y -> walk (Cay S) (a*x) (a*y)
+            := fmap (left_shift S a)
 
-        lemma shift : linked (Cay S) x y -> linked (Cay S) (a*x : G) (a*y : G)
+        lemma shift : linked (Cay S) x y -> linked (Cay S) (a*x) (a*y)
             | ⟨p⟩ := ⟨shift_path S a p⟩
 
         lemma inv : linked (Cay S) 1 x -> linked (Cay S) 1 x⁻¹
