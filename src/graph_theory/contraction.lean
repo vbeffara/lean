@@ -375,27 +375,27 @@ namespace simple_graph
                     let φ := @equiv.subtype_quotient_equiv_quotient_subtype V (lift_pred P) S.setoid
                             (setup_select S (lift_pred P)).setoid P (λ a, iff.rfl) rel_iff,
 
-                    have φ_mk : ∀ (x : V) (hx : P ⟦x⟧), φ ⟨⟦x⟧, hx⟩ = ⟦⟨x, _⟩⟧
+                    have φ_mk : ∀ (x : V) (hx : P ⟦x⟧), φ ⟨⟦x⟧, hx⟩ = ⟦⟨x, hx⟩⟧
                         := equiv.subtype_quotient_equiv_quotient_subtype_mk (lift_pred P) P (λ a, iff.rfl) rel_iff,
 
                     exact {
                         to_equiv := φ,
                         map_rel_iff' := λ x y, by {
+                            simp only [select,setup.adj,on_fun,contraction],
+                            rw [ne.def,ne.def,equiv.apply_eq_iff_eq],
                             cases x with x hx, rw <-(quotient.out_eq x) at hx,
                             cases y with y hy, rw <-(quotient.out_eq y) at hy,
-                            have h₃ := φ_mk x.out hx, simp only [quotient.out_eq] at h₃,
-                            have h₄ := φ_mk y.out hy, simp only [quotient.out_eq] at h₄,
-                            simp only [select,setup.adj,on_fun,contraction],
-                            rw [ne.def,ne.def,equiv.apply_eq_iff_eq,h₃,h₄],
-                            simp only [and.congr_right_iff], intro h₀, split,
+                            have h₃ := φ_mk x.out hx, simp only [quotient.out_eq] at h₃, rw h₃,
+                            have h₄ := φ_mk y.out hy, simp only [quotient.out_eq] at h₄, rw h₄,
+                            clear φ_mk h₃ h₄ φ, simp only [and.congr_right_iff], intro h₀, split,
                             { rintros ⟨x',y',H₂,H₃,H₄⟩, refine ⟨x'.val,y'.val,_,_,H₄⟩,
                                 { rw <-(quotient.out_eq x), exact quotient.eq.mpr ((rel_iff _ _).mp (quotient.eq.mp H₂)) },
                                 { rw <-(quotient.out_eq y), exact quotient.eq.mpr ((rel_iff _ _).mp (quotient.eq.mp H₃)) }
                             },
                             { rintros ⟨x',y',H₂,H₃,H₄⟩, rw <-(quotient.out_eq x) at H₂, rw <-(quotient.out_eq y) at H₃,
                                 refine ⟨⟨x',_⟩,⟨y',_⟩,_,_,H₄⟩,
-                                { rw [<-H₂] at hx, simpa [lift_pred] },
-                                { rw [<-H₃] at hy, simpa [lift_pred], },
+                                { rw [<-H₂] at hx, rw [lift_pred], exact hx },
+                                { rw [<-H₃] at hy, rw [lift_pred], exact hy },
                                 { exact quotient.eq.mpr ((rel_iff _ _).mpr (quotient.eq.mp H₂)) },
                                 { exact quotient.eq.mpr ((rel_iff _ _).mpr (quotient.eq.mp H₃)) }
                             }
