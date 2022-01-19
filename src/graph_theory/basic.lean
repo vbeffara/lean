@@ -40,6 +40,7 @@ namespace simple_graph
 
     def range (f : V → V') : Type := { y : V' // ∃ x : V, f x = y }
 
+    -- TODO this does not use h really
     def embed {f : V -> V'} (h : injective f) (G : simple_graph V) : simple_graph (range f)
         := {
             adj := G.adj on (λ x, some x.prop),

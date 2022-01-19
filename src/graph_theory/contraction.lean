@@ -19,7 +19,7 @@ namespace simple_graph
 
             @[simp] def proj (S : setup G) : V -> clusters S := quotient.mk
             @[simp] noncomputable def out (S : setup G) : clusters S -> V := quotient.out
-            @[simp] lemma out_eq {S : setup G} {x : clusters S} : S.proj (S.out x) = x := quotient.out_eq x
+            @[simp] lemma out_eq (S : setup G) : ∀ {x : clusters S}, S.proj (S.out x) = x := quotient.out_eq
 
             def adj (S : setup G) (x y : S.clusters) : Prop
                 := x ≠ y ∧ ∃ x' y' : S.support, ⟦x'⟧ = x ∧ ⟦y'⟧ = y ∧ G.adj x' y'
@@ -95,9 +95,9 @@ namespace simple_graph
                         let f := S.proj, let g := S'.proj, let h := (S.comp S').proj,
                         let α := S.out, let β := S'.out, let γ := (S.comp S').out,
 
-                        have fα : ∀ {x}, S.proj (S.out x) = x, by simp [proj,out],
-                        have gβ : ∀ {x}, S'.proj (S'.out x) = x, by simp [proj,out],
-                        have hγ : ∀ {x}, (S.comp S').proj ((S.comp S').out x) = x, by simp [proj,out],
+                        have fα : ∀ {x}, S.proj (S.out x) = x := λ _, S.out_eq,
+                        have gβ : ∀ {x}, S'.proj (S'.out x) = x := λ _, S'.out_eq,
+                        have hγ : ∀ {x}, (S.comp S').proj ((S.comp S').out x) = x := λ _, (S.comp S').out_eq,
 
                         let φ : (comp S S').clusters ≃ S'.clusters := {
                             to_fun := λ x, g (f (γ x)),
@@ -129,17 +129,17 @@ namespace simple_graph
 
                 lemma inv : (S.fmap_isom f).fmap_isom f.symm = S
                     := by { have hf : f.symm.to_equiv.symm = f.to_equiv := by { ext, refl }, ext, split; intro h,
-                        { simp [setup.fmap_isom,hf] at h, convert h; symmetry; exact rel_iso.symm_apply_apply _ _ },
-                        { simp [setup.fmap_isom,hf,on_fun], convert h; exact rel_iso.symm_apply_apply _ _ } }
+                        { rw [fmap_isom] at h, convert h; symmetry; exact rel_iso.symm_apply_apply _ _ },
+                        { rw [fmap_isom,fmap_isom], simp only [on_fun], convert h; exact rel_iso.symm_apply_apply _ _ } }
 
                 lemma linked : S.g.linked x y -> (S.fmap_isom f).g.linked (f x) (f y)
                     := by { intro h, cases h with p, induction p with a a b c h q ih, refl,
-                        refine linked.cons _ ih, simp [setup.fmap_isom,on_fun], convert h; exact rel_iso.symm_apply_apply _ _ }
+                        refine linked.cons _ ih, simp only [fmap_isom,on_fun], convert h; exact rel_iso.symm_apply_apply _ _ }
 
                 lemma linked_iff : S.g.linked x y <-> (S.fmap_isom f).g.linked (f x) (f y)
                     := by { split, exact linked, intro h,
                         replace h := @linked V' V G' G (S.fmap_isom f) (f x) (f y) f.symm h,
-                        simp [setup.fmap_isom.inv] at h, exact h }
+                        simp only [inv,rel_iso.symm_apply_apply] at h, exact h }
             end fmap_isom
         end setup
 
@@ -151,8 +151,8 @@ namespace simple_graph
                 let g₁ : S.clusters -> V := quotient.out,
                 let g₂ : (S.fmap_isom f).clusters -> V' := quotient.out,
 
-                have f₁g₁ : ∀ {x}, f₁ (g₁ x) = x, by simp [f₁,g₁],
-                have f₂g₂ : ∀ {x}, f₂ (g₂ x) = x, by simp [f₂,g₂],
+                have f₁g₁ : ∀ {x}, f₁ (g₁ x) = x := λ _, S.out_eq,
+                have f₂g₂ : ∀ {x}, f₂ (g₂ x) = x := λ _, (S.fmap_isom f).out_eq,
 
                 have eqv : ∀ {x y}, f₁ x = f₁ y <-> f₂ (f x) = f₂ (f y),
                     by { intros, rw [quotient.eq,quotient.eq], exact setup.fmap_isom.linked_iff },
@@ -164,7 +164,7 @@ namespace simple_graph
                     right_inv := λ _, (eqv.mp f₁g₁).trans (by { rw [rel_iso.apply_symm_apply,f₂g₂] })
                 },
 
-                use φ, intros a b, simp, split,
+                use φ, intros a b, rw [equiv.coe_fn_mk], split,
                 { rintros ⟨h1,x',y',h2,h3,h4⟩, refine ⟨_,_⟩,
                     { intro h, rw h at h1, exact h1 rfl },
                     { refine ⟨f.symm x', f.symm y', _, _, _⟩,
@@ -217,7 +217,7 @@ namespace simple_graph
                 mpr := λ h x y, lift_linked (h ⟦x⟧ ⟦y⟧) }
 
         lemma proj_bot_inj {x y : (@setup.bot V G).support} : ⟦x⟧ = ⟦y⟧ -> x = y
-            := by { intro h, cases quotient.eq.mp h with p, cases p, refl, simp at p_h, contradiction }
+            := by { intro h, cases quotient.eq.mp h with p, cases p, refl, change false at p_h, contradiction }
 
         noncomputable def proj_bot : G ≃g G/⊥
             := {
@@ -227,7 +227,7 @@ namespace simple_graph
                     left_inv := λ x, proj_bot_inj (out_eq _),
                     right_inv := out_eq,
                 },
-                map_rel_iff' := λ x y, by { simp, split,
+                map_rel_iff' := λ x y, by { rw [equiv.coe_fn_mk], split,
                     { rintro ⟨h1,x',y',h2,h3,h4⟩, rw [<-proj_bot_inj h2, <-proj_bot_inj h3], exact h4 },
                     { intro h, refine ⟨_,x,y,rfl,rfl,h⟩,
                         intro h1, rw proj_bot_inj h1 at h, exact G.ne_of_adj h rfl } } }
@@ -287,7 +287,8 @@ namespace simple_graph
             def push_iso_iso (H : simple_graph V) (φ : V ≃ V') : H ≃g push_iso H φ
                 := {
                     to_equiv := φ,
-                    map_rel_iff' := λ x y, by { unfold push_iso, simp only [on_fun], simp }
+                    map_rel_iff' := λ x y, by { unfold push_iso,
+                        simp only [on_fun,equiv.symm_apply_apply,equiv.inv_fun_as_coe] }
                 }
 
             lemma push_iso_le {H G : simple_graph V} {G' : simple_graph V'} (φ : G ≃g G') (sub : H ≤ G) : push_iso H φ.to_equiv ≤ G'
@@ -317,14 +318,14 @@ namespace simple_graph
 
             def push_pred (P : pred_on G) (φ : G ≃g G') : pred_on G' := P ∘ φ.inv_fun
 
-            def lift_pred (P : pred_on (G/S)) : pred_on G := P ∘ quotient.mk
+            def lift_pred (P : pred_on (G/S)) : pred_on G := λ x, P ⟦x⟧
 
             def push_pred_iso (P : pred_on G) (φ : G ≃g G') : select P ≃g select (push_pred P φ)
                 := {
                     to_fun := λ x, ⟨φ x.val, by { rw [push_pred,comp_app], convert x.property, apply φ.left_inv }⟩,
                     inv_fun := λ y, ⟨φ.symm y.val, y.property⟩,
-                    left_inv := λ x, by simp,
-                    right_inv := λ x, by simp,
+                    left_inv := λ x, by simp only [rel_iso.symm_apply_apply,subtype.coe_eta,subtype.val_eq_coe],
+                    right_inv := λ x, by simp only [subtype.coe_eta,rel_iso.apply_symm_apply,subtype.val_eq_coe],
                     map_rel_iff' := λ a b, by { apply φ.map_rel_iff' }
                 }
 
@@ -332,6 +333,9 @@ namespace simple_graph
                 := ⟨@select _ S.g P', λ x y, by { apply S.sub }⟩
 
             def good (P : pred_on G) {x y} (p : walk G x y) : Prop := ∀ z ∈ p.support, P z
+
+            lemma good_of_cons_good {P : pred_on G} {x y z} {h : G.adj x y} {p : walk G y z} : good P (h :: p) -> good P p
+                | H z hz := H z (or.inr hz)
 
             lemma adj_iff {P : pred_on G} {x y : subtype P} : (select P).adj x y <-> G.adj x.val y.val
                 := iff.rfl
@@ -347,14 +351,13 @@ namespace simple_graph
                         { intros z h, cases h with h h, rw h, exact a.property, exact ih z h } },
                     { rintros ⟨p,hₚ⟩, cases x with x hx, cases y with y hy, change G.walk x y at p,
                         induction p with a a b c h p ih, refl,
-                        have h₁ : P b, by { cases p, exact hy, simp [good] at hₚ, exact hₚ.2.1 },
+                        have h₁ : P b, by { cases p, exact hy, apply hₚ, right, left, refl },
                         have h₂ : (select P).adj ⟨a,hx⟩ ⟨b,h₁⟩ := adj_iff.mpr h,
-                        simp [good] at hₚ, exact linked.cons h₂ (ih h₁ hy hₚ.2) }
+                        refine linked.cons h₂ (ih h₁ hy (good_of_cons_good hₚ)) }
                 }
 
             lemma pred_of_adj {x y} : S.g.adj x y -> lift_pred P x -> lift_pred P y
-                := by { intros h₁, simp [lift_pred],
-                    rw (@quotient.eq _ S.setoid x y).mpr (linked.step h₁), exact id }
+                := by { intros h₁, simp only [lift_pred], rw (@quotient.eq _ S.setoid x y).mpr (linked.step h₁), exact id }
 
             lemma all_good {x y : V} (p : walk S.g x y) : lift_pred P x -> ∀ z ∈ p.support, lift_pred P z
                 := by { induction p with a a b c h p ih; rintros h₁ z h₂; cases h₂,
@@ -364,8 +367,7 @@ namespace simple_graph
 
             lemma rel_iff {S : setup G} {P : pred_on (G/S)} (x y : subtype (lift_pred P)) :
                     (setup_select S (lift_pred P)).setoid.rel x y <-> S.setoid.rel x.val y.val
-                := by {
-                    simp only [setup.setoid,setoid.rel,setup_select], split,
+                := by { simp only [setup.setoid,setoid.rel,setup_select], split,
                     { rintros ⟨p⟩, use map₁ p },
                     { rintros ⟨p⟩, exact (linked_iff _).mpr ⟨p,all_good p x.property⟩ }
                 }
