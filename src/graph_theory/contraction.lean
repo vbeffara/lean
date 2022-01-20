@@ -29,6 +29,12 @@ namespace simple_graph
 
             @[simp] def bot : setup G := ⟨⊥, λ x y, false.rec _⟩
             -- instance : has_bot (setup G) := ⟨bot⟩
+
+            @[simp] lemma bot_rel {x y : V} : (⊥ : simple_graph V).linked x y <-> x = y
+            := by { split, swap, intro, subst y, rintro ⟨p⟩, cases p, refl, exfalso, exact p_h }
+
+            @[simp] lemma bot_setoid : (bot : setup G).setoid = (⊥ : setoid V)
+            := by { ext, simp [setup.setoid,setoid.rel], refl }
         end setup
     end contraction
 
@@ -383,7 +389,7 @@ namespace simple_graph
                     exact {
                         to_equiv := φ,
                         map_rel_iff' := λ x y, by {
-                            simp only [select,setup.adj,on_fun,contraction,quotient],
+                            simp only [select,setup.adj,on_fun,contraction,quotient_graph],
                             rw [ne.def,ne.def,equiv.apply_eq_iff_eq],
                             cases x with x hx, rw <-(quotient.out_eq x) at hx,
                             cases y with y hy, rw <-(quotient.out_eq y) at hy,

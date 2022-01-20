@@ -33,3 +33,11 @@ namespace v1 -- start with predicate on quotient
     def iso (S : setoid V) (P : quotient S -> Prop) : subtype P ≃ quotient (subsetoid P)
         := equiv.subtype_quotient_equiv_quotient_subtype (lift_pred P) P (λ a, iff.rfl) (λ a b, iff.rfl)
 end v1
+
+noncomputable def toto {V : Type} : V ≃ quotient (⊥ : setoid V)
+:= {
+        to_fun := @quotient.mk V ⊥,
+        inv_fun := @quotient.out V ⊥,
+        left_inv := λ y, by { letI : setoid V := ⊥, exact quotient.eq.mp (quotient.out_eq ⟦y⟧) },
+        right_inv := @quotient.out_eq V ⊥,
+    }
