@@ -33,7 +33,7 @@ namespace simple_graph
             | _ _ (cons h p) := F.df ⟨h⟩ ++ follow p
 
         @[simp] lemma follow_append : follow F (p ++ p') = follow F p ++ follow F p'
-            := by { induction p, refl, simp [*,append_assoc] }
+            := by { induction p, refl, simp only [cons_append,append_assoc,p_ih,follow] }
 
         lemma mem_follow {z} (h : 0 < length p) : z ∈ (follow F p).support <-> ∃ e ∈ myedges p, z ∈ (F.df e).support
             := by {
@@ -41,7 +41,8 @@ namespace simple_graph
                     { cases H,
                         { exact ⟨⟨h⟩,or.inl rfl,H⟩ },
                         { cases p,
-                            { simp at *, rw H, exact end_mem_support _ },
+                            { refine ⟨⟨h⟩,or.inl rfl,_⟩, simp only [follow,support_nil,list.mem_singleton] at H,
+                                rw H, apply end_mem_support },
                             { simp at ih H, obtain ⟨e,h1,h2⟩ := ih.mp H, refine ⟨e,or.inr h1,h2⟩ },
                         }
                     },
