@@ -113,7 +113,7 @@ namespace simple_graph
                     have h14 := F.endpoint h5.1,
                     have h15 := F.endpoint h5.2,
                     have h16 : x ≠ y := by { intro h, apply G'.ne_of_adj e1.h, convert congr_arg F.f h },
-                    exact sym2.eq_of_two_members h16 h12 h13 h14 h15
+                    exact sym2.eq_of_ne_mem h16 h12 h13 h14 h15
                 },
                 {
                     obtain ⟨y,h8⟩ := h7, subst z,

@@ -1,6 +1,6 @@
 import graph_theory.basic
 
-variables {V : Type} {G : simple_graph V}
+variables {V V' : Type} {G G' : simple_graph V}
 
 namespace simple_graph
     def quotient_graph (G : simple_graph V) (S : setoid V) : simple_graph (quotient S)

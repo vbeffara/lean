@@ -3,13 +3,6 @@ import combinatorics.simple_graph.basic
 
 variables {V V' V'' : Type} {G H : simple_graph V} {G' : simple_graph V'} {G'' : simple_graph V''}
 
-namespace sym2
-    variables {z z' : sym2 V} {x y : V}
-
-    lemma eq_of_two_members (h : x ≠ y) (h1 : x ∈ z) (h2 : y ∈ z) (h3 : x ∈ z') (h4 : y ∈ z') : z = z'
-        := ((mem_and_mem_iff h).mp ⟨h1, h2⟩).trans ((mem_and_mem_iff h).mp ⟨h3, h4⟩).symm
-end sym2
-
 namespace simple_graph
     variables
     open function classical
