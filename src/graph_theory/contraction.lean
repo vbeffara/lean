@@ -1,5 +1,5 @@
 import tactic data.equiv.basic
-import graph_theory.basic graph_theory.path_embedding
+import graph_theory.quotient graph_theory.path
 open function
 open_locale classical
 
@@ -15,7 +15,7 @@ namespace simple_graph
             instance setoid (S : setup G) : setoid S.support
                 := ⟨S.g.linked,simple_graph.linked.equiv⟩
 
-            def clusters (S : setup G) := quotient S.setoid
+            def clusters (S : setup G) := _root_.quotient S.setoid
 
             @[simp] def proj (S : setup G) : V -> clusters S := quotient.mk
             @[simp] noncomputable def out (S : setup G) : clusters S -> V := quotient.out
@@ -28,12 +28,12 @@ namespace simple_graph
                 | ⟨h0,x',y',h1,h2,h3⟩ := ⟨h0.symm,y',x',h2,h1,h3.symm⟩
 
             @[simp] def bot : setup G := ⟨⊥, λ x y, false.rec _⟩
-            instance : has_bot (setup G) := ⟨bot⟩
+            -- instance : has_bot (setup G) := ⟨bot⟩
         end setup
     end contraction
 
     def contraction (G : simple_graph V) (S : contraction.setup G) : simple_graph S.clusters
-        := ⟨S.adj, S.symm⟩
+        := G / S.setoid
 
     notation G `/` S := contraction G S
 
@@ -219,7 +219,7 @@ namespace simple_graph
         lemma proj_bot_inj {x y : (@setup.bot V G).support} : ⟦x⟧ = ⟦y⟧ -> x = y
             := by { intro h, cases quotient.eq.mp h with p, cases p, refl, change false at p_h, contradiction }
 
-        noncomputable def proj_bot : G ≃g G/⊥
+        noncomputable def proj_bot : G ≃g G/setup.bot
             := {
                 to_equiv := {
                     to_fun := quotient.mk,
@@ -236,7 +236,7 @@ namespace simple_graph
     namespace is_contraction
         open contraction
 
-        @[refl] lemma refl : G ≼c G := ⟨⊥,⟨proj_bot⟩⟩
+        @[refl] lemma refl : G ≼c G := ⟨setup.bot,⟨proj_bot⟩⟩
 
         lemma iso_left : G ≃g G' -> G' ≼c G'' -> G ≼c G''
             | φ ⟨S,⟨ψ⟩⟩ := ⟨S,⟨ψ.comp φ⟩⟩
@@ -266,7 +266,7 @@ namespace simple_graph
                         right_inv := λ y, rfl,
                         map_rel_iff' := λ x y, by { simp only [setup.adj, equiv.coe_fn_mk, contraction], split,
                             { rintros ⟨h₁,x',y',h₂,h₃,h₄⟩, substs h₂ h₃, cases h₄,
-                                { have : ⟦x'⟧ = ⟦y'⟧ := quotient.eq.mpr (linked.step h₄), contradiction },
+                                { have : (⟦x'⟧ : _root_.quotient (lift_setup S H).setoid) = ⟦y'⟧ := quotient.eq.mpr (linked.step h₄), contradiction },
                                 { exact h₄.2 }
                             },
                             { intro h₁, refine ⟨H.ne_of_adj h₁, _⟩, rcases sub h₁ with ⟨h₂,x',y',h₃,h₄,h₅⟩,
@@ -383,7 +383,7 @@ namespace simple_graph
                     exact {
                         to_equiv := φ,
                         map_rel_iff' := λ x y, by {
-                            simp only [select,setup.adj,on_fun,contraction],
+                            simp only [select,setup.adj,on_fun,contraction,quotient],
                             rw [ne.def,ne.def,equiv.apply_eq_iff_eq],
                             cases x with x hx, rw <-(quotient.out_eq x) at hx,
                             cases y with y hy, rw <-(quotient.out_eq y) at hy,
