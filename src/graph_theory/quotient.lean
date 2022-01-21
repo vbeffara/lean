@@ -1,8 +1,9 @@
-import graph_theory.basic
-
-variables {V V' : Type} {G G' : simple_graph V}
+import graph_theory.basic graph_theory.path
+import combinatorics.simple_graph.connectivity
 
 namespace simple_graph
+    variables {V V' : Type} {G G' : simple_graph V} {S : setoid V}
+
     def quotient_graph (G : simple_graph V) (S : setoid V) : simple_graph (quotient S)
     := {
         adj := λ x y, x ≠ y ∧ ∃ x' y' : V, ⟦x'⟧ = x ∧ ⟦y'⟧ = y ∧ G.adj x' y',
@@ -12,23 +13,68 @@ namespace simple_graph
 
     notation G `/` S := quotient_graph G S
 
+    def induced_subgraph (G : simple_graph V) (S : setoid V) : simple_graph V
+    := {
+        adj := λ x y, G.adj x y ∧ S.rel x y,
+        symm := λ x y ⟨h₁,h₂⟩, ⟨h₁.symm,setoid.symm h₂⟩,
+        loopless := λ x ⟨h₁,h₂⟩, G.ne_of_adj h₁ rfl,
+    }
+
+    lemma induced_le : induced_subgraph G S ≤ G
+    := λ x y h, h.1
+
+    def adapted₁ (S : setoid V) (G : simple_graph V) : Prop
+    := ∀ x y : V, S.rel x y -> ∃ p : walk G x y, ∀ z ∈ p.support, S.rel z y
+
+    def adapted₂ (S : setoid V) (G : simple_graph V) : Prop
+    := S.rel = (induced_subgraph G S).linked
+
+    def adapted₃ (S : setoid V) (G : simple_graph V) : Prop
+    := ∀ x y : V, S.rel x y -> (induced_subgraph G S).linked x y
+
+    def map₁ : Π {x y : V} (p : walk G x y) (h : ∀ z ∈ p.support, S.rel z y), walk (induced_subgraph G S) x y
+    := by { intros, induction p with a a b c h' p ih, refl, refine walk.cons ⟨h',_⟩ _,
+        { transitivity c, apply h, left, refl, symmetry, apply h, right, cases p, simp [list.mem], left, refl },
+        { apply ih, intros z hz, apply h, right, exact hz } }
+
+    def map₂ : ∀ {x y : V}, walk (induced_subgraph G S) x y -> walk G x y
+        | _ _ walk.nil        := walk.nil
+        | _ _ (walk.cons h p) := walk.cons h.1 (map₂ p)
+
+    lemma map₂_rel {x y : V} {p : walk (induced_subgraph G S) x y} : ∀ z ∈ (map₂ p).support, S.rel z y
+    := by { induction p with a a b c h p ih; intros z hz,
+        { simp [map₂] at hz, rw hz },
+        { simp [map₂] at hz, cases hz,
+            { subst z, transitivity b, exact h.2, apply ih, simp [map₂] },
+            { apply ih, exact hz } } }
+
+    lemma adapted_iff₁₃ : adapted₁ S G <-> adapted₃ S G
+    := by { unfold adapted₁ adapted₃, split; intros h₁ x y h₂; have h₃ := h₁ x y h₂,
+        { rcases h₃ with ⟨p,h₄⟩, use map₁ p h₄ },
+        { cases h₃ with p, use map₂ p, exact map₂_rel } }
+
+    lemma adapted_iff₂₃ : adapted₂ S G <-> adapted₃ S G
+    := by { unfold adapted₂ adapted₃, split,
+        { intros h₁ x y, rw h₁, exact id },
+        { intro h₁, ext x y, refine ⟨h₁ x y, _⟩, rintro ⟨p⟩, induction p with a a b c h p ih,
+            { refl }, { transitivity b, exact h.2, exact ih } } }
+
     def quotient_bot' : V ≃ quotient (⊥ : setoid V)
     := {
-        to_fun := λ x, @quotient.mk V ⊥ x,
+        to_fun := λ x, quotient.mk' x,
         inv_fun := λ y, quotient.lift_on' y id (λ _ _, id),
-        left_inv := λ x, by { refl },
+        left_inv := λ x, by refl,
         right_inv := λ y, by { induction y; refl },
     }
+
+    lemma quotient_bot_eq {x y : V} : @quotient.mk' _ ⊥ x = @quotient.mk' _ ⊥ y -> x = y
+    := quotient.eq'.mp
 
     def quotient_bot : G ≃g G/⊥
     := {
         to_equiv := quotient_bot',
-        map_rel_iff' := λ x y, by { simp [quotient_bot',quotient_graph], split,
-            { rintros ⟨h₁,x',h₂,y',h₃,h₄⟩, letI : setoid V := ⊥,
-                have p : ∀ {u v : V}, ⟦u⟧ = ⟦v⟧ -> u = v := λ u v, quotient.eq.mp,
-                rw [p h₂, p h₃] at h₄, exact h₄ },
-            { intro h, refine ⟨_,x,rfl,y,rfl,h⟩, intro h',
-                have : x = y := quotient.eq'.mp h', subst y, exact G.loopless x h }
-        }
+        map_rel_iff' := λ x y, by { split,
+        { rintros ⟨h₁,x',y',h₂,h₃,h₄⟩, rw [quotient_bot_eq h₂, quotient_bot_eq h₃] at h₄, exact h₄ },
+        { intro h, refine ⟨_,x,y,rfl,rfl,h⟩, intro h', rw quotient_bot_eq h' at h, exact G.loopless _ h } }
     }
 end simple_graph
