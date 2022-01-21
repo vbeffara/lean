@@ -1,6 +1,13 @@
 import graph_theory.basic graph_theory.path
 import combinatorics.simple_graph.connectivity
 
+namespace setoid
+    variables {V : Type}
+
+    def rel_gen (adj : V -> V -> Prop) (S : setoid V)
+        := eqv_gen.setoid (λ x y, adj x y ∧ S.rel x y)
+end setoid
+
 namespace simple_graph
     variables {V V' : Type} {G G' : simple_graph V} {S : setoid V}
 
@@ -22,6 +29,9 @@ namespace simple_graph
 
     lemma induced_le : induced_subgraph G S ≤ G
     := λ x y h, h.1
+
+    def adapted₀ (S : setoid V) (G : simple_graph V) : Prop
+    := setoid.rel_gen G.adj S = S
 
     def adapted₁ (S : setoid V) (G : simple_graph V) : Prop
     := ∀ x y : V, S.rel x y -> ∃ p : walk G x y, ∀ z ∈ p.support, S.rel z y
@@ -58,6 +68,25 @@ namespace simple_graph
         { intros h₁ x y, rw h₁, exact id },
         { intro h₁, ext x y, refine ⟨h₁ x y, _⟩, rintro ⟨p⟩, induction p with a a b c h p ih,
             { refl }, { transitivity b, exact h.2, exact ih } } }
+
+    lemma adapted_iff₀₃ : adapted₀ S G <-> adapted₃ S G
+    := by { unfold adapted₀ adapted₃, split,
+        { intros h₁ x y h₂, rw <-h₁ at h₂, induction h₂ with a b h₃ a a b h₂ ih a b c h₂ h₃ h₄ h₅,
+            { apply linked.step, exact h₃ },
+            { refl },
+            { exact ih.symm },
+            { exact h₄.trans h₅ } },
+        { intro h₁, ext, split,
+            { intro h₂, unfold setoid.rel_gen at h₂, induction h₂ with a b h₃ a a b h₂ ih a b c h₂ h₃ h₄ h₅,
+                { exact h₃.2 },
+                { refl },
+                { symmetry, exact ih },
+                { transitivity b; assumption } },
+            { intro h₂, have h₃ := h₁ a b h₂, cases h₃ with p, induction p with a a b c h p ih,
+                { refl },
+                { transitivity b, apply eqv_gen.rel, exact h, apply ih, transitivity a, symmetry,
+                    exact h.2, exact h₂ } } }
+    }
 
     def quotient_bot' : V ≃ quotient (⊥ : setoid V)
     := {
