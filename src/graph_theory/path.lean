@@ -94,5 +94,12 @@ namespace simple_graph
 
         lemma fmap (f : G →g G') : linked G x y -> linked G' (f x) (f y)
             | ⟨p⟩ := ⟨walk.fmap f p⟩
+
+        lemma linked_iff : linked G = eqv_gen G.adj
+            := by { ext a b, split; intro h₁,
+                { cases h₁ with p, induction p with a a b c h p ih, exact eqv_gen.refl _,
+                    apply eqv_gen.trans a b c, exact eqv_gen.rel _ _ h, exact ih },
+                { induction h₁ with a b h₁ a a b h₁ h₂ a b c h₁ h₂ h₃ h₄, exact linked.cons h₁ linked.refl,
+                    refl, symmetry, exact h₂, transitivity b, exact h₃, exact h₄ } }
     end linked
 end simple_graph
