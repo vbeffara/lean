@@ -11,10 +11,6 @@ namespace simple_graph
         infix  ` ++ ` := append
 
         def good (G : simple_graph V) (pred : V -> Prop) : Prop := ∀ {x y}, pred x -> G.adj x y -> pred y
-
-        lemma propagate {pred : V -> Prop} (hg : good G pred) : ∀ {x y}, pred x -> walk G x y -> pred y
-            | _ _ h nil         := h
-            | _ _ h (cons h' p) := propagate (hg _ _ h h') p
     end walk
 
     namespace walk
@@ -98,13 +94,13 @@ namespace simple_graph
         noncomputable def to_path (h : linked G x y) : walk G x y
             := classical.choice (linked_iff.mp h)
 
-        lemma linked_of_subgraph (sub : G₁ ≤ G₂) : linked G₁ ≤ linked G₂ -- TODO this belongs in relation.refl_trans_gen
-            := by { intros x y h, induction h with a b h₁ h₂ ih, refl, refine tail ih (sub h₂), }
+        lemma linked_of_subgraph (sub : G₁ ≤ G₂) : linked G₁ x y -> linked G₂ x y
+            := refl_trans_gen.mono sub
 
         lemma extend {pred : V -> Prop} (hg : good G pred) (h₁ : pred x) (h₂ : linked G x z) : pred z
             := by { induction h₂ with a b h₂ h₃ ih, exact h₁, exact hg ih h₃ }
 
-        lemma fmap (f : G →g G') (h : linked G x y) : linked G' (f x) (f y)
-            := by { induction h with a b h₁ h₂ ih, refl, refine tail ih (f.map_rel h₂) }
+        lemma fmap (f : G →g G') : linked G x y -> linked G' (f x) (f y)
+            := refl_trans_gen.lift f (λ a b, f.map_rel)
     end linked
 end simple_graph

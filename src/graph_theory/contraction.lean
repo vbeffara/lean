@@ -31,7 +31,7 @@ namespace simple_graph
             -- instance : has_bot (setup G) := ⟨bot⟩
 
             @[simp] lemma bot_rel {x y : V} : (⊥ : simple_graph V).linked x y <-> x = y
-            := by { split, swap, intro, subst y, rintro ⟨p⟩, cases p, refl, exfalso, exact p_h }
+            := by { split; intro h, cases h, refl, exfalso, assumption, subst y }
 
             @[simp] lemma bot_setoid : (bot : setup G).setoid = (⊥ : setoid V)
             := by { ext, simp [setup.setoid,setoid.rel], refl }
@@ -50,7 +50,7 @@ namespace simple_graph
 
     namespace contraction
         variables {S : setup G} {S' : setup (G/S)} {x y : S.support} {xx yy : S.clusters}
-        open walk quotient
+        open walk quotient relation.refl_trans_gen
 
         namespace setup
             def linked (S : setup G) (x y : S.clusters) : Prop := (G/S).linked x y
@@ -69,9 +69,9 @@ namespace simple_graph
 
             namespace comp
                 lemma linked_mp : (S.comp S').g.linked x y -> S'.g.linked ⟦x⟧ ⟦y⟧
-                    := by { rintro ⟨p⟩, induction p with a a b c h p ih, refl, cases h with h1 h2, cases h2,
-                            { rw (@quotient.eq S.support _ a b).mpr (linked.step h2), exact ih },
-                            { exact linked.cons h2.2 ih } }
+                    := by { intro h, induction h with a b h₁ h₂ ih, refl, refine ih.trans _, cases h₂.2 with h₂ h₂,
+                            { rw (@quotient.eq S.support _ a b).mpr (tail refl h₂) },
+                            { exact tail refl h₂.2 } }
 
                 lemma linked_mpr_aux : ⟦x⟧ = ⟦y⟧ -> (S.comp S').g.linked x y
                     | h := linked.linked_of_subgraph (λ x y ha, ⟨S.g.ne_of_adj ha, or.inl ha⟩) (quotient.eq.mp h)
@@ -83,9 +83,8 @@ namespace simple_graph
                         exact linked.step ⟨G.ne_of_adj h2, or.inr ⟨h2,h⟩⟩ }
 
                 lemma linked_mpr : S'.g.linked xx yy -> (S.comp S').g.linked xx.out yy.out
-                    := by { rintro ⟨p⟩, induction p with aa aa bb cc hh pp ih,
-                        { apply linked_mpr_aux, refl },
-                        { transitivity bb.out, swap, exact ih, clear ih, apply linked_mpr_aux', convert hh; apply out_eq } }
+                    := by { intro h, induction h with a b h₁ h₂ ih, refl, refine ih.trans _,
+                        apply linked_mpr_aux', convert h₂; apply out_eq }
 
                 lemma linked : (S.comp S').g.linked x y <-> S'.g.linked ⟦x⟧ ⟦y⟧
                     := by { split,
