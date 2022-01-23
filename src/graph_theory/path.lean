@@ -10,7 +10,7 @@ namespace simple_graph
         infixr ` :: ` := cons
         infix  ` ++ ` := append
 
-        def good (G : simple_graph V) (pred : V -> Prop) : Prop := ∀ x y, pred x -> G.adj x y -> pred y
+        def good (G : simple_graph V) (pred : V -> Prop) : Prop := ∀ {x y}, pred x -> G.adj x y -> pred y
 
         lemma propagate {pred : V -> Prop} (hg : good G pred) : ∀ {x y}, pred x -> walk G x y -> pred y
             | _ _ h nil         := h
@@ -64,49 +64,47 @@ namespace simple_graph
             := by { induction p, refl, simpa }
     end walk
 
-    def linked    (G : simple_graph V) (x y : V) := nonempty (walk G x y)
-    def connected (G : simple_graph V)           := ∀ x y, linked G x y
+    open relation relation.refl_trans_gen
+
+    def linked    (G : simple_graph V) := refl_trans_gen G.adj
+    def connected (G : simple_graph V) := ∀ x y, linked G x y
 
     class connected_graph (G : simple_graph V) := (conn : connected G)
 
     namespace linked
         open walk
 
-        @[refl]  lemma refl  : linked G x x                                 := ⟨nil⟩
-        @[symm]  lemma symm  : linked G x y -> linked G y x                 := λ h, h.cases_on (λ p, nonempty.intro p.reverse)
-        @[trans] lemma trans : linked G x y -> linked G y z -> linked G x z := λ h₁ h₂, h₁.cases_on (λ p₁, h₂.cases_on (λ p₂, nonempty.intro (p₁ ++ p₂)))
+        @[refl] lemma refl  : linked G x x
+            := refl_trans_gen.refl
 
-        lemma step : G.adj x y                 -> linked G x y := λ h, ⟨walk.cons h walk.nil⟩
-        lemma cons : G.adj x y -> linked G y z -> linked G x z := λ h h', trans (step h) h'
+        @[symm] lemma symm  : linked G x y -> linked G y x
+            := λ h, refl_trans_gen.symmetric G.symm h
+
+        @[trans] lemma trans : linked G x y -> linked G y z -> linked G x z
+            := λ h, h.trans
+
+        lemma step : G.adj x y -> linked G x y
+            := refl_trans_gen.single
+
+        -- lemma cons : G.adj x y -> linked G y z -> linked G x z := λ h h', trans (step h) h'
 
         lemma equiv : equivalence (linked G) := ⟨@refl _ _, @symm _ _, @trans _ _⟩
 
-        noncomputable def to_path' : linked G x y -> walk G x y := classical.choice
+        lemma linked_iff : linked G x y <-> nonempty (walk G x y)
+            := by { split; intro h₁,
+                { induction h₁ with u v h₁ h₂ h₃, use nil, cases h₃ with p, use (p ++ (cons h₂ nil)) },
+                { cases h₁ with p, induction p with a a b c h p ih, refl, exact (single h).trans ih } }
 
-        lemma linked_of_subgraph (sub : ∀ {x y : V}, G₁.adj x y -> G₂.adj x y) : ∀ {x y}, linked G₁ x y -> linked G₂ x y
-            | x y ⟨p⟩ := walk.rec (λ _, ⟨nil⟩) (λ _ _ _ h1 _, cons (sub h1)) p
+        noncomputable def to_path (h : linked G x y) : walk G x y
+            := classical.choice (linked_iff.mp h)
 
-        lemma extend {pred : V -> Prop} (hg : good G pred) (h : pred x) : ∀ {z}, linked G x z -> pred z
-            | z ⟨p⟩ := propagate hg h p
+        lemma linked_of_subgraph (sub : G₁ ≤ G₂) : linked G₁ ≤ linked G₂ -- TODO this belongs in relation.refl_trans_gen
+            := by { intros x y h, induction h with a b h₁ h₂ ih, refl, refine tail ih (sub h₂), }
 
-        lemma extend' (conn : connected G) {pred : V -> Prop} (hg : good G pred) : pred x -> ∀ z, pred z
-            | h z := extend hg h (conn x z)
+        lemma extend {pred : V -> Prop} (hg : good G pred) (h₁ : pred x) (h₂ : linked G x z) : pred z
+            := by { induction h₂ with a b h₂ h₃ ih, exact h₁, exact hg ih h₃ }
 
-        lemma fmap (f : G →g G') : linked G x y -> linked G' (f x) (f y)
-            | ⟨p⟩ := ⟨walk.fmap f p⟩
-
-        lemma linked_iff : linked G = eqv_gen G.adj
-            := by { ext a b, split; intro h₁,
-                { cases h₁ with p, induction p with a a b c h p ih, exact eqv_gen.refl _,
-                    apply eqv_gen.trans a b c, exact eqv_gen.rel _ _ h, exact ih },
-                { induction h₁ with a b h₁ a a b h₁ h₂ a b c h₁ h₂ h₃ h₄, exact linked.cons h₁ linked.refl,
-                    refl, symmetry, exact h₂, transitivity b, exact h₃, exact h₄ } }
-
-        lemma linked_iff' : linked G = relation.refl_trans_gen G.adj
-            := by { ext a b, split; intro h₁,
-                { cases h₁ with p, induction p with a a b c h p ih, refl, transitivity b,
-                    exact relation.refl_trans_gen.single h, exact ih },
-                { induction h₁ with u v h₁ h₂ h₃, refl, transitivity u, exact h₃, exact step h₂ }
-            }
+        lemma fmap (f : G →g G') (h : linked G x y) : linked G' (f x) (f y)
+            := by { induction h with a b h₁ h₂ ih, refl, refine tail ih (f.map_rel h₂) }
     end linked
 end simple_graph
