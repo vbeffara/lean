@@ -101,5 +101,12 @@ namespace simple_graph
                     apply eqv_gen.trans a b c, exact eqv_gen.rel _ _ h, exact ih },
                 { induction h₁ with a b h₁ a a b h₁ h₂ a b c h₁ h₂ h₃ h₄, exact linked.cons h₁ linked.refl,
                     refl, symmetry, exact h₂, transitivity b, exact h₃, exact h₄ } }
+
+        lemma linked_iff' : linked G = relation.refl_trans_gen G.adj
+            := by { ext a b, split; intro h₁,
+                { cases h₁ with p, induction p with a a b c h p ih, refl, transitivity b,
+                    exact relation.refl_trans_gen.single h, exact ih },
+                { induction h₁ with u v h₁ h₂ h₃, refl, transitivity u, exact h₃, exact step h₂ }
+            }
     end linked
 end simple_graph

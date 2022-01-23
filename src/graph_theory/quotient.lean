@@ -36,9 +36,6 @@ namespace simple_graph
     def adapted' (S : setoid V) (G : simple_graph V) : Prop
     := S.rel = (induced_subgraph G S).linked
 
-    lemma adapted_iff_linked : (setoid.rel_gen G.adj S).rel = (induced_subgraph G S).linked
-    := by { simp [induced_subgraph], sorry }
-
     def quotient_bot' : V ≃ quotient (⊥ : setoid V)
     := {
         to_fun := λ x, quotient.mk' x,
