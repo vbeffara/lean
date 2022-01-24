@@ -16,21 +16,21 @@ namespace simple_graph
 
         instance : has_mem G (genset G) := ⟨λ a s, a ∈ s.els⟩
 
-        def adj (x y : G) := x ≠ y ∧ x⁻¹ * y ∈ S
+        def adj (x y : G) := x⁻¹ * y ∈ S
 
         @[simp] lemma cancel (a x y : G) : (a * x)⁻¹ * (a * y) = x⁻¹ * y := by group
 
         lemma shift_adj {S : genset G} : adj S x y -> adj S (a*x) (a*y)
-            | ⟨h1,h2⟩ := ⟨(mul_ne_mul_right a).mpr h1, (cancel a x y).symm ▸ h2⟩
+            := by { unfold adj, rw cancel, exact id }
 
         @[symm] lemma adj_symm (x y) : adj S x y -> adj S y x
-            | ⟨h1,h2⟩ := ⟨h1.symm, by { convert S.sym h2, group }⟩
+            | h := by { unfold adj, convert S.sym h, group }
 
         def Cay (S : genset G) : simple_graph G
             := {
                 adj := adj S,
                 symm := adj_symm S,
-                loopless := λ _, not_and.mpr (λ h1 _, h1 rfl)
+                loopless := λ x h, S.irr (by { convert h, group })
             }
 
         def left_shift : (Cay S) →g (Cay S)
@@ -48,9 +48,7 @@ namespace simple_graph
         lemma linked_mp : linked (Cay S) 1 x
             := by { apply subgroup.closure_induction,
                 { rw S.gen, trivial },
-                { intros, have := linked.step, apply this, split,
-                    { intro h, rw <-h at H, exact S.irr H },
-                    { convert H, group } },
+                { intros y h, apply linked.step, simp only [Cay,adj], convert h, group },
                 { refl },
                 { intros u v h1 h2, refine linked.trans h1 _, convert shift _ u h2, group },
                 { intros y h, apply inv, exact h },
@@ -83,7 +81,7 @@ namespace simple_graph
 
         lemma distorsion_le {h : (Cay S1).adj x y} : (Cay S2).dist x y ≤ distorsion S1 S2
             := by { refine finset.le_max_of_mem _ (distorsion_spec S1 S2),
-                rw [finset.mem_image], refine ⟨x⁻¹ * y, h.2, _⟩, convert covariant _ x⁻¹, group }
+                rw [finset.mem_image], refine ⟨x⁻¹ * y, h, _⟩, convert covariant _ x⁻¹, group }
 
         lemma lipschitz : (Cay S2).dist x y <= (distorsion S1 S2) * (Cay S1).dist x y
             := by { obtain ⟨p,hp⟩ := simple_graph.shortest_path (Cay S1) x y, rw <-hp, clear hp,
