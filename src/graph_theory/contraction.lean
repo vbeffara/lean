@@ -138,8 +138,8 @@ namespace simple_graph
                         { rw [fmap_isom,fmap_isom], simp only [on_fun], convert h; exact rel_iso.symm_apply_apply _ _ } }
 
                 lemma linked : S.g.linked x y -> (S.fmap_isom f).g.linked (f x) (f y)
-                    := by { intro h, cases h with p, induction p with a a b c h q ih, refl,
-                        refine linked.cons _ ih, simp only [fmap_isom,on_fun], convert h; exact rel_iso.symm_apply_apply _ _ }
+                    := by { intro h, induction h with a b h₁ h₂ ih, refl,
+                        refine ih.trans (tail refl _), simp only [fmap_isom,on_fun], convert h₂; exact rel_iso.symm_apply_apply _ _ }
 
                 lemma linked_iff : S.g.linked x y <-> (S.fmap_isom f).g.linked (f x) (f y)
                     := by { split, exact linked, intro h,
@@ -198,18 +198,15 @@ namespace simple_graph
             | _ z (cons (h : G.adj x y) p) := dite (⟦y⟧ = ⟦x⟧) (λ h, by { rw <-h, exact proj_path p })
                                                                (λ h', walk.cons ⟨ne.symm h',_,_,rfl,rfl,h⟩ (proj_path p))
 
-        lemma project_linked : ∀ {x y}, linked G x y -> linked (G/S) ⟦x⟧ ⟦y⟧
-            | _ _ ⟨p⟩ := by { induction p with u u v w h p ih, refl,
-                cases proj_adj h with h' h', rw h', exact ih, exact ih.cons h' }
+        lemma project_linked : linked G x y -> linked (G/S) ⟦x⟧ ⟦y⟧
+            := by { intro h, let p := h.to_path, let q := @proj_path V G S x y x y p, apply linked.linked_iff.mpr, use q }
 
         lemma lift_linked' : linked (G/S) xx yy ->
                 ∀ (x y : V) (hx : ⟦x⟧ = xx) (hy : ⟦y⟧ = yy), linked G x y
-            := by {
-                intro h, cases h with p, induction p with u u v w h p ih; intros x y hx hy,
+            := by { intro h, induction h with aa b h₁ h₂ ih; intros x y hx hy,
                 { subst hy, exact linked.linked_of_subgraph S.sub (quotient.eq.mp hx) },
-                { obtain ⟨a, ha : ⟦a⟧ = v⟩ := quot.exists_rep v, substs ha hx hy,
-                    transitivity a, exact linked_of_adj h, exact ih a y rfl rfl }
-            }
+                { obtain ⟨a, ha : ⟦a⟧ = aa⟩ := quot.exists_rep aa, substs ha hx hy,
+                    specialize ih x a rfl rfl, refine ih.trans _, exact linked_of_adj h₂ } }
 
         lemma lift_linked (h : linked (G/S) ⟦x⟧ ⟦y⟧) : linked G x y
             := lift_linked' h _ _ rfl rfl
@@ -222,7 +219,7 @@ namespace simple_graph
                 mpr := λ h x y, lift_linked (h ⟦x⟧ ⟦y⟧) }
 
         lemma proj_bot_inj {x y : (@setup.bot V G).support} : ⟦x⟧ = ⟦y⟧ -> x = y
-            := by { intro h, cases quotient.eq.mp h with p, cases p, refl, change false at p_h, contradiction }
+            := by { intro h, cases quotient.eq.mp h with p, refl, exfalso, assumption }
 
         noncomputable def proj_bot : G ≃g G/setup.bot
             := {
@@ -320,6 +317,7 @@ namespace simple_graph
 
         namespace select_left.detail
             variables {S : setup G} {P : pred_on (G/S)}
+            open relation
 
             def push_pred (P : pred_on G) (φ : G ≃g G') : pred_on G' := P ∘ φ.inv_fun
 
@@ -340,7 +338,7 @@ namespace simple_graph
             def good (P : pred_on G) {x y} (p : walk G x y) : Prop := ∀ z ∈ p.support, P z
 
             lemma good_of_cons_good {P : pred_on G} {x y z} {h : G.adj x y} {p : walk G y z} : good P (h :: p) -> good P p
-                | H z hz := H z (or.inr hz)
+                | H z hz := H _ (or.inr hz)
 
             lemma adj_iff {P : pred_on G} {x y : subtype P} : (select P).adj x y <-> G.adj x.val y.val
                 := iff.rfl
@@ -351,15 +349,16 @@ namespace simple_graph
 
             lemma linked_iff (P : pred_on G) {x y : subtype P} : (select P).linked x y <-> ∃ p : walk G x.val y.val, good P p
                 := by { split,
-                    { rintros ⟨p⟩, use map₁ p, induction p with a a b c h p ih,
-                        { rw map₁, intros z h, cases h, rw h, exact a.property, cases h },
-                        { intros z h, cases h with h h, rw h, exact a.property, exact ih z h } },
+                    { intro h, induction h with a b h₁ h₂ ih,
+                        { use walk.nil, intros z h, cases h, rw h, exact x.prop, cases h },
+                        { cases ih with p hp, use p.append (walk.cons h₂ walk.nil),
+                            intros z h, simp at h, cases h, exact hp _ h, cases h; subst z, exact a.prop, exact b.prop } },
                     { rintros ⟨p,hₚ⟩, cases x with x hx, cases y with y hy, change G.walk x y at p,
                         induction p with a a b c h p ih, refl,
                         have h₁ : P b, by { cases p, exact hy, apply hₚ, right, left, refl },
                         have h₂ : (select P).adj ⟨a,hx⟩ ⟨b,h₁⟩ := adj_iff.mpr h,
-                        refine linked.cons h₂ (ih h₁ hy (good_of_cons_good hₚ)) }
-                }
+                        transitivity, exact refl_trans_gen.tail refl_trans_gen.refl h₂, apply ih,
+                        apply good_of_cons_good hₚ } }
 
             lemma pred_of_adj {x y} : S.g.adj x y -> lift_pred P x -> lift_pred P y
                 := by { intros h₁, simp only [lift_pred], rw (@quotient.eq _ S.setoid x y).mpr (linked.step h₁), exact id }
@@ -372,10 +371,9 @@ namespace simple_graph
 
             lemma rel_iff {S : setup G} {P : pred_on (G/S)} (x y : subtype (lift_pred P)) :
                     (setup_select S (lift_pred P)).setoid.rel x y <-> S.setoid.rel x.val y.val
-                := by { simp only [setup.setoid,setoid.rel,setup_select], split,
-                    { rintros ⟨p⟩, use map₁ p },
-                    { rintros ⟨p⟩, exact (linked_iff _).mpr ⟨p,all_good p x.property⟩ }
-                }
+                := by { simp only [setup.setoid,setoid.rel,setup_select,lift_pred,select], split,
+                    { apply refl_trans_gen.lift, introv, exact id },
+                    { intro h, let p := linked.to_path h, apply (linked_iff _).mpr, use p, exact all_good p x.prop } }
 
             def iso (S : setup G) (P : pred_on (G/S)) : select P ≃g select (lift_pred P)/(setup_select S (lift_pred P))
                 := by {
