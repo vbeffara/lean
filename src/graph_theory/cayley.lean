@@ -3,7 +3,7 @@ import graph_theory.path graph_theory.metric topology.metric_space.lipschitz
 
 namespace simple_graph
     namespace cayley
-        open walk
+        open walk relation.refl_trans_gen
 
         structure genset (G : Type) [group G] :=
             (els : finset G)
@@ -40,7 +40,7 @@ namespace simple_graph
             := fmap (left_shift S a)
 
         lemma shift : linked (Cay S) x y -> linked (Cay S) (a*x) (a*y)
-            | ⟨p⟩ := ⟨shift_path S a p⟩
+            := by { intro h, induction h with u v h₁ h₂ ih, refl, refine ih.trans (tail refl _), apply shift_adj, exact h₂ }
 
         lemma inv : linked (Cay S) 1 x -> linked (Cay S) 1 x⁻¹
             := by { intro h, symmetry, convert shift S x⁻¹ h; group }
