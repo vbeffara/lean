@@ -331,39 +331,8 @@ namespace simple_graph
             def setup_select (S : setup G) (P' : pred_on G) : setup (select P')
                 := ⟨@select _ S.g P', λ x y, by { apply S.sub }⟩
 
-            def good (P : pred_on G) {x y} (p : walk G x y) : Prop := ∀ z ∈ p.support, P z
-
-            lemma good_of_cons_good {P : pred_on G} {x y z} {h : G.adj x y} {p : walk G y z} : good P (h :: p) -> good P p
-                | H z hz := H _ (or.inr hz)
-
-            lemma adj_iff {P : pred_on G} {x y : subtype P} : (select P).adj x y <-> G.adj x.val y.val
-                := iff.rfl
-
-            def map₁ {P : pred_on G} : ∀ {x y}, walk (select P) x y -> walk G x.val y.val
-                | _ _ walk.nil        := walk.nil
-                | _ _ (walk.cons h p) := walk.cons (adj_iff.mp h) (map₁ p)
-
-            lemma linked_iff (P : pred_on G) {x y : subtype P} : (select P).linked x y <-> ∃ p : walk G x.val y.val, good P p
-                := by { split,
-                    { intro h, induction h with a b h₁ h₂ ih,
-                        { use walk.nil, intros z h, cases h, rw h, exact x.prop, cases h },
-                        { cases ih with p hp, use p.append (walk.cons h₂ walk.nil),
-                            intros z h, simp at h, cases h, exact hp _ h, cases h; subst z, exact a.prop, exact b.prop } },
-                    { rintros ⟨p,hₚ⟩, cases x with x hx, cases y with y hy, change G.walk x y at p,
-                        induction p with a a b c h p ih, refl,
-                        have h₁ : P b, by { cases p, exact hy, apply hₚ, right, left, refl },
-                        have h₂ : (select P).adj ⟨a,hx⟩ ⟨b,h₁⟩ := adj_iff.mpr h,
-                        transitivity, exact refl_trans_gen.tail refl_trans_gen.refl h₂, apply ih,
-                        apply good_of_cons_good hₚ } }
-
             lemma pred_of_adj {x y} : S.g.adj x y -> lift_pred P x -> lift_pred P y
                 := by { intros h₁, simp only [lift_pred], rw (@quotient.eq _ S.setoid x y).mpr (linked.step h₁), exact id }
-
-            lemma all_good {x y : V} (p : walk S.g x y) : lift_pred P x -> ∀ z ∈ p.support, lift_pred P z
-                := by { induction p with a a b c h p ih; rintros h₁ z h₂; cases h₂,
-                    { rw h₂, exact h₁ }, { cases h₂ },
-                    { rw h₂, exact h₁ }, { exact ih (pred_of_adj h h₁) z h₂ }
-                }
 
             lemma rel_iff {S : setup G} {P : pred_on (G/S)} (x y : subtype (lift_pred P)) :
                     (setup_select S (lift_pred P)).setoid.rel x y <-> S.setoid.rel x.val y.val
