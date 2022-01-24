@@ -91,9 +91,6 @@ namespace simple_graph
                 { induction h₁ with u v h₁ h₂ h₃, use nil, cases h₃ with p, use (p ++ (cons h₂ nil)) },
                 { cases h₁ with p, induction p with a a b c h p ih, refl, exact (single h).trans ih } }
 
-        noncomputable def to_path (h : linked G x y) : walk G x y
-            := classical.choice (linked_iff.mp h)
-
         lemma linked_of_subgraph (sub : G₁ ≤ G₂) : linked G₁ x y -> linked G₂ x y
             := refl_trans_gen.mono sub
 

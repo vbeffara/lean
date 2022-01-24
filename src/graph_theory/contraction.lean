@@ -193,13 +193,9 @@ namespace simple_graph
                 exact linked.step h₄,
                 exact linked.linked_of_subgraph S.sub (quotient.eq.mp h₃) }
 
-        noncomputable def proj_path : Π {x y : V}, walk G x y -> walk (G/S) ⟦x⟧ ⟦y⟧
-            | _ _ nil                      := nil
-            | _ z (cons (h : G.adj x y) p) := dite (⟦y⟧ = ⟦x⟧) (λ h, by { rw <-h, exact proj_path p })
-                                                               (λ h', walk.cons ⟨ne.symm h',_,_,rfl,rfl,h⟩ (proj_path p))
-
         lemma project_linked : linked G x y -> linked (G/S) ⟦x⟧ ⟦y⟧
-            := by { intro h, let p := h.to_path, let q := @proj_path V G S x y x y p, apply linked.linked_iff.mpr, use q }
+            := by { intro h, induction h with u v h₁ h₂ ih, refl, letI : setoid V := S.setoid,
+                refine ih.trans _, by_cases (⟦u⟧ = ⟦v⟧), rw h, apply linked.step, refine ⟨h,u,v,rfl,rfl,h₂⟩ }
 
         lemma lift_linked' : linked (G/S) xx yy ->
                 ∀ (x y : V) (hx : ⟦x⟧ = xx) (hy : ⟦y⟧ = yy), linked G x y
@@ -371,9 +367,11 @@ namespace simple_graph
 
             lemma rel_iff {S : setup G} {P : pred_on (G/S)} (x y : subtype (lift_pred P)) :
                     (setup_select S (lift_pred P)).setoid.rel x y <-> S.setoid.rel x.val y.val
-                := by { simp only [setup.setoid,setoid.rel,setup_select,lift_pred,select], split,
+                := by { simp only [setup.setoid,setoid.rel], split,
                     { apply refl_trans_gen.lift, introv, exact id },
-                    { intro h, let p := linked.to_path h, apply (linked_iff _).mpr, use p, exact all_good p x.prop } }
+                    { intro h, cases x with x hx, cases y with y hy, change S.g.linked x y at h,
+                        induction h with u v h₁ h₂ ih, refl,
+                        specialize ih (pred_of_adj h₂.symm hy), refine ih.trans _, refine linked.step _, exact h₂ } }
 
             def iso (S : setup G) (P : pred_on (G/S)) : select P ≃g select (lift_pred P)/(setup_select S (lift_pred P))
                 := by {
