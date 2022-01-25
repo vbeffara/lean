@@ -1,13 +1,12 @@
 import tactic
 import combinatorics.simple_graph.basic
+import graph_theory.to_mathlib
 
 variables {V V' V'' : Type} {G H : simple_graph V} {G' : simple_graph V'} {G'' : simple_graph V''}
 
 namespace simple_graph
     variables
     open function classical
-
-    def adj.symm := G.symm
 
     @[ext] structure step (G : simple_graph V) := {x y : V} (h : G.adj x y)
 
