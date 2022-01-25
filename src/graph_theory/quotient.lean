@@ -1,10 +1,5 @@
-import graph_theory.basic graph_theory.path
+import graph_theory.to_mathlib graph_theory.basic graph_theory.path
 import combinatorics.simple_graph.connectivity
-
-namespace setoid
-    lemma r.symm {V : Type} {S : setoid V} : symmetric S.rel :=
-    λ x y, setoid.symm
-end setoid
 
 namespace simple_graph
     variables {V V' : Type} {G G' : simple_graph V} {S : setoid V}
