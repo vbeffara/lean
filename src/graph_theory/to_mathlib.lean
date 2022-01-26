@@ -12,22 +12,19 @@ in setoid.ker (g ∘ f)
 def setoid.comp.iso {V : Type} {s : setoid V} {t : setoid (quotient s)} :
     quotient (s.comp t) ≃ quotient t :=
 by {
-    let f : V -> quotient s := quotient.mk,
+    let f : V -> quotient s := quotient.mk',
     let g : quotient s -> quotient t := quotient.mk',
     let h : V -> quotient (s.comp t) := quotient.mk',
 
+    have p₀ : ∀ {a b}, h a = h b <-> g (f a) = g (f b) := λ a b, quotient.eq',
     have p₁ : ∀ {a b}, f a = f b <-> s.rel a b := λ a b, quotient.eq',
     have p₂ : ∀ {a b}, g a = g b <-> t.rel a b := λ a b, quotient.eq',
-    have p₃ : ∀ {a b}, h a = h b <-> (s.comp t).rel a b := λ a b, quotient.eq',
-    have p₄ : ∀ {a b}, (s.comp t).rel a b <-> g (f a) = g (f b) := λ a b, setoid.ker_def,
-    have p₅ : ∀ a b, s.rel a b -> h a = h b := λ a b, by { rw [p₃,p₄,<-p₁], exact congr_arg g },
+    have p₅ : ∀ a b, s.rel a b -> h a = h b := λ a b, by { rw [p₀,<-p₁], exact congr_arg g },
 
     let ζ : quotient s -> quotient (s.comp t) := λ y, y.lift_on' h p₅,
 
     have p₆ : ∀ a b, t.rel a b -> ζ a = ζ b := λ a b, by {
-        refine a.induction_on' (λ x, _),
-        refine b.induction_on' (λ y, _),
-        rw [<-p₂], change g (f x) = g (f y) -> h x = h y, rw [p₃,p₄], exact id
+        refine a.induction_on' (λ x, _), refine b.induction_on' (λ y, _), rw [<-p₂], exact p₀.mpr
     },
 
     exact {
