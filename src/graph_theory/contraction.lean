@@ -28,20 +28,39 @@ namespace simple_graph
                 | ⟨h0,x',y',h1,h2,h3⟩ := ⟨h0.symm,y',x',h2,h1,h3.symm⟩
 
             @[simp] def bot : setup G := ⟨⊥, λ x y, false.rec _⟩
-            -- instance : has_bot (setup G) := ⟨bot⟩
-
-            @[simp] lemma bot_rel {x y : V} : (⊥ : simple_graph V).linked x y <-> x = y
-            := by { split; intro h, cases h, refl, exfalso, assumption, subst y }
-
-            @[simp] lemma bot_setoid : (bot : setup G).setoid = (⊥ : setoid V)
-            := by { ext, simp [setup.setoid,setoid.rel], refl }
         end setup
+
+        structure setup' (G : simple_graph V) := (S : setoid V) (h : adapted S G)
+
+        namespace setup'
+            open relation
+
+            def of_rel (rel : V -> V -> Prop) (sym : symmetric rel) (sub : rel ≤ G.adj) : setup' G := {
+                S := {
+                    r := relation.refl_trans_gen rel,
+                    iseqv := by { refine ⟨_,_,_⟩,
+                        apply refl_trans_gen.refl,
+                        apply refl_trans_gen.symmetric sym,
+                        apply refl_trans_gen.trans }
+                },
+                h := by { ext a b, split; intro h₁; induction h₁ with u v h₂ h₃ ih,
+                    { refl }, { refine ih.trans _, exact h₃.2 },
+                    { refl }, { refine ih.trans _, refine refl_trans_gen.single _,
+                        split, exact sub _ _ h₃, exact refl_trans_gen.single h₃ } }
+            }
+
+            def bot : setup' G
+            := of_rel (λ x y, false) (λ x y, id) (λ x y, false.rec _)
+        end setup'
     end contraction
 
     def contraction (G : simple_graph V) (S : contraction.setup G) : simple_graph S.clusters
         := G / S.setoid
 
+    def contraction' (G : simple_graph V) (S : contraction.setup' G) : simple_graph (quotient S.S) := G / S.S
+
     notation G `/` S := contraction G S
+    notation G `/` S := contraction' G S
 
     def is_contraction (G : simple_graph V) (G' : simple_graph V') : Prop
         := ∃ S : contraction.setup G', nonempty (G ≃g (G'/S))

@@ -13,6 +13,9 @@ namespace simple_graph
 
     notation G `/` S := quotient_graph G S
 
+    def adapted (S : setoid V) (G : simple_graph V) : Prop :=
+    relation.refl_trans_gen (G.adj ⊓ S.rel) = S.rel
+
     namespace quotient_graph
         def induced_subgraph (G : simple_graph V) (S : setoid V) : simple_graph V :=
         {
@@ -23,9 +26,6 @@ namespace simple_graph
 
         lemma induced_le : induced_subgraph G S ≤ G :=
         λ x y h, h.1
-
-        def adapted (S : setoid V) (G : simple_graph V) : Prop :=
-        relation.refl_trans_gen (G.adj ⊓ S.rel) = S.rel
 
         def iso_bot : G ≃g G/⊥ :=
         {
