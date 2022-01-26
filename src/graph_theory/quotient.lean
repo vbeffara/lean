@@ -32,7 +32,11 @@ namespace simple_graph
             by_cases ⟦u⟧ = ⟦v⟧, rw h, refine linked.step ⟨h,u,v,rfl,rfl,h₂⟩ }
 
         lemma comp {S' : setoid (quotient S)} : G/(S.comp S') ≃g G/S/S'
-        := sorry
+        := by {
+            let φ := @setoid.comp.iso V S S',
+            refine ⟨φ,_⟩,
+            { sorry }
+        }
 
         def iso_bot : G ≃g G/⊥ :=
         {
