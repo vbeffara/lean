@@ -22,20 +22,19 @@ by {
     have p₄ : ∀ {a b}, (s.comp t).rel a b <-> g (f a) = g (f b) := λ a b, setoid.ker_def,
     have p₅ : ∀ a b, s.rel a b -> h a = h b := λ a b, by { rw [p₃,p₄,<-p₁], apply congr_arg },
 
-    let φ : quotient (setoid.comp s t) -> quotient t := λ x, quotient.lift_on' x (g ∘ f) (λ a b, id),
     let ζ : quotient s -> quotient (s.comp t) := λ y, quotient.lift_on' y h p₅,
 
     have p₆ : ∀ a b, t.rel a b -> ζ a = ζ b := λ a b, by {
-        induction a, induction b, rw [<-p₂,p₃,p₄], exact id, exact (λ _, rfl), exact (λ _, rfl),
+        refine quotient.induction_on' a (λ x, _),
+        refine quotient.induction_on' b (λ y, _),
+        rw [<-p₂], change g (f x) = g (f y) -> h x = h y, rw [p₃,p₄], exact id
     },
 
-    let ψ : quotient t -> quotient (s.comp t) := λ y, quotient.lift_on' y ζ p₆,
-
     exact {
-        to_fun := φ,
-        inv_fun := ψ,
-        left_inv := λ x, by { induction x, refl, refl },
-        right_inv := λ y, by { induction y, induction y, refl, refl, refl }
+        to_fun := λ x, quotient.lift_on' x (g ∘ f) (λ _ _, id),
+        inv_fun := λ y, quotient.lift_on' y ζ p₆,
+        left_inv := λ x, quotient.induction_on' x (λ a, rfl),
+        right_inv := λ y, quotient.induction_on' y (λ a, quotient.induction_on' a (λ b, rfl)),
     }
 }
 
