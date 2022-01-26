@@ -248,6 +248,13 @@ namespace simple_graph
                     { rintro ⟨h1,x',y',h2,h3,h4⟩, rw [<-proj_bot_inj h2, <-proj_bot_inj h3], exact h4 },
                     { intro h, refine ⟨_,x,y,rfl,rfl,h⟩,
                         intro h1, rw proj_bot_inj h1 at h, exact G.ne_of_adj h rfl } } }
+
+        def proj_bot' : G ≃g G/setup'.bot
+            := by { simp only [contraction'], convert quotient_graph.iso_bot;
+                { ext, split; intro h₁,
+                { induction h₁ with u v h₂ h₃ ih, refl, contradiction },
+                { simp only [setoid.bot_def] at h₁, rw h₁ } }
+            }
     end contraction
 
     namespace is_contraction
