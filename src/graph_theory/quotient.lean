@@ -2,7 +2,7 @@ import graph_theory.to_mathlib graph_theory.basic graph_theory.path
 import combinatorics.simple_graph.connectivity
 
 namespace simple_graph
-    variables {V V' : Type} {G G' : simple_graph V} {S : setoid V}
+    variables {V V' : Type} {x y z : V} {G G' : simple_graph V} {S : setoid V}
 
     def quotient_graph (G : simple_graph V) (S : setoid V) : simple_graph (quotient S) :=
     {
@@ -26,6 +26,13 @@ namespace simple_graph
 
         lemma induced_le : induced_subgraph G S ≤ G :=
         λ x y h, h.1
+
+        lemma linked : G.linked x y -> (G/S).linked ⟦x⟧ ⟦y⟧ :=
+        by { intro h, induction h with u v h₁ h₂ ih, refl, refine ih.trans _,
+            by_cases ⟦u⟧ = ⟦v⟧, rw h, refine linked.step ⟨h,u,v,rfl,rfl,h₂⟩ }
+
+        lemma comp {S' : setoid (quotient S)} : G/(S.comp S') ≃g G/S/S'
+        := sorry
 
         def iso_bot : G ≃g G/⊥ :=
         {
