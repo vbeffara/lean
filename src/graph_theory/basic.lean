@@ -1,12 +1,12 @@
 import tactic
-import combinatorics.simple_graph.basic
+import combinatorics.simple_graph.basic data.set.basic
 import graph_theory.to_mathlib
 
 variables {V V' V'' : Type} {G H : simple_graph V} {G' : simple_graph V'} {G'' : simple_graph V''}
 
 namespace simple_graph
     variables
-    open function classical
+    open function classical set
 
     @[ext] structure step (G : simple_graph V) := {x y : V} (h : G.adj x y)
 
@@ -29,8 +29,6 @@ namespace simple_graph
     def is_smaller (G : simple_graph V) (G' : simple_graph V') : Prop := ∃ f : G →g G', injective f
 
     infix ` ≼s `:50 := is_smaller
-
-    def range (f : V → V') : Type := { y : V' // ∃ x : V, f x = y }
 
     -- TODO this does not use h really
     def embed {f : V -> V'} (h : injective f) (G : simple_graph V) : simple_graph (range f)

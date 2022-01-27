@@ -33,18 +33,17 @@ namespace simple_graph
 
         lemma comp {S' : setoid (quotient S)} : G/(S.comp S') ≃g G/S/S'
         := by {
-            let φ := @setoid.comp.iso V S S', refine ⟨φ,_⟩, intros a b,
-            let f : V -> quotient S := quotient.mk',
             let g : quotient S -> quotient S' := quotient.mk',
             let h : V -> quotient (S.comp S') := quotient.mk',
-            have p₀ : ∀ {a b}, h a = h b <-> g (f a) = g (f b) := λ a b, quotient.eq',
-            refine a.induction_on' (λ a, _), refine b.induction_on' (λ b, _),
-            split,
-            { rintros ⟨h₁,x,y,h₂,h₃,h₄,u,v,h₅,h₆,h₇⟩, refine ⟨_,u,v,_,_,h₇⟩,
+            have p₀ : ∀ {a b}, h a = h b <-> g ⟦a⟧ = g ⟦b⟧ := λ a b, quotient.eq',
+
+            use setoid.comp.iso S S', intros a b,
+            refine a.induction_on' (λ a, _), refine b.induction_on' (λ b, _), split,
+            { rintros ⟨h₁,x,y,h₂,h₃,h₄,u,v,h₅,h₆,h₇⟩, substs x y, refine ⟨_,u,v,_,_,h₇⟩,
                 { intro H, exact h₁ (p₀.mp H) },
-                { apply p₀.mpr, change f u = x at h₅, rw h₅, exact h₂ },
-                { apply p₀.mpr, change f v = y at h₆, rw h₆, exact h₃ } },
-            { rintros ⟨h₁,x,y,h₂,h₃,h₄⟩, refine ⟨_,f x,f y,_,_,_,x,y,rfl,rfl,h₄⟩,
+                { exact p₀.mpr h₂ },
+                { exact p₀.mpr h₃ } },
+            { rintros ⟨h₁,x,y,h₂,h₃,h₄⟩, refine ⟨_,⟦x⟧,⟦y⟧,_,_,_,x,y,rfl,rfl,h₄⟩,
                 { intro H, exact h₁ (p₀.mpr H) },
                 { exact p₀.mp h₂ },
                 { exact p₀.mp h₃ },
