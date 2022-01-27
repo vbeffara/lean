@@ -35,11 +35,4 @@ by {
     }
 }
 
-noncomputable def setoid.comp.iso' {V : Type} {s : setoid V} {t : setoid (quotient s)} :
-    quotient (setoid.comp s t) ≃ quotient t :=
-let f : V → quotient s := quotient.mk,
-    g : quotient s → quotient t := quotient.mk
-in setoid.quotient_ker_equiv_of_surjective (g ∘ f)
-    ((surjective_quotient_mk (quotient s)).comp (surjective_quotient_mk V))
-
 def simple_graph.adj.symm {V : Type} {G : simple_graph V} := G.symm
