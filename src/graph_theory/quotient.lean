@@ -17,11 +17,6 @@ namespace simple_graph
     relation.refl_trans_gen (G.adj ⊓ S.rel) = S.rel
 
     namespace quotient_graph
-        lemma adj_iff : (G/S).adj ⟦x⟧ ⟦y⟧ <-> ⟦x⟧ ≠ ⟦y⟧ ∧ ∃ x' y', S.rel x x' ∧ S.rel y y' ∧ G.adj x' y' :=
-        begin
-            simp [quotient_graph], sorry
-        end
-
         def induced_subgraph (G : simple_graph V) (S : setoid V) : simple_graph V :=
         {
             adj := G.adj ⊓ S.rel,
@@ -44,18 +39,16 @@ namespace simple_graph
             let h : V -> quotient (S.comp S') := quotient.mk',
             have p₀ : ∀ {a b}, h a = h b <-> g (f a) = g (f b) := λ a b, quotient.eq',
             refine a.induction_on' (λ a, _), refine b.induction_on' (λ b, _),
-            change (G/S/S').adj (φ (h a)) (φ (h b)) ↔ (G/S.comp S').adj (h a) (h b),
-            simp [quotient_graph,φ,setoid.comp.iso],
             split,
-            { rintros ⟨h₁,x,h₂,y,h₃,h₄,u,h₅,v,h₆,h₇⟩, refine ⟨_,u,_,v,_,h₇⟩,
+            { rintros ⟨h₁,x,y,h₂,h₃,h₄,u,v,h₅,h₆,h₇⟩, refine ⟨_,u,v,_,_,h₇⟩,
                 { intro H, exact h₁ (p₀.mp H) },
-                { apply p₀.mpr, change g x = g (f a) at h₂, change f u = x at h₅, rw h₅, exact h₂ },
-                { apply p₀.mpr, change g y = g (f b) at h₃, change f v = y at h₆, rw h₆, exact h₃ } },
-            { rintros ⟨h₁,x,h₂,y,h₃,h₄⟩, refine ⟨_,f x,_,f y,_,_,x,rfl,y,rfl,h₄⟩,
+                { apply p₀.mpr, change f u = x at h₅, rw h₅, exact h₂ },
+                { apply p₀.mpr, change f v = y at h₆, rw h₆, exact h₃ } },
+            { rintros ⟨h₁,x,y,h₂,h₃,h₄⟩, refine ⟨_,f x,f y,_,_,_,x,y,rfl,rfl,h₄⟩,
                 { intro H, exact h₁ (p₀.mpr H) },
                 { exact p₀.mp h₂ },
                 { exact p₀.mp h₃ },
-                { intro H, have := p₀.mpr (congr_arg g H), rw [<-h₂,<-h₃] at h₁, exact h₁ this } }
+                { intro H, rw [<-h₂,<-h₃] at h₁, exact h₁ (p₀.mpr (congr_arg g H)) } }
         }
 
         def iso_bot : G ≃g G/⊥ :=
