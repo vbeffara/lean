@@ -1,6 +1,6 @@
 import combinatorics.simple_graph.basic data.set.basic
 import graph_theory.to_mathlib
-open function
+open function set classical
 
 variables {V V' V'' : Type} {G : simple_graph V} {G' : simple_graph V'} {f : V → V'} {g : V' → V''}
 
@@ -19,10 +19,24 @@ namespace simple_graph
         loopless := λ _, G'.loopless _
     }
 
+    def pred_on (G : simple_graph V) : Type := V -> Prop
+
+    def select (P : pred_on G) : simple_graph (subtype P)
+            := {
+                adj := G.adj on subtype.val,
+                symm := λ _ _ h, G.symm h,
+                loopless := λ x, G.loopless _,
+            }
+
+    def select' (P : pred_on G) : simple_graph (subtype P)
+    := pullback subtype.val G
+
+    example {P : pred_on G} : select P = select' P := rfl
+
     -- TODO this does not use h really
     def embed (h : injective f) (G : simple_graph V) : simple_graph (set.range f)
         := {
-            adj := G.adj on (λ x, classical.some x.prop),
+            adj := G.adj on (λ x, some x.prop),
             symm := λ _ _ h, G.symm h,
             loopless := λ _, G.loopless _,
         }
@@ -32,6 +46,19 @@ namespace simple_graph
 
     def embed'' (h : injective f) (G : simple_graph V) : simple_graph (set.range f) :=
     pushforward (λ x, ⟨f x, set.mem_range_self x⟩) G
+
+    -- TODO : computable version of this taking a left inverse of f?
+    noncomputable def embed_iso {f : V -> V'} {f_inj : injective f} {G : simple_graph V} : G ≃g embed f_inj G
+        := let  φ : V -> range f := λ x, ⟨f x, x, rfl⟩,
+                ψ : range f -> V := λ y, some y.prop,
+                α : ∀ x, ψ (φ x) = x := λ x, f_inj (some_spec (subtype.prop (φ x))),
+                β : ∀ x y, G.adj (ψ (φ x)) (ψ (φ y)) <-> G.adj x y := λ x y, by { rw [α,α] } in {
+            to_fun := φ,
+            inv_fun := ψ,
+            left_inv := α,
+            right_inv := λ y, subtype.ext (some_spec y.prop),
+            map_rel_iff' := β
+        }
 
     namespace pushforward
         lemma left_inv (h : injective f) : left_inverse (pullback f) (pushforward f) :=

@@ -30,28 +30,6 @@ namespace simple_graph
 
     infix ` ≼s `:50 := is_smaller
 
-    -- TODO : computable version of this taking a left inverse of f?
-    noncomputable def embed_iso {f : V -> V'} {f_inj : injective f} {G : simple_graph V} : G ≃g embed f_inj G
-        := let  φ : V -> range f := λ x, ⟨f x, x, rfl⟩,
-                ψ : range f -> V := λ y, some y.prop,
-                α : ∀ x, ψ (φ x) = x := λ x, f_inj (some_spec (subtype.prop (φ x))),
-                β : ∀ x y, G.adj (ψ (φ x)) (ψ (φ y)) <-> G.adj x y := λ x y, by { rw [α,α] } in {
-            to_fun := φ,
-            inv_fun := ψ,
-            left_inv := α,
-            right_inv := λ y, subtype.ext (some_spec y.prop),
-            map_rel_iff' := β
-        }
-
-    def pred_on (G : simple_graph V) : Type := V -> Prop
-
-    def select (P : pred_on G) : simple_graph (subtype P)
-        := {
-            adj := G.adj on subtype.val,
-            symm := λ _ _ h, G.symm h,
-            loopless := λ x, G.loopless _,
-        }
-
     lemma embed_le_select {f : G →g G'} {f_inj : injective f} : embed f_inj G ≤ @select V' G' (λ y, ∃ x, f x = y)
         := by { intros x y h, simp [select,on_fun], convert f.map_rel' h,
             exact (some_spec x.property).symm, exact (some_spec y.property).symm }
