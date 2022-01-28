@@ -38,7 +38,7 @@ namespace simple_graph
     pushforward (λ x, ⟨f x, set.mem_range_self x⟩) G
 
     def embed''' (f : V → V') (G : simple_graph V) : simple_graph (range f) :=
-    (pushforward f G).select (λ y, ∃ x, f x = y)
+    (pushforward f G).select (range f)
 
     lemma embed_eq_of_inj (h : injective f) : embed' f G = embed'' f G :=
     begin
@@ -72,6 +72,24 @@ namespace simple_graph
             right_inv := λ y, subtype.ext (some_spec y.prop),
             map_rel_iff' := β
         }
+
+    noncomputable def embed'''_iso {f : V -> V'} (f_inj : injective f) {G : simple_graph V} : G ≃g embed''' f G :=
+    begin
+        let  φ : V -> range f := λ x, ⟨f x, x, rfl⟩,
+        let  ψ : range f -> V := λ y, some y.prop,
+        refine {
+            to_fun := φ,
+            inv_fun := ψ,
+            left_inv := λ x, f_inj (some_spec (subtype.prop (φ x))),
+            right_inv := λ y, subtype.ext (some_spec y.prop),
+            map_rel_iff' := by {
+                simp [φ,embed''',pushforward,select,pullback,on_fun],
+                simp_rw [subtype.coe_mk], intros a b, split,
+                { rintro ⟨h₁,x,h₂,y,h₃,h₄⟩, rwa [←f_inj h₂,←f_inj h₃] },
+                { intro h₁, exact ⟨f_inj.ne (G.ne_of_adj h₁),a,rfl,b,rfl,h₁⟩ }
+            }
+        }
+    end
 
     namespace pushforward
         lemma left_inv (h : injective f) : left_inverse (pullback f) (pushforward f) :=
