@@ -24,7 +24,7 @@ namespace simple_graph
                 obtain ⟨H'',h₄,h₅⟩ := h₂.le_left h₁,
                 exact ⟨_,_,h₄,h₃.le_left h₅⟩ }
 
-        lemma select_left {P : pred_on G} : G ≼ G' -> select G P ≼ G'
+        lemma select_left {P : V → Prop} : G ≼ G' -> select G P ≼ G'
             | ⟨U,H',h₂,h₃⟩ := by {
                 obtain ⟨P,h₄⟩ := h₂.select_left,
                 exact ⟨_,_,h₄,h₃.select_left⟩

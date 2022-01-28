@@ -372,14 +372,14 @@ namespace simple_graph
                 in ⟨S'.comp T,⟨f4.symm.comp (f3.comp f1)⟩⟩
 
         namespace select_left.detail
-            variables {S : setup G} {P : pred_on (G/S)}
+            variables {S : setup G} {P : S.clusters → Prop}
             open relation
 
-            def push_pred (P : pred_on G) (φ : G ≃g G') : pred_on G' := P ∘ φ.inv_fun
+            def push_pred (P : V → Prop) (φ : G ≃g G') : V' → Prop := P ∘ φ.inv_fun
 
-            def lift_pred (P : pred_on (G/S)) : pred_on G := λ x, P ⟦x⟧
+            def lift_pred (P : S.clusters → Prop) : V → Prop := λ x, P ⟦x⟧
 
-            def push_pred_iso (P : pred_on G) (φ : G ≃g G') : select G P ≃g select G' (push_pred P φ)
+            def push_pred_iso (P : V → Prop) (φ : G ≃g G') : select G P ≃g select G' (push_pred P φ)
                 := {
                     to_fun := λ x, ⟨φ x.val, by { rw [push_pred,comp_app], convert x.property, apply φ.left_inv }⟩,
                     inv_fun := λ y, ⟨φ.symm y.val, y.property⟩,
@@ -388,13 +388,13 @@ namespace simple_graph
                     map_rel_iff' := λ a b, by { apply φ.map_rel_iff' }
                 }
 
-            def setup_select (S : setup G) (P' : pred_on G) : setup (select G P')
+            def setup_select (S : setup G) (P' : V → Prop) : setup (select G P')
                 := ⟨select S.g P', λ x y, by { apply S.sub }⟩
 
             lemma pred_of_adj {x y} : S.g.adj x y -> lift_pred P x -> lift_pred P y
                 := by { intros h₁, simp only [lift_pred], rw (@quotient.eq _ S.setoid x y).mpr (linked.step h₁), exact id }
 
-            lemma rel_iff {S : setup G} {P : pred_on (G/S)} (x y : subtype (lift_pred P)) :
+            lemma rel_iff {S : setup G} {P : S.clusters → Prop} (x y : subtype (lift_pred P)) :
                     (setup_select S (lift_pred P)).setoid.rel x y <-> S.setoid.rel x.val y.val
                 := by { simp only [setup.setoid,setoid.rel], split,
                     { apply refl_trans_gen.lift, introv, exact id },
@@ -402,7 +402,7 @@ namespace simple_graph
                         induction h with u v h₁ h₂ ih, refl,
                         specialize ih (pred_of_adj h₂.symm hy), refine ih.trans _, refine linked.step _, exact h₂ } }
 
-            def iso (S : setup G) (P : pred_on (G/S)) : select (G/S) P ≃g select G (lift_pred P)/(setup_select S (lift_pred P))
+            def iso (S : setup G) (P : S.clusters → Prop) : select (G/S) P ≃g select G (lift_pred P)/(setup_select S (lift_pred P))
                 := by {
                     let φ := @equiv.subtype_quotient_equiv_quotient_subtype V (lift_pred P) S.setoid
                             (setup_select S (lift_pred P)).setoid P (λ a, iff.rfl) rel_iff,
@@ -439,7 +439,7 @@ namespace simple_graph
                 := ⟨_,⟨iso S P⟩⟩
         end select_left.detail
 
-        lemma select_left {P : pred_on G} : G ≼c G' -> ∃ P' : pred_on G', select G P ≼c select G' P'
+        lemma select_left {P : V → Prop} : G ≼c G' -> ∃ P' : V' → Prop, select G P ≼c select G' P'
             := by {
                 rintros ⟨S,⟨φ⟩⟩,
                 let P'' := select_left.detail.push_pred P φ,

@@ -19,8 +19,6 @@ namespace simple_graph
         loopless := λ _, G'.loopless _
     }
 
-    def pred_on (G : simple_graph V) : Type := V -> Prop
-
     def select (G : simple_graph V) (P : V -> Prop) : simple_graph (subtype P)
     := pullback subtype.val G
 
