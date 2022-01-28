@@ -33,10 +33,10 @@ namespace simple_graph
         }
 
     -- TODO this does not use h really
-    noncomputable def embed' (h : injective f) (G : simple_graph V) : simple_graph (set.range f) :=
+    noncomputable def embed' (f : V → V') (G : simple_graph V) : simple_graph (set.range f) :=
     pullback (λ x, some x.prop) G
 
-    example (h : injective f) : embed f G = embed' h G := rfl
+    example : embed f G = embed' f G := rfl
 
     -- TODO this does not use h really
     def embed'' (h : injective f) (G : simple_graph V) : simple_graph (set.range f) :=
@@ -45,7 +45,7 @@ namespace simple_graph
     def embed''' (f : V → V') (G : simple_graph V) : simple_graph {y // ∃ x, f x = y} :=
     (pushforward f G).select (λ y, ∃ x, f x = y)
 
-    lemma embed_eq_of_inj (h : injective f) : embed' h G = embed'' h G :=
+    lemma embed_eq_of_inj (h : injective f) : embed' f G = embed'' h G :=
     begin
         have toto : ∀ {x h'}, some (⟨f x, h'⟩ : range f).prop = x :=
             λ x h', h (some_spec (⟨f x, h'⟩ : range f).prop),
@@ -56,6 +56,13 @@ namespace simple_graph
         rw [toto,toto], simp [toto,embed'',pushforward], split,
         { intro h', refine ⟨_,x,rfl,y,rfl,h'⟩, rw subtype.mk_eq_mk, exact h.ne (G.ne_of_adj h') },
         { rintro ⟨-,x',h₁,y',h₂,h₃⟩, rwa [←h (subtype.mk_eq_mk.mp h₁),←h (subtype.mk_eq_mk.mp h₂)] }
+    end
+
+    example (f_inj : injective f) : embed'' f_inj G = embed''' f G :=
+    begin
+        ext x' y', cases x' with x' h₁, cases y' with y' h₂,
+        simp [embed'',pullback,embed''',pushforward,select,on_fun],
+        simp_rw [subtype.mk_eq_mk,subtype.coe_mk],
     end
 
     -- TODO : computable version of this taking a left inverse of f?
