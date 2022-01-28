@@ -22,11 +22,11 @@ namespace simple_graph
     def select (G : simple_graph V) (P : V -> Prop) : simple_graph (subtype P)
     := pullback subtype.val G
 
-    def embed''' (f : V → V') (G : simple_graph V) : simple_graph (range f) :=
+    def embed (f : V → V') (G : simple_graph V) : simple_graph (range f) :=
     (pushforward f G).select (range f)
 
     -- TODO : computable version of this taking a left inverse of f?
-    noncomputable def embed'''_iso {f : V -> V'} (f_inj : injective f) {G : simple_graph V} : G ≃g embed''' f G :=
+    noncomputable def embed_iso {f : V -> V'} (f_inj : injective f) {G : simple_graph V} : G ≃g embed f G :=
     begin
         let  φ : V -> range f := λ x, ⟨f x, x, rfl⟩,
         let  ψ : range f -> V := λ y, some y.prop,
@@ -36,7 +36,7 @@ namespace simple_graph
             left_inv := λ x, f_inj (some_spec (subtype.prop (φ x))),
             right_inv := λ y, subtype.ext (some_spec y.prop),
             map_rel_iff' := by {
-                simp [φ,embed''',pushforward,select,pullback,on_fun],
+                simp [φ,embed,pushforward,select,pullback,on_fun],
                 simp_rw [subtype.coe_mk], intros a b, split,
                 { rintro ⟨h₁,x,h₂,y,h₃,h₄⟩, rwa [←f_inj h₂,←f_inj h₃] },
                 { intro h₁, exact ⟨f_inj.ne (G.ne_of_adj h₁),a,rfl,b,rfl,h₁⟩ }
