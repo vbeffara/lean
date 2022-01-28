@@ -22,16 +22,7 @@ namespace simple_graph
     def pred_on (G : simple_graph V) : Type := V -> Prop
 
     def select (P : pred_on G) : simple_graph (subtype P)
-            := {
-                adj := G.adj on subtype.val,
-                symm := λ _ _ h, G.symm h,
-                loopless := λ x, G.loopless _,
-            }
-
-    def select' (P : pred_on G) : simple_graph (subtype P)
     := pullback subtype.val G
-
-    example {P : pred_on G} : select P = select' P := rfl
 
     -- TODO this does not use h really
     def embed (h : injective f) (G : simple_graph V) : simple_graph (set.range f)

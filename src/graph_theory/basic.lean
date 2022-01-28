@@ -31,7 +31,7 @@ namespace simple_graph
     infix ` ≼s `:50 := is_smaller
 
     lemma embed_le_select {f : G →g G'} {f_inj : injective f} : embed f_inj G ≤ @select V' G' (λ y, ∃ x, f x = y)
-        := by { intros x y h, simp [select,on_fun], convert f.map_rel' h,
+        := by { intros x y h, simp [select,on_fun,pullback], convert f.map_rel' h,
             exact (some_spec x.property).symm, exact (some_spec y.property).symm }
 
     namespace is_smaller
