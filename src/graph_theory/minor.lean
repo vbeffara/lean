@@ -24,7 +24,7 @@ namespace simple_graph
                 obtain ⟨H'',h₄,h₅⟩ := h₂.le_left h₁,
                 exact ⟨_,_,h₄,h₃.le_left h₅⟩ }
 
-        lemma select_left {P : pred_on G} : G ≼ G' -> select P ≼ G'
+        lemma select_left {P : pred_on G} : G ≼ G' -> select G P ≼ G'
             | ⟨U,H',h₂,h₃⟩ := by {
                 obtain ⟨P,h₄⟩ := h₂.select_left,
                 exact ⟨_,_,h₄,h₃.select_left⟩
@@ -32,11 +32,11 @@ namespace simple_graph
 
         lemma smaller_left : G ≼s G' -> G' ≼ G'' -> G ≼ G''
             | ⟨f₁,h₁⟩ h₂ :=
-                let H := embed h₁ G,
-                    H' := @select _ G' (λ y, ∃ x, f₁ x = y) in
+                let H := embed f₁ G,
+                    H' := select G' (λ y, ∃ x, f₁ x = y) in
                 have h₃ : H' ≼ G'' := select_left h₂,
-                have h₄ : H ≼ G'' := le_left embed_le_select h₃,
-                iso_left embed_iso h₄
+                have h₄ : H ≼ G'' := le_left (embed_le_select h₁) h₃,
+                iso_left (embed_iso h₁) h₄
 
         lemma contract_left : G ≼c G' -> G' ≼ G'' -> G ≼ G''
             | h₁ ⟨U,H,h₂,h₃⟩ := ⟨_,_,h₁.trans h₂,h₃⟩

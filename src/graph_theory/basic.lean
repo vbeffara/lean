@@ -30,7 +30,7 @@ namespace simple_graph
 
     infix ` ≼s `:50 := is_smaller
 
-    lemma embed_le_select {f : G →g G'} {f_inj : injective f} : embed f_inj G ≤ @select V' G' (λ y, ∃ x, f x = y)
+    lemma embed_le_select {f : G →g G'} (f_inj : injective f) : embed f G ≤ select G' (λ y, ∃ x, f x = y)
         := by { intros x y h, simp [select,on_fun,pullback], convert f.map_rel' h,
             exact (some_spec x.property).symm, exact (some_spec y.property).symm }
 
@@ -46,7 +46,7 @@ namespace simple_graph
         lemma le_left : G ≤ H -> H ≼s G' -> G ≼s G'
             | h₁ ⟨⟨f,h₂⟩,h₃⟩ := ⟨⟨f,λ _ _ h, h₂ (h₁ h)⟩,h₃⟩
 
-        lemma select_left {pred : pred_on G} : G ≼s G' -> select pred ≼s G'
+        lemma select_left {pred : pred_on G} : G ≼s G' -> select G pred ≼s G'
             | ⟨⟨f,h₁⟩,h₂⟩ :=
                 let g : {x // pred x} -> V' := f ∘ subtype.val
                 in ⟨⟨g,λ a b,h₁⟩,h₂.comp subtype.val_injective⟩

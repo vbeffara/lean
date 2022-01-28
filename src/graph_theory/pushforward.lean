@@ -21,11 +21,11 @@ namespace simple_graph
 
     def pred_on (G : simple_graph V) : Type := V -> Prop
 
-    def select (P : pred_on G) : simple_graph (subtype P)
+    def select (G : simple_graph V) (P : V -> Prop) : simple_graph (subtype P)
     := pullback subtype.val G
 
     -- TODO this does not use h really
-    def embed (h : injective f) (G : simple_graph V) : simple_graph (set.range f)
+    def embed (f : V → V') (G : simple_graph V) : simple_graph (set.range f)
         := {
             adj := G.adj on (λ x, some x.prop),
             symm := λ _ _ h, G.symm h,
@@ -34,13 +34,16 @@ namespace simple_graph
 
     -- TODO this does not use h really
     noncomputable def embed' (h : injective f) (G : simple_graph V) : simple_graph (set.range f) :=
-    pullback (λ x, classical.some x.prop) G
+    pullback (λ x, some x.prop) G
 
-    example (h : injective f) : embed h G = embed' h G := rfl
+    example (h : injective f) : embed f G = embed' h G := rfl
 
     -- TODO this does not use h really
     def embed'' (h : injective f) (G : simple_graph V) : simple_graph (set.range f) :=
     pushforward (λ x, ⟨f x, set.mem_range_self x⟩) G
+
+    def embed''' (f : V → V') (G : simple_graph V) : simple_graph {y // ∃ x, f x = y} :=
+    (pushforward f G).select (λ y, ∃ x, f x = y)
 
     lemma embed_eq_of_inj (h : injective f) : embed' h G = embed'' h G :=
     begin
@@ -56,7 +59,7 @@ namespace simple_graph
     end
 
     -- TODO : computable version of this taking a left inverse of f?
-    noncomputable def embed_iso {f : V -> V'} {f_inj : injective f} {G : simple_graph V} : G ≃g embed f_inj G
+    noncomputable def embed_iso {f : V -> V'} (f_inj : injective f) {G : simple_graph V} : G ≃g embed f G
         := let  φ : V -> range f := λ x, ⟨f x, x, rfl⟩,
                 ψ : range f -> V := λ y, some y.prop,
                 α : ∀ x, ψ (φ x) = x := λ x, f_inj (some_spec (subtype.prop (φ x))),
