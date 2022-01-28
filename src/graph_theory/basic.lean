@@ -1,6 +1,6 @@
 import tactic
 import combinatorics.simple_graph.basic data.set.basic
-import graph_theory.to_mathlib
+import graph_theory.to_mathlib graph_theory.pushforward
 
 variables {V V' V'' : Type} {G H : simple_graph V} {G' : simple_graph V'} {G'' : simple_graph V''}
 
@@ -29,14 +29,6 @@ namespace simple_graph
     def is_smaller (G : simple_graph V) (G' : simple_graph V') : Prop := ∃ f : G →g G', injective f
 
     infix ` ≼s `:50 := is_smaller
-
-    -- TODO this does not use h really
-    def embed {f : V -> V'} (h : injective f) (G : simple_graph V) : simple_graph (range f)
-        := {
-            adj := G.adj on (λ x, some x.prop),
-            symm := λ _ _ h, G.symm h,
-            loopless := λ _, G.loopless _,
-        }
 
     -- TODO : computable version of this taking a left inverse of f?
     noncomputable def embed_iso {f : V -> V'} {f_inj : injective f} {G : simple_graph V} : G ≃g embed f_inj G

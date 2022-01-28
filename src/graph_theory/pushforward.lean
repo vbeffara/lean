@@ -1,4 +1,5 @@
-import graph_theory.basic
+import combinatorics.simple_graph.basic data.set.basic
+import graph_theory.to_mathlib
 open function
 
 variables {V V' V'' : Type} {G : simple_graph V} {G' : simple_graph V'} {f : V → V'} {g : V' → V''}
@@ -18,13 +19,33 @@ namespace simple_graph
         loopless := λ _, G'.loopless _
     }
 
+    -- TODO this does not use h really
+    def embed (h : injective f) (G : simple_graph V) : simple_graph (set.range f)
+        := {
+            adj := G.adj on (λ x, classical.some x.prop),
+            symm := λ _ _ h, G.symm h,
+            loopless := λ _, G.loopless _,
+        }
+
+    noncomputable def embed' (h : injective f) (G : simple_graph V) : simple_graph (set.range f) :=
+    pullback (λ x, classical.some x.prop) G
+
+    def embed'' (h : injective f) (G : simple_graph V) : simple_graph (set.range f) :=
+    pushforward (λ x, ⟨f x, set.mem_range_self x⟩) G
+
     namespace pushforward
+        lemma left_inv (h : injective f) : left_inverse (pullback f) (pushforward f) :=
+        begin
+            intro G, ext x y, split,
+            { rintro ⟨-,xx,yy,h₂,h₃,h₄⟩, rw [←h h₂,←h h₃], exact h₄ },
+            { intro h₁, exact ⟨h.ne (G.ne_of_adj h₁),x,y,rfl,rfl,h₁⟩ }
+        end
+
         lemma right_inv (h : surjective f) : right_inverse (pullback f) (pushforward f) :=
         begin
             intro G', ext x' y', split,
             { rintro ⟨h₁,x,y,rfl,rfl,h₂⟩, exact h₂ },
-            { intro h₁, cases h x' with x, cases h y' with y, substs x' y',
-                refine ⟨G'.ne_of_adj h₁,x,y,rfl,rfl,h₁⟩ }
+            { intro h₁, cases h x' with x, cases h y' with y, substs x' y', exact ⟨G'.ne_of_adj h₁,x,y,rfl,rfl,h₁⟩ }
         end
 
         lemma comp : pushforward (g∘f) = pushforward g ∘ pushforward f :=
