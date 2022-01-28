@@ -1,5 +1,5 @@
 import tactic data.equiv.basic
-import graph_theory.quotient graph_theory.path
+import graph_theory.quotient graph_theory.path graph_theory.pushforward
 open function
 open_locale classical
 
@@ -66,21 +66,17 @@ namespace simple_graph
         := ∃ S : contraction.setup G', nonempty (G ≃g (G'/S))
 
     def is_contraction' (G : simple_graph V) (G' : simple_graph V') : Prop
-        := ∃ φ : V' -> V, surjective φ ∧ G = image φ G'
+        := ∃ φ : V' -> V, surjective φ ∧ G = pushforward φ G'
 
     example : (∃ S : setoid V', nonempty (G ≃g G'/S)) <-> is_contraction' G G' :=
     begin
         split,
         { rintro ⟨S,⟨⟨f,f',h₁,h₂⟩,h₃⟩⟩,
             let φ : V' -> V := f' ∘ quotient.mk', refine ⟨φ,_,_⟩,
-            { apply surjective.comp,
-                exact (left_inverse.right_inverse h₁).surjective,
-                exact quotient.surjective_quotient_mk' },
+            { exact (left_inverse.right_inverse h₁).surjective.comp quotient.surjective_quotient_mk' },
             { ext a b, rw <-h₃, simp, split,
                 { rintros ⟨p₁,x,y,p₂,p₃,p₄⟩, refine ⟨ne_of_apply_ne f p₁,x,y,_,_,p₄⟩,
-                    have := congr_arg f' p₂, convert this, rw h₁,
-                    have := congr_arg f' p₃, convert this, rw h₁,
-                },
+                    convert congr_arg f' p₂, rw h₁, convert congr_arg f' p₃, rw h₁, },
                 { rintros ⟨p₁,x,y,rfl,rfl,p₂⟩, refine ⟨h₁.injective.ne p₁,x,y,_,_,p₂⟩,
                     simp [φ], rw h₂, refl, simp [φ], rw h₂, refl } }
         },

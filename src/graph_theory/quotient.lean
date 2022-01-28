@@ -1,4 +1,4 @@
-import graph_theory.to_mathlib graph_theory.basic graph_theory.path
+import graph_theory.to_mathlib graph_theory.basic graph_theory.path graph_theory.pushforward
 import combinatorics.simple_graph.connectivity
 
 namespace simple_graph
@@ -12,6 +12,8 @@ namespace simple_graph
     }
 
     notation G `/` S := quotient_graph G S
+
+    example : G/S = pushforward quotient.mk G := rfl
 
     def adapted (S : setoid V) (G : simple_graph V) : Prop :=
     relation.refl_trans_gen (G.adj ⊓ S.rel) = S.rel

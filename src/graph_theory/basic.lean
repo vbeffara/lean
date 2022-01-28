@@ -8,22 +8,6 @@ namespace simple_graph
     variables
     open function classical set
 
-    def image (f : V -> V') (G : simple_graph V) : simple_graph V' :=
-    {
-        adj := λ x y, x ≠ y ∧ ∃ x' y' : V, f x' = x ∧ f y' = y ∧ G.adj x' y',
-        symm := λ x y ⟨h₀,x',y',h₁,h₂,h₃⟩, ⟨h₀.symm,y',x',h₂,h₁,h₃.symm⟩,
-        loopless := λ x ⟨h₀,h⟩, h₀ rfl
-    }
-
-    lemma image.comp {f : V -> V'} {g : V' -> V''} : image (g∘f) G = image g (image f G) :=
-    begin
-        ext x'' y'', split,
-        { rintro ⟨h₁,x,y,rfl,rfl,h₄⟩, refine ⟨h₁,f x,f y,rfl,rfl,_,x,y,rfl,rfl,h₄⟩,
-            exact ne_of_apply_ne g h₁ },
-        { rintro ⟨h₁,-,-,rfl,rfl,-,x,y,rfl,rfl,h₇⟩,
-            refine ⟨h₁,x,y,rfl,rfl,h₇⟩ }
-    end
-
     @[ext] structure step (G : simple_graph V) := {x y : V} (h : G.adj x y)
 
     namespace step
