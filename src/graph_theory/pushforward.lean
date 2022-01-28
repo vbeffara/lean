@@ -24,41 +24,38 @@ namespace simple_graph
     def select (G : simple_graph V) (P : V -> Prop) : simple_graph (subtype P)
     := pullback subtype.val G
 
-    -- TODO this does not use h really
-    def embed (f : V → V') (G : simple_graph V) : simple_graph (set.range f)
-        := {
-            adj := G.adj on (λ x, some x.prop),
-            symm := λ _ _ h, G.symm h,
-            loopless := λ _, G.loopless _,
-        }
+    def embed (f : V → V') (G : simple_graph V) : simple_graph (range f) :=
+    {
+        adj := G.adj on (λ x, some x.prop),
+        symm := λ _ _ h, G.symm h,
+        loopless := λ _, G.loopless _,
+    }
 
-    -- TODO this does not use h really
-    noncomputable def embed' (f : V → V') (G : simple_graph V) : simple_graph (set.range f) :=
+    noncomputable def embed' (f : V → V') (G : simple_graph V) : simple_graph (range f) :=
     pullback (λ x, some x.prop) G
 
     example : embed f G = embed' f G := rfl
 
-    -- TODO this does not use h really
-    def embed'' (h : injective f) (G : simple_graph V) : simple_graph (set.range f) :=
+    def embed'' (f : V → V') (G : simple_graph V) : simple_graph (range f) :=
     pushforward (λ x, ⟨f x, set.mem_range_self x⟩) G
 
-    def embed''' (f : V → V') (G : simple_graph V) : simple_graph {y // ∃ x, f x = y} :=
+    def embed''' (f : V → V') (G : simple_graph V) : simple_graph (range f) :=
     (pushforward f G).select (λ y, ∃ x, f x = y)
 
-    lemma embed_eq_of_inj (h : injective f) : embed' f G = embed'' h G :=
+    lemma embed_eq_of_inj (h : injective f) : embed' f G = embed'' f G :=
     begin
         have toto : ∀ {x h'}, some (⟨f x, h'⟩ : range f).prop = x :=
             λ x h', h (some_spec (⟨f x, h'⟩ : range f).prop),
         ext x' y',
         cases x' with x' h₁, cases h₁ with x h₁, subst x',
         cases y' with y' h₁, cases h₁ with y h₁, subst y',
-        change G.adj (some (⟨f x, _⟩ : range f).prop) (some (⟨f y, _⟩ : range f).prop) ↔ (embed'' h G).adj ⟨f x, _⟩ ⟨f y, _⟩,
+        change G.adj (some (⟨f x, _⟩ : range f).prop) (some (⟨f y, _⟩ : range f).prop) ↔ (embed'' f G).adj ⟨f x, _⟩ ⟨f y, _⟩,
         rw [toto,toto], simp [toto,embed'',pushforward], split,
         { intro h', refine ⟨_,x,rfl,y,rfl,h'⟩, rw subtype.mk_eq_mk, exact h.ne (G.ne_of_adj h') },
         { rintro ⟨-,x',h₁,y',h₂,h₃⟩, rwa [←h (subtype.mk_eq_mk.mp h₁),←h (subtype.mk_eq_mk.mp h₂)] }
     end
 
-    example (f_inj : injective f) : embed'' f_inj G = embed''' f G :=
+    example : embed'' f G = embed''' f G :=
     begin
         ext x' y', cases x' with x' h₁, cases y' with y' h₂,
         simp [embed'',pullback,embed''',pushforward,select,on_fun],
