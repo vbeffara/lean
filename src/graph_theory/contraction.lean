@@ -30,6 +30,9 @@ namespace simple_graph
             @[simp] def bot : setup G := ⟨⊥, λ x y, false.rec _⟩
         end setup
 
+        def adapted (S : setoid V) (G : simple_graph V) : Prop :=
+        relation.refl_trans_gen (G.adj ⊓ S.rel) = S.rel
+
         structure setup' (G : simple_graph V) := (S : setoid V) (h : adapted S G)
 
         namespace setup'

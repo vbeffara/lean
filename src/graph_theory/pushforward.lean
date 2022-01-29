@@ -117,4 +117,32 @@ namespace simple_graph
         lemma le_select {f : G →g G'} (f_inj : injective f) : embed f G ≤ select (range f) G' :=
         select.le push.le
     end embed
+
+    def quotient_graph (G : simple_graph V) (S : setoid V) : simple_graph (quotient S) :=
+    push quotient.mk G
+
+    notation G `/` S := quotient_graph G S
+
+    namespace quotient_graph
+        variables {S : setoid V} {S' : setoid (quotient S)}
+
+        lemma comp_eq : G/S/S' = push (setoid.comp.iso S S') (G/(S.comp S')) :=
+        begin
+            convert congr_fun (congr_arg push (setoid.comp.eq S S')) G using 1;
+            { symmetry, rw [push.comp], refl }
+        end
+
+        lemma comp : G/(S.comp S') ≃g G/S/S'
+        := by { rw comp_eq, exact push.to_iso _ _ }
+
+        def iso_bot' : V ≃ quotient (⊥ : setoid V) :=
+        {
+            to_fun := quotient.mk',
+            inv_fun := λ y, quotient.lift_on' y id (λ _ _, id),
+            left_inv := λ x, by refl,
+            right_inv := λ y, by { induction y; refl },
+        }
+
+        def iso_bot : G ≃g G/⊥ := push.to_iso iso_bot' G
+    end quotient_graph
 end simple_graph
