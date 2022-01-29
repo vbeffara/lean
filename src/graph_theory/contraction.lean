@@ -404,7 +404,7 @@ namespace simple_graph
                     exact {
                         to_equiv := φ,
                         map_rel_iff' := λ x y, by {
-                            simp only [select,setup.adj,on_fun,contraction,quotient_graph,pull],
+                            simp only [select,setup.adj,on_fun,contraction,quotient_graph,pull,push],
                             rw [ne.def,ne.def,equiv.apply_eq_iff_eq],
                             cases x with x hx, rw <-(quotient.out_eq x) at hx,
                             cases y with y hy, rw <-(quotient.out_eq y) at hy,

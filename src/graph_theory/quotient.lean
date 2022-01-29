@@ -5,15 +5,9 @@ namespace simple_graph
     variables {V V' : Type} {x y z : V} {G G' : simple_graph V} {S : setoid V}
 
     def quotient_graph (G : simple_graph V) (S : setoid V) : simple_graph (quotient S) :=
-    {
-        adj := λ x y, x ≠ y ∧ ∃ x' y' : V, ⟦x'⟧ = x ∧ ⟦y'⟧ = y ∧ G.adj x' y',
-        symm := λ x y ⟨h₀,x',y',h₁,h₂,h₃⟩, ⟨h₀.symm,y',x',h₂,h₁,h₃.symm⟩,
-        loopless := λ x ⟨h₀,h⟩, h₀ rfl
-    }
+    push quotient.mk G
 
     notation G `/` S := quotient_graph G S
-
-    example : G/S = push quotient.mk G := rfl
 
     def adapted (S : setoid V) (G : simple_graph V) : Prop :=
     relation.refl_trans_gen (G.adj ⊓ S.rel) = S.rel
