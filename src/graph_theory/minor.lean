@@ -35,8 +35,8 @@ namespace simple_graph
                 let H := embed f₁ G,
                     H' := select G' (λ y, ∃ x, f₁ x = y) in
                 have h₃ : H' ≼ G'' := select_left h₂,
-                have h₄ : H ≼ G'' := le_left (embed_le_select h₁) h₃,
-                iso_left (embed_iso h₁) h₄
+                have h₄ : H ≼ G'' := le_left (embed.le_select h₁) h₃,
+                iso_left (embed.iso h₁) h₄
 
         lemma contract_left : G ≼c G' -> G' ≼ G'' -> G ≼ G''
             | h₁ ⟨U,H,h₂,h₃⟩ := ⟨_,_,h₁.trans h₂,h₃⟩

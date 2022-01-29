@@ -30,12 +30,6 @@ namespace simple_graph
 
     infix ` ≼s `:50 := is_smaller
 
-    lemma embed_le_select {f : G →g G'} (f_inj : injective f) : embed f G ≤ select G' (λ y, ∃ x, f x = y) :=
-    begin
-        intros x' y', simp [embed,pushforward,select,pullback,on_fun],
-        intros h₁ x h₂ y h₃, rw [←h₂,←h₃], exact f.map_rel
-    end
-
     namespace is_smaller
         @[refl] lemma refl : G ≼s G := ⟨⟨id, λ x y, id⟩, injective_id⟩
 
