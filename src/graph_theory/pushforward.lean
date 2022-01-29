@@ -44,18 +44,18 @@ namespace simple_graph
         end
     end pullback
 
-    def select (G : simple_graph V) (P : V -> Prop) : simple_graph (subtype P)
-    := pullback subtype.val G
+    def select (G : simple_graph V) (P : V → Prop) : simple_graph (subtype P) :=
+    pullback subtype.val G
 
     namespace select
-        def push_pred_iso (P : V → Prop) (φ : G ≃g G') : select G P ≃g select G' (P ∘ φ.inv_fun)
-            := {
-                to_fun := λ x, ⟨φ x.val, by { rw [comp_app], convert x.property, apply φ.left_inv }⟩,
-                inv_fun := λ y, ⟨φ.symm y.val, y.property⟩,
-                left_inv := λ x, by simp only [rel_iso.symm_apply_apply,subtype.coe_eta,subtype.val_eq_coe],
-                right_inv := λ x, by simp only [subtype.coe_eta,rel_iso.apply_symm_apply,subtype.val_eq_coe],
-                map_rel_iff' := λ a b, by { apply φ.map_rel_iff' }
-            }
+        def push_pred_iso (P : V → Prop) (φ : G ≃g G') : select G P ≃g select G' (P ∘ φ.inv_fun) :=
+        {
+            to_fun := λ x, ⟨φ x.val, by { rw [comp_app], convert x.property, apply φ.left_inv }⟩,
+            inv_fun := λ y, ⟨φ.symm y.val, y.property⟩,
+            left_inv := λ x, by simp only [rel_iso.symm_apply_apply,subtype.coe_eta,subtype.val_eq_coe],
+            right_inv := λ x, by simp only [subtype.coe_eta,rel_iso.apply_symm_apply,subtype.val_eq_coe],
+            map_rel_iff' := λ a b, by { apply φ.map_rel_iff' }
+        }
     end select
 
     def embed (f : V → V') (G : simple_graph V) : simple_graph (range f) :=
@@ -64,8 +64,8 @@ namespace simple_graph
     namespace embed
         -- TODO : computable version of this taking a left inverse of f?
         noncomputable def iso (f_inj : injective f) : G ≃g embed f G :=
-        let φ : V -> range f := λ x, ⟨f x, x, rfl⟩,
-            ψ : range f -> V := λ y, some y.prop in
+        let φ : V → range f := λ x, ⟨f x, x, rfl⟩,
+            ψ : range f → V := λ y, some y.prop in
         {
             to_fun := φ,
             inv_fun := ψ,
