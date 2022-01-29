@@ -379,8 +379,8 @@ namespace simple_graph
 
             def lift_pred (P : S.clusters → Prop) : V → Prop := λ x, P ⟦x⟧
 
-            def setup_select (S : setup G) (P' : V → Prop) : setup (select G P')
-                := ⟨select S.g P', λ x y, by { apply S.sub }⟩
+            def setup_select (S : setup G) (P' : V → Prop) : setup (select P' G)
+                := ⟨select P' S.g, λ x y, by { apply S.sub }⟩
 
             lemma pred_of_adj {x y} : S.g.adj x y -> lift_pred P x -> lift_pred P y
                 := by { intros h₁, simp only [lift_pred], rw (@quotient.eq _ S.setoid x y).mpr (linked.step h₁), exact id }
@@ -393,7 +393,7 @@ namespace simple_graph
                         induction h with u v h₁ h₂ ih, refl,
                         specialize ih (pred_of_adj h₂.symm hy), refine ih.trans _, refine linked.step _, exact h₂ } }
 
-            def iso (S : setup G) (P : S.clusters → Prop) : select (G/S) P ≃g select G (lift_pred P)/(setup_select S (lift_pred P))
+            def iso (S : setup G) (P : S.clusters → Prop) : select P (G/S) ≃g select (lift_pred P) G/(setup_select S (lift_pred P))
                 := by {
                     let φ := @equiv.subtype_quotient_equiv_quotient_subtype V (lift_pred P) S.setoid
                             (setup_select S (lift_pred P)).setoid P (λ a, iff.rfl) rel_iff,
@@ -426,11 +426,11 @@ namespace simple_graph
                     }
                 }
 
-            lemma select_contraction : select (G/S) P ≼c select G (lift_pred P)
+            lemma select_contraction : select P (G/S) ≼c select (lift_pred P) G
                 := ⟨_,⟨iso S P⟩⟩
         end select_left.detail
 
-        lemma select_left {P : V → Prop} : G ≼c G' -> ∃ P' : V' → Prop, select G P ≼c select G' P'
+        lemma select_left {P : V → Prop} : G ≼c G' -> ∃ P' : V' → Prop, select P G ≼c select P' G'
             := by {
                 rintros ⟨S,⟨φ⟩⟩,
                 let P'' := select_left.detail.push_pred P φ,

@@ -42,7 +42,7 @@ namespace simple_graph
         lemma le_left : G ≤ H -> H ≼s G' -> G ≼s G'
             | h₁ ⟨⟨f,h₂⟩,h₃⟩ := ⟨⟨f,λ _ _ h, h₂ (h₁ h)⟩,h₃⟩
 
-        lemma select_left {pred : V → Prop} : G ≼s G' -> select G pred ≼s G'
+        lemma select_left {pred : V → Prop} : G ≼s G' -> select pred G ≼s G'
             | ⟨⟨f,h₁⟩,h₂⟩ :=
                 let g : {x // pred x} -> V' := f ∘ subtype.val
                 in ⟨⟨g,λ a b,h₁⟩,h₂.comp subtype.val_injective⟩

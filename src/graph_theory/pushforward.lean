@@ -13,6 +13,9 @@ namespace simple_graph
     }
 
     namespace pullback
+        lemma comp : pullback (g∘f) = pullback f ∘ pullback g :=
+        by { ext G'' x y, exact iff.rfl }
+
         def to_iso (f : V ≃ V') (G' : simple_graph V') : pullback f G' ≃g G' :=
         ⟨f,λ x y, iff.rfl⟩
 
@@ -30,7 +33,7 @@ namespace simple_graph
     namespace pushforward
         lemma comp : pushforward (g∘f) = pushforward g ∘ pushforward f :=
         begin
-            ext x'' y'', split,
+            ext G x'' y'', split,
             { rintro ⟨h₁,x,y,rfl,rfl,h₄⟩, exact ⟨h₁,f x,f y,rfl,rfl,ne_of_apply_ne g h₁,x,y,rfl,rfl,h₄⟩ },
             { rintro ⟨h₁,-,-,rfl,rfl,-,x,y,rfl,rfl,h₇⟩, exact ⟨h₁,x,y,rfl,rfl,h₇⟩ }
         end
@@ -51,20 +54,20 @@ namespace simple_graph
 
         def to_iso (f : V ≃ V') (G : simple_graph V) : G ≃g pushforward f G :=
         begin
-            convert pullback.to_iso f _, symmetry, apply left_inv f.left_inv.injective
+            convert ← pullback.to_iso f _, apply left_inv f.left_inv.injective
         end
 
         lemma from_iso (φ : G ≃g G') : G' = pushforward φ G :=
         begin
-            convert congr_arg _ (pullback.from_iso φ), symmetry, apply right_inv φ.right_inv.surjective
+            convert ← congr_arg _ (pullback.from_iso φ), apply right_inv φ.right_inv.surjective
         end
     end pushforward
 
-    def select (G : simple_graph V) (P : V → Prop) : simple_graph (subtype P) :=
+    def select (P : V → Prop) (G : simple_graph V) : simple_graph (subtype P) :=
     pullback subtype.val G
 
     namespace select
-        def push_pred_iso (P : V → Prop) (φ : G ≃g G') : select G P ≃g select G' (P ∘ φ.inv_fun) :=
+        def push_pred_iso (P : V → Prop) (φ : G ≃g G') : select P G ≃g select (P ∘ φ.inv_fun) G' :=
         {
             to_fun := λ x, ⟨φ x.val, by { rw [comp_app], convert x.property, apply φ.left_inv }⟩,
             inv_fun := λ y, ⟨φ.symm y.val, y.property⟩,
@@ -74,8 +77,8 @@ namespace simple_graph
         }
     end select
 
-    def embed (f : V → V') (G : simple_graph V) : simple_graph (range f) :=
-    (pushforward f G).select (range f)
+    def embed (f : V → V') : simple_graph V → simple_graph (range f) :=
+    select (range f) ∘ pushforward f
 
     namespace embed
         -- TODO : computable version of this taking a left inverse of f?
@@ -95,7 +98,7 @@ namespace simple_graph
             }
         }
 
-        lemma le_select {f : G →g G'} (f_inj : injective f) : embed f G ≤ select G' (λ y, ∃ x, f x = y) :=
+        lemma le_select {f : G →g G'} (f_inj : injective f) : embed f G ≤ select (range f) G' :=
         begin
             intros x' y', simp [embed,pushforward,select,pullback,on_fun],
             intros h₁ x h₂ y h₃, rw [←h₂,←h₃], exact f.map_rel
