@@ -14,16 +14,6 @@ namespace simple_graph
     relation.refl_trans_gen (G.adj ⊓ S.rel) = S.rel
 
     namespace quotient_graph
-        def induced_subgraph (G : simple_graph V) (S : setoid V) : simple_graph V :=
-        {
-            adj := G.adj ⊓ S.rel,
-            symm := λ x y ⟨h₁,h₂⟩, ⟨h₁.symm,h₂.symm⟩,
-            loopless := λ x ⟨h,h'⟩, G.ne_of_adj h rfl,
-        }
-
-        lemma induced_le : induced_subgraph G S ≤ G :=
-        λ x y h, h.1
-
         lemma comp_eq {S' : setoid (quotient S)} : G/S/S' = push (setoid.comp.iso S S') (G/(S.comp S')) :=
         begin
             convert congr_fun (congr_arg push (setoid.comp.eq S S')) G using 1;
