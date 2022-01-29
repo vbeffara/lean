@@ -13,7 +13,7 @@ namespace simple_graph
 
     notation G `/` S := quotient_graph G S
 
-    example : G/S = pushforward quotient.mk G := rfl
+    example : G/S = push quotient.mk G := rfl
 
     def adapted (S : setoid V) (G : simple_graph V) : Prop :=
     relation.refl_trans_gen (G.adj ⊓ S.rel) = S.rel

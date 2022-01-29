@@ -66,7 +66,7 @@ namespace simple_graph
         := ∃ S : contraction.setup G', nonempty (G ≃g (G'/S))
 
     def is_contraction' (G : simple_graph V) (G' : simple_graph V') : Prop
-        := ∃ φ : V' -> V, surjective φ ∧ G = pushforward φ G'
+        := ∃ φ : V' -> V, surjective φ ∧ G = push φ G'
 
     example : (∃ S : setoid V', nonempty (G ≃g G'/S)) <-> is_contraction' G G' :=
     begin
@@ -404,7 +404,7 @@ namespace simple_graph
                     exact {
                         to_equiv := φ,
                         map_rel_iff' := λ x y, by {
-                            simp only [select,setup.adj,on_fun,contraction,quotient_graph,pullback],
+                            simp only [select,setup.adj,on_fun,contraction,quotient_graph,pull],
                             rw [ne.def,ne.def,equiv.apply_eq_iff_eq],
                             cases x with x hx, rw <-(quotient.out_eq x) at hx,
                             cases y with y hy, rw <-(quotient.out_eq y) at hy,
