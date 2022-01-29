@@ -2,7 +2,8 @@ import combinatorics.simple_graph.basic data.set.basic
 import graph_theory.to_mathlib
 open function set classical
 
-variables {V V' V'' : Type} {G G₁ G₂ : simple_graph V} {G' G'₁ G'₂ : simple_graph V'} {f : V → V'} {g : V' → V''}
+variables {V V' V'' : Type} {x y z : V} {f : V → V'} {g : V' → V''}
+variables {G G₁ G₂ : simple_graph V} {G' G'₁ G'₂ : simple_graph V'}
 
 namespace simple_graph
     def pull (f : V → V') (G' : simple_graph V') : simple_graph V :=
@@ -34,6 +35,9 @@ namespace simple_graph
     }
 
     namespace push
+        lemma adj (f : V → V') : G.adj x y → f x = f y ∨ (push f G).adj (f x) (f y) :=
+        by { intro h₁, by_cases f x = f y, left, exact h, right, exact ⟨h,x,y,rfl,rfl,h₁⟩ }
+
         lemma comp : push (g∘f) = push g ∘ push f :=
         begin
             ext G x'' y'', split,

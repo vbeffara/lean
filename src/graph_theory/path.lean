@@ -99,5 +99,11 @@ namespace simple_graph
 
         lemma fmap (f : G →g G') : linked G x y -> linked G' (f x) (f y)
             := refl_trans_gen.lift f (λ a b, f.map_rel)
+
+        lemma push {x y : V} {f : V → V'} : G.linked x y → (push f G).linked (f x) (f y) :=
+        begin
+            intro h, induction h with a b h₁ h₂ ih, refl, refine ih.trans _,
+            cases push.adj f h₂, rw h, exact step h
+        end
     end linked
 end simple_graph

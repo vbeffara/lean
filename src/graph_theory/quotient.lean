@@ -1,4 +1,4 @@
-import graph_theory.to_mathlib graph_theory.basic graph_theory.path graph_theory.pushforward
+import graph_theory.to_mathlib graph_theory.basic graph_theory.pushforward graph_theory.path
 import combinatorics.simple_graph.connectivity
 
 namespace simple_graph
@@ -23,9 +23,7 @@ namespace simple_graph
         lemma induced_le : induced_subgraph G S ≤ G :=
         λ x y h, h.1
 
-        lemma linked : G.linked x y -> (G/S).linked ⟦x⟧ ⟦y⟧ :=
-        by { intro h, induction h with u v h₁ h₂ ih, refl, refine ih.trans _,
-            by_cases ⟦u⟧ = ⟦v⟧, rw h, refine linked.step ⟨h,u,v,rfl,rfl,h₂⟩ }
+        lemma linked : G.linked x y -> (G/S).linked ⟦x⟧ ⟦y⟧ := linked.push
 
         lemma comp {S' : setoid (quotient S)} : G/(S.comp S') ≃g G/S/S'
         := by {
