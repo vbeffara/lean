@@ -13,6 +13,23 @@ namespace simple_graph
     }
 
     namespace pushforward
+        def to_iso (f : V ≃ V') (G : simple_graph V) : G ≃g pushforward f G :=
+        {
+            to_equiv := f,
+            map_rel_iff' := λ x y, by { split,
+                { rintro ⟨h₁,x',y',h₂,h₃,h₄⟩, rwa [←f.left_inv.injective h₂,←f.left_inv.injective h₃] },
+                { intro h, exact ⟨f.left_inv.injective.ne (G.ne_of_adj h),x,y,rfl,rfl,h⟩ }
+            }
+        }
+
+        lemma from_iso (φ : G ≃g G') : G' = pushforward φ G :=
+        begin
+            ext x' y', split,
+            { intro h, refine ⟨G'.ne_of_adj h, φ.inv_fun x', φ.inv_fun y', φ.right_inv _, φ.right_inv _, _⟩,
+                rw [←φ.map_rel_iff'], rwa [←φ.right_inv x',←φ.right_inv y'] at h },
+            { rintro ⟨h₁,x,y,rfl,rfl,h₂⟩, rwa ←φ.map_rel_iff' at h₂ }
+        end
+
         lemma comp : pushforward (g∘f) = pushforward g ∘ pushforward f :=
         begin
             ext x'' y'', split,
