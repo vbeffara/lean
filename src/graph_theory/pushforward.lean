@@ -46,6 +46,12 @@ namespace simple_graph
     }
 
     namespace pullback
+        def to_iso (f : V ≃ V') (G' : simple_graph V') : pullback f G' ≃g G' :=
+        ⟨f,λ x y, iff.rfl⟩
+
+        lemma from_iso (φ : G ≃g G') : pullback φ G' = G :=
+        by { ext x y, have := φ.map_rel_iff', exact this }
+
         lemma left_inv (h : injective f) : left_inverse (pullback f) (pushforward f) :=
         begin
             intro G, ext x y, split,
