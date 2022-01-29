@@ -13,15 +13,6 @@ namespace simple_graph
     }
 
     namespace pushforward
-        def to_iso (f : V ≃ V') (G : simple_graph V) : G ≃g pushforward f G :=
-        {
-            to_equiv := f,
-            map_rel_iff' := λ x y, by { split,
-                { rintro ⟨h₁,x',y',h₂,h₃,h₄⟩, rwa [←f.left_inv.injective h₂,←f.left_inv.injective h₃] },
-                { intro h, exact ⟨f.left_inv.injective.ne (G.ne_of_adj h),x,y,rfl,rfl,h⟩ }
-            }
-        }
-
         lemma from_iso (φ : G ≃g G') : G' = pushforward φ G :=
         begin
             ext x' y', split,
@@ -66,6 +57,14 @@ namespace simple_graph
             { intro h₁, cases h x' with x, cases h y' with y, substs x' y', exact ⟨G'.ne_of_adj h₁,x,y,rfl,rfl,h₁⟩ }
         end
     end pullback
+
+    namespace pushforward
+        def to_iso (f : V ≃ V') (G : simple_graph V) : G ≃g pushforward f G :=
+        begin
+            convert pullback.to_iso f (pushforward f G),
+            exact (pullback.left_inv f.left_inv.injective G).symm
+        end
+    end pushforward
 
     def select (G : simple_graph V) (P : V → Prop) : simple_graph (subtype P) :=
     pullback subtype.val G
