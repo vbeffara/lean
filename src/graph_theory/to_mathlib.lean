@@ -35,4 +35,7 @@ by {
     }
 }
 
+lemma setoid.comp.eq {V : Type} (s : setoid V) (t : setoid (quotient s)) :
+    quotient.mk' ∘ quotient.mk' = setoid.comp.iso s t ∘ quotient.mk' := by refl
+
 def simple_graph.adj.symm {V : Type} {G : simple_graph V} := G.symm

@@ -1,5 +1,6 @@
 import graph_theory.to_mathlib graph_theory.basic graph_theory.pushforward graph_theory.path
 import combinatorics.simple_graph.connectivity
+open function
 
 namespace simple_graph
     variables {V V' : Type} {x y z : V} {G G' : simple_graph V} {S : setoid V}
@@ -23,26 +24,14 @@ namespace simple_graph
         lemma induced_le : induced_subgraph G S ≤ G :=
         λ x y h, h.1
 
-        lemma linked : G.linked x y -> (G/S).linked ⟦x⟧ ⟦y⟧ := linked.push
+        lemma comp_eq {S' : setoid (quotient S)} : G/S/S' = push (setoid.comp.iso S S') (G/(S.comp S')) :=
+        begin
+            convert congr_fun (congr_arg push (setoid.comp.eq S S')) G using 1;
+            { symmetry, rw [push.comp], refl }
+        end
 
         lemma comp {S' : setoid (quotient S)} : G/(S.comp S') ≃g G/S/S'
-        := by {
-            let g : quotient S -> quotient S' := quotient.mk',
-            let h : V -> quotient (S.comp S') := quotient.mk',
-            have p₀ : ∀ {a b}, h a = h b <-> g ⟦a⟧ = g ⟦b⟧ := λ a b, quotient.eq',
-
-            use setoid.comp.iso S S', intros a b,
-            refine a.induction_on' (λ a, _), refine b.induction_on' (λ b, _), split,
-            { rintros ⟨h₁,x,y,h₂,h₃,h₄,u,v,h₅,h₆,h₇⟩, substs x y, refine ⟨_,u,v,_,_,h₇⟩,
-                { intro H, exact h₁ (p₀.mp H) },
-                { exact p₀.mpr h₂ },
-                { exact p₀.mpr h₃ } },
-            { rintros ⟨h₁,x,y,h₂,h₃,h₄⟩, refine ⟨_,⟦x⟧,⟦y⟧,_,_,_,x,y,rfl,rfl,h₄⟩,
-                { intro H, exact h₁ (p₀.mpr H) },
-                { exact p₀.mp h₂ },
-                { exact p₀.mp h₃ },
-                { intro H, rw [<-h₂,<-h₃] at h₁, exact h₁ (p₀.mpr (congr_arg g H)) } }
-        }
+        := by { rw comp_eq, exact push.to_iso _ _ }
 
         def iso_bot : G ≃g G/⊥ :=
         {
