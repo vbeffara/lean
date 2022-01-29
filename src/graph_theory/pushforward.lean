@@ -2,7 +2,7 @@ import combinatorics.simple_graph.basic data.set.basic
 import graph_theory.to_mathlib
 open function set classical
 
-variables {V V' V'' : Type} {G : simple_graph V} {G' : simple_graph V'} {f : V → V'} {g : V' → V''}
+variables {V V' V'' : Type} {G G₁ G₂ : simple_graph V} {G' G'₁ G'₂ : simple_graph V'} {f : V → V'} {g : V' → V''}
 
 namespace simple_graph
     def pull (f : V → V') (G' : simple_graph V') : simple_graph V :=
@@ -21,6 +21,9 @@ namespace simple_graph
 
         lemma from_iso (φ : G ≃g G') : pull φ G' = G :=
         by { ext x y, have := φ.map_rel_iff', exact this }
+
+        lemma mono : monotone (pull f) :=
+        by { intros G'₁ G'₂ h x' y', apply h }
     end pull
 
     def push (f : V → V') (G : simple_graph V) : simple_graph V' :=
@@ -61,12 +64,21 @@ namespace simple_graph
         begin
             convert ← congr_arg _ (pull.from_iso φ), apply right_inv φ.right_inv.surjective
         end
+
+        lemma mono : monotone (push f) :=
+        by { rintros G₁ G₂ h₁ x' y' ⟨h₂,x,y,rfl,rfl,h₃⟩, exact ⟨h₂,x,y,rfl,rfl,h₁ h₃⟩ }
+
+        lemma le {φ : G →g G'} : push φ G ≤ G' :=
+        by { rintros x' y' ⟨-,x,y,rfl,rfl,h₂⟩, exact φ.map_rel h₂ }
     end push
 
     def select (P : V → Prop) (G : simple_graph V) : simple_graph (subtype P) :=
     pull subtype.val G
 
     namespace select
+        lemma le {P : V -> Prop} : G₁ ≤ G₂ → select P G₁ ≤ select P G₂
+        := by { apply pull.mono }
+
         def push_pred_iso (P : V → Prop) (φ : G ≃g G') : select P G ≃g select (P ∘ φ.inv_fun) G' :=
         {
             to_fun := λ x, ⟨φ x.val, by { rw [comp_app], convert x.property, apply φ.left_inv }⟩,
@@ -99,9 +111,6 @@ namespace simple_graph
         }
 
         lemma le_select {f : G →g G'} (f_inj : injective f) : embed f G ≤ select (range f) G' :=
-        begin
-            intros x' y', simp [embed,push,select,pull,on_fun],
-            intros h₁ x h₂ y h₃, rw [←h₂,←h₃], exact f.map_rel
-        end
+        select.le push.le
     end embed
 end simple_graph
