@@ -5,30 +5,6 @@ open function set classical
 variables {V V' V'' : Type} {G : simple_graph V} {G' : simple_graph V'} {f : V → V'} {g : V' → V''}
 
 namespace simple_graph
-    def pushforward (f : V → V') (G : simple_graph V) : simple_graph V' :=
-    {
-        adj := λ x' y', x' ≠ y' ∧ ∃ x y : V, f x = x' ∧ f y = y' ∧ G.adj x y,
-        symm := λ x' y' ⟨h₀,x,y,h₁,h₂,h₃⟩, ⟨h₀.symm,y,x,h₂,h₁,h₃.symm⟩,
-        loopless := λ _ ⟨h₀,_⟩, h₀ rfl
-    }
-
-    namespace pushforward
-        lemma from_iso (φ : G ≃g G') : G' = pushforward φ G :=
-        begin
-            ext x' y', split,
-            { intro h, refine ⟨G'.ne_of_adj h, φ.inv_fun x', φ.inv_fun y', φ.right_inv _, φ.right_inv _, _⟩,
-                rw [←φ.map_rel_iff'], rwa [←φ.right_inv x',←φ.right_inv y'] at h },
-            { rintro ⟨h₁,x,y,rfl,rfl,h₂⟩, rwa ←φ.map_rel_iff' at h₂ }
-        end
-
-        lemma comp : pushforward (g∘f) = pushforward g ∘ pushforward f :=
-        begin
-            ext x'' y'', split,
-            { rintro ⟨h₁,x,y,rfl,rfl,h₄⟩, exact ⟨h₁,f x,f y,rfl,rfl,ne_of_apply_ne g h₁,x,y,rfl,rfl,h₄⟩ },
-            { rintro ⟨h₁,-,-,rfl,rfl,-,x,y,rfl,rfl,h₇⟩, exact ⟨h₁,x,y,rfl,rfl,h₇⟩ }
-        end
-    end pushforward
-
     def pullback (f : V → V') (G' : simple_graph V') : simple_graph V :=
     {
         adj := G'.adj on f,
@@ -42,6 +18,22 @@ namespace simple_graph
 
         lemma from_iso (φ : G ≃g G') : pullback φ G' = G :=
         by { ext x y, have := φ.map_rel_iff', exact this }
+    end pullback
+
+    def pushforward (f : V → V') (G : simple_graph V) : simple_graph V' :=
+    {
+        adj := λ x' y', x' ≠ y' ∧ ∃ x y : V, f x = x' ∧ f y = y' ∧ G.adj x y,
+        symm := λ x' y' ⟨h₀,x,y,h₁,h₂,h₃⟩, ⟨h₀.symm,y,x,h₂,h₁,h₃.symm⟩,
+        loopless := λ _ ⟨h₀,_⟩, h₀ rfl
+    }
+
+    namespace pushforward
+        lemma comp : pushforward (g∘f) = pushforward g ∘ pushforward f :=
+        begin
+            ext x'' y'', split,
+            { rintro ⟨h₁,x,y,rfl,rfl,h₄⟩, exact ⟨h₁,f x,f y,rfl,rfl,ne_of_apply_ne g h₁,x,y,rfl,rfl,h₄⟩ },
+            { rintro ⟨h₁,-,-,rfl,rfl,-,x,y,rfl,rfl,h₇⟩, exact ⟨h₁,x,y,rfl,rfl,h₇⟩ }
+        end
 
         lemma left_inv (h : injective f) : left_inverse (pullback f) (pushforward f) :=
         begin
@@ -56,13 +48,15 @@ namespace simple_graph
             { rintro ⟨h₁,x,y,rfl,rfl,h₂⟩, exact h₂ },
             { intro h₁, cases h x' with x, cases h y' with y, substs x' y', exact ⟨G'.ne_of_adj h₁,x,y,rfl,rfl,h₁⟩ }
         end
-    end pullback
 
-    namespace pushforward
         def to_iso (f : V ≃ V') (G : simple_graph V) : G ≃g pushforward f G :=
         begin
-            convert pullback.to_iso f (pushforward f G),
-            exact (pullback.left_inv f.left_inv.injective G).symm
+            convert pullback.to_iso f _, symmetry, apply left_inv f.left_inv.injective
+        end
+
+        lemma from_iso (φ : G ≃g G') : G' = pushforward φ G :=
+        begin
+            convert congr_arg _ (pullback.from_iso φ), symmetry, apply right_inv φ.right_inv.surjective
         end
     end pushforward
 
