@@ -1,4 +1,4 @@
-import combinatorics.simple_graph.basic data.set.basic
+import combinatorics.simple_graph.basic combinatorics.simple_graph.connectivity data.set.basic
 import graph_theory.to_mathlib
 open function set classical
 
@@ -80,7 +80,9 @@ namespace simple_graph
     pull subtype.val G
 
     namespace select
-        lemma le {P : V -> Prop} : G₁ ≤ G₂ → select P G₁ ≤ select P G₂
+        variables {P : V → Prop}
+
+        lemma le {P : V → Prop} : G₁ ≤ G₂ → select P G₁ ≤ select P G₂
         := by { apply pull.mono }
 
         def push_pred_iso (P : V → Prop) (φ : G ≃g G') : select P G ≃g select (P ∘ φ.inv_fun) G' :=
@@ -91,6 +93,22 @@ namespace simple_graph
             right_inv := λ x, by simp only [subtype.coe_eta,rel_iso.apply_symm_apply,subtype.val_eq_coe],
             map_rel_iff' := λ a b, by { apply φ.map_rel_iff' }
         }
+
+        def push_walk (p : walk G x y) (hp : ∀ z ∈ p.support, P z) :
+            walk (select P G) ⟨x, hp x (walk.start_mem_support p)⟩ ⟨y, hp y (walk.end_mem_support p)⟩ :=
+        begin
+            induction p with a a b c h₁ p ih, refl,
+            have hp' : ∀ z ∈ p.support, P z := by { intros z hz, apply hp, right, exact hz },
+            refine walk.cons _ (ih hp'), exact h₁
+        end
+
+        def pull_walk {x y} (p : walk (select P G) x y) : walk G x.val y.val :=
+        by { induction p with a a b c h₁ p ih, refl, refine walk.cons h₁ ih }
+
+        lemma pull_walk_spec {x y} (p : walk (select P G) x y) : ∀ z ∈ (pull_walk p).support, P z :=
+        by { induction p with a a b c h₁ p ih,
+            { intros z hz, cases hz, rw hz, exact a.prop, cases hz },
+            { intros z hz, cases hz, rw hz, exact a.prop, exact ih z hz }}
     end select
 
     def embed (f : V → V') : simple_graph V → simple_graph (range f) :=

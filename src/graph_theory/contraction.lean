@@ -102,6 +102,21 @@ namespace simple_graph
         }
     end
 
+    def adapted (f : V → V') (G : simple_graph V) : Prop :=
+        ∀ (x y : V), f x = f y → ∃ p : walk G x y, ∀ z ∈ p.support, f z = f y
+
+    def adapted' (f : V → V') (G : simple_graph V) : Prop :=
+        ∀ (z : V'), connected (select (λ x, f x = z) G)
+
+    lemma adapted_iff {f : V → V'} : adapted f G ↔ adapted' f G :=
+    begin
+        split,
+        { rintros h₁ z ⟨x,hx⟩ ⟨y,rfl⟩, specialize h₁ x y hx, cases h₁ with p hp,
+            let := select.push_walk p hp, apply linked.linked_iff.mpr, use this },
+        { rintros h₁ x y h₂, specialize h₁ (f y) ⟨x,h₂⟩ ⟨y,rfl⟩, replace h₁ := linked.linked_iff.mp h₁,
+            cases h₁ with p, let := select.pull_walk p, use this, exact select.pull_walk_spec p }
+    end
+
     infix ` ≼c `:50 := is_contraction
 
     namespace contraction
