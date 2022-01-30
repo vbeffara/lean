@@ -5,6 +5,7 @@ open_locale classical
 
 namespace simple_graph
     variables {V V' V'' : Type} {G H : simple_graph V} {G' : simple_graph V'} {G'' : simple_graph V''}
+    variables {f : V → V'} {g : V' → V''}
 
     def is_surjective_push (G : simple_graph V) (G' : simple_graph V') : Prop
         := ∃ φ : V' -> V, surjective φ ∧ G = push φ G'
@@ -46,24 +47,34 @@ namespace simple_graph
     def adapted' (f : V → V') (G : simple_graph V) : Prop :=
         ∀ (z : V'), connected (select (λ x, f x = z) G)
 
-    lemma adapted_iff {f : V → V'} : adapted f G ↔ adapted' f G :=
-    begin
-        split,
-        { rintros h₁ z ⟨x,hx⟩ ⟨y,rfl⟩, specialize h₁ x y hx, cases h₁ with p hp,
-            let := select.push_walk p hp, apply linked.linked_iff.mpr, use this },
-        { rintros h₁ x y h₂, specialize h₁ (f y) ⟨x,h₂⟩ ⟨y,rfl⟩, replace h₁ := linked.linked_iff.mp h₁,
-            cases h₁ with p, let := select.pull_walk p, use this, exact select.pull_walk_spec p }
-    end
+    namespace adapted
+        lemma iff {f : V → V'} : adapted f G ↔ adapted' f G :=
+        begin
+            split,
+            { rintros h₁ z ⟨x,hx⟩ ⟨y,rfl⟩, specialize h₁ x y hx, cases h₁ with p hp,
+                let := select.push_walk p hp, apply linked.linked_iff.mpr, use this },
+            { rintros h₁ x y h₂, specialize h₁ (f y) ⟨x,h₂⟩ ⟨y,rfl⟩, replace h₁ := linked.linked_iff.mp h₁,
+                cases h₁ with p, let := select.pull_walk p, use this, exact select.pull_walk_spec p }
+        end
 
-    def is_contraction' (G : simple_graph V) (G' : simple_graph V') : Prop
+        lemma comp_left (h : bijective g) : adapted f G → adapted (g ∘ f) G :=
+        begin
+            rintros h₁ x y h₂, specialize h₁ x y (h.injective h₂), cases h₁ with p h₃, use p,
+            intros z h₄, have := congr_arg g (h₃ z h₄), exact this
+        end
+    end adapted
+
+    def is_contraction2 (G : simple_graph V) (G' : simple_graph V') : Prop
         := ∃ φ : V' → V, surjective φ ∧ adapted φ G' ∧ G = push φ G'
 
-    lemma contraction_iff : is_contraction G G' ↔ is_contraction' G G' :=
+    infix ` ≼cc `:50 := is_contraction2
+
+    lemma contraction_iff : G ≼c G' ↔ G ≼cc G' :=
     begin
         split,
         { rintro ⟨S,⟨⟨f,f',h₁,h₂⟩,h₃⟩⟩, simp [contraction] at h₃, let φ : V' -> V := f' ∘ quotient.mk', refine ⟨φ,_,_,_⟩,
             { exact (left_inverse.right_inverse h₁).surjective.comp quotient.surjective_quotient_mk' },
-            { rw adapted_iff, intro z, intros x y, rcases x with ⟨x,hx⟩, rcases y with ⟨y,rfl⟩, simp [φ] at hx,
+            { rw adapted.iff, intro z, intros x y, rcases x with ⟨x,hx⟩, rcases y with ⟨y,rfl⟩, simp [φ] at hx,
                 replace hx := h₂.left_inverse.injective hx, replace hx := quotient.eq.mp hx,
                 replace hx := linked.linked_iff.mp hx, cases hx with p,
                 suffices : ∀ z ∈ p.support, φ z = φ y, by {
@@ -119,5 +130,14 @@ namespace simple_graph
         }
     end
 
-    infix ` ≼cc `:50 := is_contraction'
+    namespace is_contraction2
+        lemma iso_left : G ≃g G' -> G' ≼cc G'' -> G ≼cc G'' :=
+        begin
+            rintros φ ⟨ψ,h₂,h₃,h₄⟩, refine ⟨_,_,_,_⟩,
+            { exact φ.inv_fun ∘ ψ },
+            { refine surjective.comp _ h₂, exact φ.symm.surjective },
+            { refine adapted.comp_left _ h₃, exact φ.symm.bijective },
+            { rw [push.comp,comp_app,←h₄], exact push.from_iso φ.symm }
+        end
+    end is_contraction2
 end simple_graph

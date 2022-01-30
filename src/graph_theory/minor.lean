@@ -1,5 +1,5 @@
 import tactic
-import graph_theory.basic graph_theory.path_embedding graph_theory.contraction
+import graph_theory.basic graph_theory.path_embedding graph_theory.contraction graph_theory.contraction2
 open function
 open_locale classical
 
