@@ -82,7 +82,7 @@ namespace simple_graph
     namespace select
         variables {P : V → Prop}
 
-        lemma le {P : V → Prop} : G₁ ≤ G₂ → select P G₁ ≤ select P G₂
+        lemma mono {P : V → Prop} : monotone (select P)
         := by { apply pull.mono }
 
         def push_pred_iso (P : V → Prop) (φ : G ≃g G') : select P G ≃g select (P ∘ φ.inv_fun) G' :=
@@ -133,7 +133,7 @@ namespace simple_graph
         }
 
         lemma le_select {f : G →g G'} (f_inj : injective f) : embed f G ≤ select (range f) G' :=
-        select.le push.le
+        select.mono push.le
     end embed
 
     def quotient_graph (G : simple_graph V) (S : setoid V) : simple_graph (quotient S) :=
