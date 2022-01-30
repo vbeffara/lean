@@ -139,5 +139,12 @@ namespace simple_graph
             { refine adapted.comp_left _ h₃, exact φ.symm.bijective },
             { rw [push.comp,comp_app,←h₄], exact push.from_iso φ.symm }
         end
+
+        lemma le_left : H ≤ G → G ≼cc G' -> ∃ H' : simple_graph V', H ≼cc H' ∧ H' ≤ G' :=
+        begin
+            rintros h₁ ⟨φ,h₂,h₃,h₄⟩, let H' := G' ⊓ pull φ G, use H', split,
+            { sorry },
+            { intros x y h, exact h.1 }
+        end
     end is_contraction2
 end simple_graph
