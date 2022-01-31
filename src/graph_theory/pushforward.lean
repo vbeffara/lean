@@ -6,7 +6,6 @@ variables {V V' V'' : Type} {x y z : V} {x' y' z' : V'} {f : V → V'} {g : V' �
 variables {G G₁ G₂ : simple_graph V} {G' G'₁ G'₂ : simple_graph V'} {G'' : simple_graph V''}
 
 namespace simple_graph
-    -- TODO: should we add also f x = f y to pull.adj?
     def pull (f : V → V') (G' : simple_graph V') : simple_graph V :=
     {
         adj := G'.adj on f,
@@ -27,6 +26,43 @@ namespace simple_graph
         lemma mono : monotone (pull f) :=
         by { intros G'₁ G'₂ h x' y', apply h }
     end pull
+
+    -- TODO: this is an alternative definition for pull
+    def pull' (f : V → V') (G' : simple_graph V') : simple_graph V :=
+    {
+        adj := λ x y, x ≠ y ∧ (f x = f y ∨ G'.adj (f x) (f y)),
+        symm := λ x y ⟨h₁,h₂⟩, by { refine ⟨h₁.symm,_⟩, cases h₂, left, exact h₂.symm, right, exact h₂.symm },
+        loopless := λ x, by { push_neg, intro, contradiction }
+    }
+
+    namespace pull'
+        lemma comp : pull' (g ∘ f) G'' = pull' f (pull' g G'') :=
+        begin
+            ext x y, split,
+            { rintros ⟨h₁,h₂⟩, refine ⟨h₁,_⟩, by_cases f x = f y,
+                { left, exact h },
+                { right, exact ⟨h,h₂⟩ } },
+            { rintros ⟨h₁,h₂⟩, refine ⟨h₁,_⟩, cases h₂,
+                { left, convert congr_arg g h₂ },
+                { rcases h₂ with ⟨h₃,h₄⟩, cases h₄, left, exact h₄, right, exact h₄ } }
+        end
+
+        lemma iff_pull_of_inj (hf : injective f) : pull f G' = pull' f G' :=
+        begin
+            ext x y, split,
+            { intro h₁, refine ⟨simple_graph.ne_of_adj _ h₁,_⟩, right, exact h₁ },
+            { rintros ⟨h₁,h₂⟩, cases h₂, have := hf h₂, contradiction, exact h₂ }
+        end
+
+        def to_iso (f : V ≃ V') (G' : simple_graph V') : pull' f G' ≃g G' :=
+        by { rewrite ← iff_pull_of_inj f.injective, apply pull.to_iso }
+
+        lemma from_iso (φ : G ≃g G') : pull' φ G' = G :=
+        by { rewrite ← iff_pull_of_inj φ.injective, apply pull.from_iso }
+
+        lemma mono : monotone (pull' f) :=
+        by { rintros G H h x y ⟨h₁,h₂⟩, refine ⟨h₁,_⟩, cases h₂, left, exact h₂, right, exact h h₂ }
+    end pull'
 
     def push (f : V → V') (G : simple_graph V) : simple_graph V' :=
     {
