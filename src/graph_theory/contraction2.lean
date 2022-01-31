@@ -47,7 +47,10 @@ namespace simple_graph
         ∀ (x y : V), f x = f y → ∃ p : walk G x y, ∀ z ∈ p.support, f z = f y
 
     namespace adapted
-        lemma iff {f : V → V'} : adapted f G ↔ adapted' f G :=
+        lemma of_injective : injective f → adapted f G :=
+        by { rintros hf z ⟨x,hx⟩ ⟨y,rfl⟩, have := hf hx, subst this }
+
+        lemma iff : adapted f G ↔ adapted' f G :=
         begin
             split,
             { rintros h₁ x y h₂, specialize h₁ (f y) ⟨x,h₂⟩ ⟨y,rfl⟩, replace h₁ := linked.linked_iff.mp h₁,
@@ -99,22 +102,16 @@ namespace simple_graph
     infix ` ≼cc `:50 := is_contraction2
 
     namespace is_contraction2
+        lemma of_iso : G ≃g G' → G ≼cc G' :=
+        λ φ, let ψ := φ.symm in ⟨ψ, ψ.surjective, adapted.of_injective ψ.injective, push.from_iso ψ⟩
+
         @[trans] lemma trans : G ≼cc G' → G' ≼cc G'' → G ≼cc G'' :=
         begin
-            rintros ⟨φ,h₁,h₂,rfl⟩ ⟨ψ,h₄,h₅,rfl⟩, refine ⟨φ ∘ ψ, h₁.comp h₄,_,_⟩,
-            { exact (adapted.comp_push h₅ h₂) },
-            { rw ←push.comp }
+            rintros ⟨φ,h₁,h₂,rfl⟩ ⟨ψ,h₄,h₅,rfl⟩,
+            exact ⟨φ ∘ ψ, h₁.comp h₄, h₅.comp_push h₂, push.comp.symm⟩,
         end
 
         lemma iso_left : G ≃g G' -> G' ≼cc G'' -> G ≼cc G'' :=
-        begin
-            rintros φ ⟨ψ,h₂,h₃,rfl⟩, refine ⟨_,_,_,_⟩,
-            { exact φ.inv_fun ∘ ψ },
-            { refine surjective.comp _ h₂, exact φ.symm.surjective },
-            { refine adapted.comp_left _ h₃, exact φ.symm.bijective },
-            { rw [push.comp], exact push.from_iso φ.symm }
-        end
-
-        -- lemma le_left : H ≤ G → G ≼cc G' -> ∃ H' : simple_graph V', H ≼cc H' ∧ H' ≤ G' := sorry
+        trans ∘ of_iso
     end is_contraction2
 end simple_graph

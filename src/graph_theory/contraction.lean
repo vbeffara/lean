@@ -292,7 +292,7 @@ namespace simple_graph
         @[refl] lemma refl : G ≼c G := ⟨setup.bot,⟨proj_bot⟩⟩
 
         lemma iso_left : G ≃g G' -> G' ≼c G'' -> G ≼c G''
-            | φ ⟨S,⟨ψ⟩⟩ := ⟨S,⟨ψ.comp φ⟩⟩
+        := by { simp_rw contraction_iff, exact is_contraction2.iso_left }
 
         lemma iso_right : G ≼c G' -> G' ≃g G'' -> G ≼c G''
             | ⟨S,⟨ψ⟩⟩ φ := ⟨S.fmap_isom φ, ⟨(fmap_iso φ S).comp ψ⟩⟩
@@ -359,12 +359,8 @@ namespace simple_graph
                 refine ⟨L, iso_left iso L_c, L_le⟩
             }
 
-        @[trans] lemma trans : G ≼c G' -> G' ≼c G'' -> G ≼c G''
-            | ⟨S,⟨f1⟩⟩ ⟨S',⟨f2⟩⟩ :=
-                let T := S.fmap_isom f2,
-                    f3 := fmap_iso f2 S,
-                    f4 := setup.comp.iso T
-                in ⟨S'.comp T,⟨f4.symm.comp (f3.comp f1)⟩⟩
+        @[trans] lemma trans : G ≼c G' -> G' ≼c G'' -> G ≼c G'' :=
+        by { simp_rw contraction_iff, exact is_contraction2.trans }
 
         namespace select_left.detail
             variables {S : setup G} {P : S.clusters → Prop}
