@@ -6,6 +6,7 @@ variables {V V' V'' : Type} {x y z : V} {x' y' z' : V'} {f : V → V'} {g : V' �
 variables {G G₁ G₂ : simple_graph V} {G' G'₁ G'₂ : simple_graph V'} {G'' : simple_graph V''}
 
 namespace simple_graph
+    -- TODO: should we add also f x = f y to pull.adj?
     def pull (f : V → V') (G' : simple_graph V') : simple_graph V :=
     {
         adj := G'.adj on f,
