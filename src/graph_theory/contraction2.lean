@@ -79,5 +79,29 @@ namespace simple_graph
 
         lemma iso_left : G ≃g G' -> G' ≼cc G'' -> G ≼cc G'' :=
         trans ∘ of_iso
+
+        -- TODO: state as `H ≤ push f G'` → whatever
+        lemma le_left : H ≤ G → G ≼cc G' → ∃ H' : simple_graph V', H ≼cc H' ∧ H' ≤ G' :=
+        begin
+            rintros h₁ ⟨f,h₂,h₃,rfl⟩,
+            let H' : simple_graph V' := {
+                adj := λ x' y', G'.adj x' y' ∧ (f x' = f y' ∨ H.adj (f x') (f y')),
+                symm := λ x' y' ⟨h₄,h₅⟩, by { split, exact h₄.symm, cases h₅, left, exact h₅.symm, right, exact h₅.symm },
+                loopless := λ x', by { push_neg, intros h₄, have := G'.ne_of_adj h₄, contradiction }
+            }, use H', refine ⟨⟨f,h₂,_,_⟩,_⟩,
+            { rw adapted.iff at h₃ ⊢, intros x' y' h₄, specialize h₃ x' y' h₄, cases h₃ with p hp,
+                induction p with a a b c h₅ p ih,
+                { use walk.nil, exact hp },
+                { have h₆ : f b = f c := by { apply hp, right, exact walk.start_mem_support p },
+                    have h₇ : ∀ (z : V'), z ∈ p.support → f z = f c := by { intros z h, apply hp, right, exact h},
+                    have h₈ : H'.adj a b := by { split, exact h₅, left, rwa h₆ },
+                    specialize ih h₆ h₇, cases ih with q h₉, use walk.cons h₈ q,
+                    intros z h, cases h, rwa h, exact h₉ z h } },
+            { ext x y, split,
+                { intro h, rcases h₁ h with ⟨h₄,x',y',rfl,rfl,h₅⟩, refine ⟨H.ne_of_adj h,x',y',rfl,rfl,_⟩,
+                    split, exact h₅, right, exact h },
+                { rintros ⟨h₄,x',y',rfl,rfl,h₅⟩, cases h₅ with h₅ h₆, cases h₆, contradiction, exact h₆ } },
+            { intros x y h, exact h.1 }
+        end
     end is_contraction2
 end simple_graph
