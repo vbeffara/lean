@@ -1,11 +1,10 @@
 import tactic data.equiv.basic
 import graph_theory.path graph_theory.pushforward graph_theory.contraction
-open function
-open_locale classical
+open function classical
 
 namespace simple_graph
-    variables {V V' V'' : Type} {G H : simple_graph V} {G' : simple_graph V'} {G'' : simple_graph V''}
-    variables {f : V → V'} {g : V' → V''}
+    variables {V V' V'' : Type} {x y z : V} {x' y' z' : V'} {f : V → V'} {g : V' → V''}
+    variables {G H : simple_graph V} {G' : simple_graph V'} {G'' : simple_graph V''}
 
     def is_surjective_push (G : simple_graph V) (G' : simple_graph V') : Prop
         := ∃ φ : V' -> V, surjective φ ∧ G = push φ G'
@@ -61,6 +60,36 @@ namespace simple_graph
         begin
             rintros h₁ x y h₂, specialize h₁ x y (h.injective h₂), cases h₁ with p h₃, use p,
             intros z h₄, have := congr_arg g (h₃ z h₄), exact this
+        end
+
+        noncomputable def lift_path (h : adapted f G) : walk (push f G) x' y' → Π (x y : V), f x = x' → f y = y' → walk G x y :=
+        begin
+            intro p, induction p with a a b c h₁ p ih,
+            { rintros x y h₁ rfl, have h₂ := h x y h₁, exact (some h₂) },
+            { rintros x y h₂ h₃, cases h₁ with h₄ h₅, let xx := some h₅, have h₆ := some_spec h₅,
+                let yy := some h₆, have h₇ := some_spec h₆, rcases h₇ with ⟨h₇,h₈,h₉⟩,
+                have h₁₀ := h x xx (h₂.trans h₇.symm), let p₁ := some h₁₀, refine p₁.append (walk.cons h₉ _),
+                exact ih yy y h₈ h₃ }
+        end
+
+        noncomputable def lift_path' (hf : adapted f G) (p : walk (push f G) (f x) (f y)) : walk G x y :=
+        lift_path hf p x y rfl rfl
+
+        lemma connected (hf : adapted f G) : connected (push f G) → connected G :=
+        begin
+            intros h₁ x y, cases (linked.linked_iff.mp (h₁ (f x) (f y))) with p,
+            apply linked.linked_iff.mpr, use lift_path' hf p,
+        end
+
+        lemma comp_push : adapted f G → adapted g (push f G) → adapted (g ∘ f) G :=
+        begin
+            sorry
+        end
+
+        lemma comp_push' : adapted' f G → adapted' g (push f G) → adapted' (g ∘ f) G :=
+        begin
+            intros hf hg z,
+            sorry
         end
     end adapted
 
@@ -131,20 +160,22 @@ namespace simple_graph
     end
 
     namespace is_contraction2
+        @[trans] lemma trans : G ≼cc G' → G' ≼cc G'' → G ≼cc G'' :=
+        begin
+            rintros ⟨φ,h₁,h₂,rfl⟩ ⟨ψ,h₄,h₅,rfl⟩, refine ⟨φ ∘ ψ, h₁.comp h₄,_,_⟩,
+            { exact adapted.comp_push h₅ h₂ },
+            { rw ←push.comp }
+        end
+
         lemma iso_left : G ≃g G' -> G' ≼cc G'' -> G ≼cc G'' :=
         begin
-            rintros φ ⟨ψ,h₂,h₃,h₄⟩, refine ⟨_,_,_,_⟩,
+            rintros φ ⟨ψ,h₂,h₃,rfl⟩, refine ⟨_,_,_,_⟩,
             { exact φ.inv_fun ∘ ψ },
             { refine surjective.comp _ h₂, exact φ.symm.surjective },
             { refine adapted.comp_left _ h₃, exact φ.symm.bijective },
-            { rw [push.comp,comp_app,←h₄], exact push.from_iso φ.symm }
+            { rw [push.comp], exact push.from_iso φ.symm }
         end
 
-        lemma le_left : H ≤ G → G ≼cc G' -> ∃ H' : simple_graph V', H ≼cc H' ∧ H' ≤ G' :=
-        begin
-            rintros h₁ ⟨φ,h₂,h₃,h₄⟩, let H' := G' ⊓ pull φ G, use H', split,
-            { sorry },
-            { intros x y h, exact h.1 }
-        end
+        lemma le_left : H ≤ G → G ≼cc G' -> ∃ H' : simple_graph V', H ≼cc H' ∧ H' ≤ G' := sorry
     end is_contraction2
 end simple_graph

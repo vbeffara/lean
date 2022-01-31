@@ -3,7 +3,7 @@ import graph_theory.to_mathlib
 open function set classical
 
 variables {V V' V'' : Type} {x y z : V} {f : V → V'} {g : V' → V''}
-variables {G G₁ G₂ : simple_graph V} {G' G'₁ G'₂ : simple_graph V'}
+variables {G G₁ G₂ : simple_graph V} {G' G'₁ G'₂ : simple_graph V'} {G'' : simple_graph V''}
 
 namespace simple_graph
     def pull (f : V → V') (G' : simple_graph V') : simple_graph V :=
@@ -14,8 +14,8 @@ namespace simple_graph
     }
 
     namespace pull
-        lemma comp : pull (g∘f) = pull f ∘ pull g :=
-        by { ext G'' x y, exact iff.rfl }
+        lemma comp : pull (g ∘ f) G'' = pull f (pull g G'') :=
+        by { ext x y, exact iff.rfl }
 
         def to_iso (f : V ≃ V') (G' : simple_graph V') : pull f G' ≃g G' :=
         ⟨f,λ x y, iff.rfl⟩
@@ -38,9 +38,9 @@ namespace simple_graph
         lemma adj (f : V → V') : G.adj x y → f x = f y ∨ (push f G).adj (f x) (f y) :=
         by { intro h₁, by_cases f x = f y, left, exact h, right, exact ⟨h,x,y,rfl,rfl,h₁⟩ }
 
-        lemma comp : push (g∘f) = push g ∘ push f :=
+        lemma comp : push (g ∘ f) G = push g (push f G) :=
         begin
-            ext G x'' y'', split,
+            ext x'' y'', split,
             { rintro ⟨h₁,x,y,rfl,rfl,h₄⟩, exact ⟨h₁,f x,f y,rfl,rfl,ne_of_apply_ne g h₁,x,y,rfl,rfl,h₄⟩ },
             { rintro ⟨h₁,-,-,rfl,rfl,-,x,y,rfl,rfl,h₇⟩, exact ⟨h₁,x,y,rfl,rfl,h₇⟩ }
         end
