@@ -69,6 +69,12 @@ namespace simple_graph
     infix ` ≼cc `:50 := is_contraction2
 
     namespace is_contraction2
+        @[refl] lemma refl : G ≼cc G :=
+        begin
+            refine ⟨id,surjective_id,adapted.of_injective injective_id,_⟩,
+            ext x y, simp [push], exact G.ne_of_adj
+        end
+
         lemma of_iso : G ≃g G' → G ≼cc G' :=
         λ φ, let ψ := φ.symm in ⟨ψ, ψ.surjective, adapted.of_injective ψ.injective, push.from_iso ψ⟩
 

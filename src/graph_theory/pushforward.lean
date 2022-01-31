@@ -140,15 +140,6 @@ namespace simple_graph
         lemma mono {P : V → Prop} : monotone (select P)
         := by { apply pull.mono }
 
-        def push_pred_iso (P : V → Prop) (φ : G ≃g G') : select P G ≃g select (P ∘ φ.inv_fun) G' :=
-        {
-            to_fun := λ x, ⟨φ x.val, by { rw [comp_app], convert x.property, apply φ.left_inv }⟩,
-            inv_fun := λ y, ⟨φ.symm y.val, y.property⟩,
-            left_inv := λ x, by simp only [rel_iso.symm_apply_apply,subtype.coe_eta,subtype.val_eq_coe],
-            right_inv := λ x, by simp only [subtype.coe_eta,rel_iso.apply_symm_apply,subtype.val_eq_coe],
-            map_rel_iff' := λ a b, by { apply φ.map_rel_iff' }
-        }
-
         def map (f : V → V') (P' : V' → Prop) : {x // P' (f x)} → {x' // P' x'} :=
         subtype.map f (λ _, id)
 
