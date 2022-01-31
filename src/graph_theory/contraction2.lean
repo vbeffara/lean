@@ -41,34 +41,34 @@ namespace simple_graph
     end
 
     def adapted (f : V → V') (G : simple_graph V) : Prop :=
-        ∀ (x y : V), f x = f y → ∃ p : walk G x y, ∀ z ∈ p.support, f z = f y
+        ∀ (z : V'), connected (level f z G)
 
     def adapted' (f : V → V') (G : simple_graph V) : Prop :=
-        ∀ (z : V'), connected (level f z G)
+        ∀ (x y : V), f x = f y → ∃ p : walk G x y, ∀ z ∈ p.support, f z = f y
 
     namespace adapted
         lemma iff {f : V → V'} : adapted f G ↔ adapted' f G :=
         begin
             split,
+            { rintros h₁ x y h₂, specialize h₁ (f y) ⟨x,h₂⟩ ⟨y,rfl⟩, replace h₁ := linked.linked_iff.mp h₁,
+                cases h₁ with p, let := select.pull_walk p, use this, exact select.pull_walk_spec p },
             { rintros h₁ z ⟨x,hx⟩ ⟨y,rfl⟩, specialize h₁ x y hx, cases h₁ with p hp,
                 let := select.push_walk p hp, apply linked.linked_iff.mpr, use this },
-            { rintros h₁ x y h₂, specialize h₁ (f y) ⟨x,h₂⟩ ⟨y,rfl⟩, replace h₁ := linked.linked_iff.mp h₁,
-                cases h₁ with p, let := select.pull_walk p, use this, exact select.pull_walk_spec p }
         end
 
         lemma comp_left (h : bijective g) : adapted f G → adapted (g ∘ f) G :=
         begin
-            rintros h₁ x y h₂, specialize h₁ x y (h.injective h₂), cases h₁ with p h₃, use p,
+            simp_rw adapted.iff, rintros h₁ x y h₂, specialize h₁ x y (h.injective h₂), cases h₁ with p h₃, use p,
             intros z h₄, have := congr_arg g (h₃ z h₄), exact this
         end
 
-        noncomputable def lift_path (h : adapted f G) : walk (push f G) x' y' → Π (x y : V), f x = x' → f y = y' → walk G x y :=
+        noncomputable def lift_path (hf : adapted f G) : walk (push f G) x' y' → Π (x y : V), f x = x' → f y = y' → walk G x y :=
         begin
-            intro p, induction p with a a b c h₁ p ih,
-            { rintros x y h₁ rfl, have h₂ := h x y h₁, exact (some h₂) },
+            rw adapted.iff at hf, intro p, induction p with a a b c h₁ p ih,
+            { rintros x y h₁ rfl, have h₂ := hf x y h₁, exact (some h₂) },
             { rintros x y h₂ h₃, cases h₁ with h₄ h₅, let xx := some h₅, have h₆ := some_spec h₅,
                 let yy := some h₆, have h₇ := some_spec h₆, rcases h₇ with ⟨h₇,h₈,h₉⟩,
-                have h₁₀ := h x xx (h₂.trans h₇.symm), let p₁ := some h₁₀, refine p₁.append (walk.cons h₉ _),
+                have h₁₀ := hf x xx (h₂.trans h₇.symm), let p₁ := some h₁₀, refine p₁.append (walk.cons h₉ _),
                 exact ih yy y h₈ h₃ }
         end
 
@@ -81,14 +81,15 @@ namespace simple_graph
             apply linked.linked_iff.mpr, use lift_path' hf p,
         end
 
-        lemma comp_push' : adapted' f G → adapted' g (push f G) → adapted' (g ∘ f) G :=
+        lemma comp_push : adapted f G → adapted g (push f G) → adapted (g ∘ f) G :=
         begin
-            intros hf' hg' z,
+            intros hf hg z,
             let H := select (λ x, g (f x) = z) G,
             let ff := select.map f (λ x', g x' = z),
-            have hff : adapted ff H := by { apply adapted.iff.mpr, rintro ⟨z',hz'⟩,
-                exact connected_of_iso select.level_map.symm (hf' z') },
-            have hpf : (push ff H).connected := by { dsimp only [ff,H], rw ←select.of_push, exact hg' z },
+            have hf' := adapted.iff.mp hf,
+            have hff : adapted ff H := by { rintro ⟨z',hz'⟩,
+                exact connected_of_iso select.level_map.symm (hf z') },
+            have hpf : (push ff H).connected := by { dsimp only [ff,H], rw ←select.of_push, exact hg z },
             exact connected hff hpf,
         end
     end adapted
@@ -103,7 +104,7 @@ namespace simple_graph
         split,
         { rintro ⟨S,⟨⟨f,f',h₁,h₂⟩,h₃⟩⟩, simp [contraction] at h₃, let φ : V' -> V := f' ∘ quotient.mk', refine ⟨φ,_,_,_⟩,
             { exact (left_inverse.right_inverse h₁).surjective.comp quotient.surjective_quotient_mk' },
-            { rw adapted.iff, intro z, intros x y, rcases x with ⟨x,hx⟩, rcases y with ⟨y,rfl⟩, simp [φ] at hx,
+            { intro z, intros x y, rcases x with ⟨x,hx⟩, rcases y with ⟨y,rfl⟩, simp [φ] at hx,
                 replace hx := h₂.left_inverse.injective hx, replace hx := quotient.eq.mp hx,
                 replace hx := linked.linked_iff.mp hx, cases hx with p,
                 suffices : ∀ z ∈ p.support, φ z = φ y, by {
@@ -134,7 +135,7 @@ namespace simple_graph
             have p₃ : ∀ {x y}, S.g.linked x y ↔ f x = f y := by {
                 intros x y, split,
                 { intro h, induction h with a b h₁ h₂ h₃, refl, exact h₃.trans h₂.1 },
-                { intro h, specialize h₂ x y h, cases h₂ with p hp, apply linked.linked_iff.mpr, refine ⟨_⟩,
+                { intro h, rw adapted.iff at h₂, specialize h₂ x y h, cases h₂ with p hp, apply linked.linked_iff.mpr, refine ⟨_⟩,
                     induction p with a a b c h₃ p ih, refl,
                     have h₄ : f b = f c := by { apply hp, right, apply walk.start_mem_support },
                     refine walk.cons ⟨h.trans h₄.symm,h₃⟩ _, apply ih h₄, intros z hz, apply hp, right, exact hz }
@@ -163,7 +164,7 @@ namespace simple_graph
         @[trans] lemma trans : G ≼cc G' → G' ≼cc G'' → G ≼cc G'' :=
         begin
             rintros ⟨φ,h₁,h₂,rfl⟩ ⟨ψ,h₄,h₅,rfl⟩, refine ⟨φ ∘ ψ, h₁.comp h₄,_,_⟩,
-            { exact adapted.iff.mpr (adapted.comp_push' (adapted.iff.mp h₅) (adapted.iff.mp h₂)) },
+            { exact (adapted.comp_push h₅ h₂) },
             { rw ←push.comp }
         end
 
