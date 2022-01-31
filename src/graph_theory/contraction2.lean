@@ -81,15 +81,20 @@ namespace simple_graph
             apply linked.linked_iff.mpr, use lift_path' hf p,
         end
 
-        lemma comp_push : adapted f G → adapted g (push f G) → adapted (g ∘ f) G :=
-        begin
-            sorry
-        end
-
         lemma comp_push' : adapted' f G → adapted' g (push f G) → adapted' (g ∘ f) G :=
         begin
-            intros hf hg z,
-            sorry
+            intros hf' hg' z,
+            let H := select (λ x, g (f x) = z) G, change H.connected,
+            let G' := select (λ x', g x' = z) (push f G),
+            have h₁ : G'.connected := hg' z,
+            have hf : adapted f G := adapted.iff.mpr hf',
+            let ff := select.map f (λ x', g x' = z),
+            have hff : adapted ff H := by {
+                apply adapted.iff.mpr, intro z',
+                sorry
+            },
+            have hpf : (push ff H).connected := by { dsimp only [ff,H], rw ←select.of_push, exact hg' z },
+            exact connected hff hpf,
         end
     end adapted
 

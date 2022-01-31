@@ -80,7 +80,7 @@ namespace simple_graph
     pull subtype.val G
 
     namespace select
-        variables {P : V → Prop}
+        variables {P : V → Prop} {P' : V' → Prop}
 
         lemma mono {P : V → Prop} : monotone (select P)
         := by { apply pull.mono }
@@ -93,6 +93,11 @@ namespace simple_graph
             right_inv := λ x, by simp only [subtype.coe_eta,rel_iso.apply_symm_apply,subtype.val_eq_coe],
             map_rel_iff' := λ a b, by { apply φ.map_rel_iff' }
         }
+
+        def map (f : V → V') (P' : V' → Prop) : subtype (P' ∘ f) → subtype P'
+        := λ ⟨x, p⟩, ⟨f x, p⟩
+
+        lemma of_push : select P' (push f G) = push (map f P') (select (P' ∘ f) G) := sorry
 
         def push_walk (p : walk G x y) (hp : ∀ z ∈ p.support, P z) :
             walk (select P G) ⟨x, hp x (walk.start_mem_support p)⟩ ⟨y, hp y (walk.end_mem_support p)⟩ :=
