@@ -4,7 +4,7 @@ open function classical
 
 namespace simple_graph
     variables {V V' V'' : Type} {x y z : V} {x' y' z' : V'} {f : V → V'} {g : V' → V''}
-    variables {G H : simple_graph V} {G' : simple_graph V'} {G'' : simple_graph V''}
+    variables {G H : simple_graph V} {G' H' : simple_graph V'} {G'' : simple_graph V''}
 
     def adapted (f : V → V') (G : simple_graph V) : Prop :=
         ∀ (z : V'), connected (level f z G)
@@ -70,10 +70,7 @@ namespace simple_graph
 
     namespace is_contraction
         @[refl] lemma refl : G ≼c G :=
-        begin
-            refine ⟨id,surjective_id,adapted.of_injective injective_id,_⟩,
-            ext x y, simp [push], exact G.ne_of_adj
-        end
+        ⟨id,surjective_id,adapted.of_injective injective_id,push.push_id.symm⟩
 
         lemma of_iso : G ≃g G' → G ≼c G' :=
         λ φ, let ψ := φ.symm in ⟨ψ, ψ.surjective, adapted.of_injective ψ.injective, push.from_iso ψ⟩
@@ -87,23 +84,22 @@ namespace simple_graph
         lemma iso_left : G ≃g G' -> G' ≼c G'' -> G ≼c G'' :=
         trans ∘ of_iso
 
-        -- TODO: rewrite for `f : V → V'`
-        lemma le_left_aux {f : V' → V} : H ≤ push f G' → H = push f (G' ⊓ pull' f H) :=
+        lemma le_left_aux {f : V → V'} : H' ≤ push f G → H' = push f (G ⊓ pull' f H') :=
         begin
-            intro h₁, ext x y, split,
-            { intro h, rcases h₁ h with ⟨h₄,x',y',rfl,rfl,h₅⟩, exact ⟨h₄,x',y',rfl,rfl,h₅,h₄ ∘ congr_arg f,or.inr h⟩ },
-            { rintros ⟨h₄,x',y',rfl,rfl,h₅,h₆,h₇⟩, cases h₇, contradiction, exact h₇ }
+            intro h₁, ext x' y', split,
+            { intro h, rcases h₁ h with ⟨h₄,x,y,rfl,rfl,h₅⟩, exact ⟨h₄,x,y,rfl,rfl,h₅,h₄ ∘ congr_arg f,or.inr h⟩ },
+            { rintros ⟨h₄,x,y,rfl,rfl,-,-,h₇⟩, cases h₇, contradiction, exact h₇ }
         end
 
         -- TODO: rewrite for `f : V → V'`
-        lemma le_left_aux2 {f : V' → V} (h₁ : H ≤ push f G') (h₂ : surjective f) (h₃ : adapted f G') : H ≼c G' ⊓ pull' f H :=
+        lemma le_left_aux2 {f : V → V'} (h₁ : H' ≤ push f G) (h₂ : surjective f) (h₃ : adapted f G) : H' ≼c G ⊓ pull' f H' :=
         begin
             refine ⟨f,h₂,_,le_left_aux h₁⟩, rw adapted.iff at h₃ ⊢, intros x' y' h₄, specialize h₃ x' y' h₄,
             cases h₃ with p hp, induction p with a a b c h₅ p ih,
             { use walk.nil, exact hp },
             { have h₆ : f b = f c := by { apply hp, right, exact walk.start_mem_support p },
-                have h₇ : ∀ (z : V'), z ∈ p.support → f z = f c := by { intros z h, apply hp, right, exact h},
-                have h₈ : (G' ⊓ pull' f H).adj a b := by { split, exact h₅, refine ⟨G'.ne_of_adj h₅,_⟩, left, rwa h₆ },
+                have h₇ : ∀ (z : V), z ∈ p.support → f z = f c := by { intros z h, apply hp, right, exact h},
+                have h₈ : (G ⊓ pull' f H').adj a b := by { split, exact h₅, refine ⟨G.ne_of_adj h₅,_⟩, left, rwa h₆ },
                 specialize ih h₆ h₇, cases ih with q h₉, use walk.cons h₈ q,
                 intros z h, cases h, rwa h, exact h₉ z h }
         end

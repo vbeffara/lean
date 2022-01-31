@@ -72,6 +72,13 @@ namespace simple_graph
     }
 
     namespace push
+        @[simp] lemma push_id : push id G = G :=
+        begin
+            ext x y, split,
+            { rintros ⟨-,x',y',rfl,rfl,h₂⟩, exact h₂ },
+            { intro h, exact ⟨G.ne_of_adj h,x,y,rfl,rfl,h⟩ }
+        end
+
         lemma adj (f : V → V') : G.adj x y → f x = f y ∨ (push f G).adj (f x) (f y) :=
         by { intro h₁, by_cases f x = f y, left, exact h, right, exact ⟨h,x,y,rfl,rfl,h₁⟩ }
 

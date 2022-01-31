@@ -16,6 +16,9 @@ namespace simple_graph
     infix ` ⋠ `:50 := is_forbidden
 
     namespace is_minor
+        lemma of_iso : G ≃g G' → G ≼ G' :=
+        λ φ, ⟨V',G',is_contraction.of_iso φ,by refl⟩
+
         lemma iso_left : G ≃g G' -> G' ≼ G'' -> G ≼ G''
             | h₁ ⟨U,H,h₂,h₃⟩ := ⟨_,_,h₂.iso_left h₁,h₃⟩
 
