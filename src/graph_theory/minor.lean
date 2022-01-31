@@ -1,5 +1,5 @@
 import tactic
-import graph_theory.basic graph_theory.path_embedding graph_theory.contraction2
+import graph_theory.basic graph_theory.path_embedding graph_theory.contraction
 open function
 open_locale classical
 
@@ -8,7 +8,7 @@ namespace simple_graph
     variables {V V' V'' : Type} {G H : simple_graph V} {G' : simple_graph V'} {G'' : simple_graph V''}
 
     def is_minor (G : simple_graph V) (G' : simple_graph V') : Prop
-        := ∃ {V'' : Type} (G'' : simple_graph V''), G ≼cc G'' ∧ G'' ≼s G'
+        := ∃ {V'' : Type} (G'' : simple_graph V''), G ≼c G'' ∧ G'' ≼s G'
 
     def is_forbidden (H : simple_graph V) (G : simple_graph V') := ¬ (is_minor H G)
 
@@ -38,10 +38,10 @@ namespace simple_graph
                 have h₄ : H ≼ G'' := le_left (embed.le_select h₁) h₃,
                 iso_left (embed.iso h₁) h₄
 
-        lemma contract_left : G ≼cc G' -> G' ≼ G'' -> G ≼ G''
+        lemma contract_left : G ≼c G' -> G' ≼ G'' -> G ≼ G''
             | h₁ ⟨U,H,h₂,h₃⟩ := ⟨_,_,h₁.trans h₂,h₃⟩
 
-        @[refl] lemma refl : G ≼ G := ⟨_,G,is_contraction2.refl,is_smaller.refl⟩
+        @[refl] lemma refl : G ≼ G := ⟨_,G,is_contraction.refl,is_smaller.refl⟩
 
         @[trans] lemma trans : G ≼ G' -> G' ≼ G'' -> G ≼ G''
             | ⟨U,H,h1,h2⟩ h3 := is_minor.contract_left h1 (is_minor.smaller_left h2 h3)
