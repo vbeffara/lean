@@ -53,10 +53,10 @@ namespace simple_graph
         lemma iff : adapted f G ↔ adapted' f G :=
         begin
             split,
-            { rintros h₁ x y h₂, specialize h₁ (f y) ⟨x,h₂⟩ ⟨y,rfl⟩, replace h₁ := linked.linked_iff.mp h₁,
-                cases h₁ with p, let := select.pull_walk p, use this, exact select.pull_walk_spec p },
-            { rintros h₁ z ⟨x,hx⟩ ⟨y,rfl⟩, specialize h₁ x y hx, cases h₁ with p hp,
-                let := select.push_walk p hp, apply linked.linked_iff.mpr, use this },
+            { rintros h₁ x y h₂, specialize h₁ (f y) ⟨x,h₂⟩ ⟨y,rfl⟩, obtain ⟨p⟩ := linked.linked_iff.mp h₁,
+                use select.pull_walk p, exact select.pull_walk_spec p },
+            { rintros h₁ z ⟨x,hx⟩ ⟨y,rfl⟩, apply linked.linked_iff.mpr,
+                specialize h₁ x y hx, obtain ⟨p,hp⟩ := h₁, use select.push_walk p hp },
         end
 
         lemma comp_left (h : bijective g) : adapted f G → adapted (g ∘ f) G :=
