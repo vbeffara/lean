@@ -65,8 +65,6 @@ namespace simple_graph
     def linked    (G : simple_graph V) := refl_trans_gen G.adj
     def connected (G : simple_graph V) := ∀ x y, linked G x y
 
-    lemma connected_of_iso : G ≃g G' → G.connected → G'.connected := sorry
-
     class connected_graph (G : simple_graph V) := (conn : connected G)
 
     namespace linked
@@ -108,4 +106,7 @@ namespace simple_graph
             cases push.adj f h₂, rw h, exact step h
         end
     end linked
+
+    lemma connected_of_iso : G ≃g G' → G.connected → G'.connected :=
+    by { intros φ h₂ x' y', specialize h₂ (φ.symm x') (φ.symm y'), convert ←linked.fmap φ.to_hom h₂; apply φ.right_inv }
 end simple_graph

@@ -110,7 +110,13 @@ namespace simple_graph
             { rintros ⟨⟨a,h₁a⟩,h₂a⟩ ⟨⟨b,h₁b⟩,h₂b⟩, simp [level,select,pull] }
         end
 
-        lemma of_push : select P' (push f G) = push (map f P') (select (P' ∘ f) G) := sorry
+        lemma of_push : select P' (push f G) = push (map f P') (select (P' ∘ f) G) :=
+        begin
+            ext x' y', cases x' with x' hx', cases y' with y' hy',
+            simp [select,pull,push,on_fun,map,subtype.ext_iff], intro h₁, split,
+            { rintros ⟨x,rfl,y,rfl,h⟩, exact ⟨x,hx',y,hy',rfl,rfl,h⟩ },
+            { rintros ⟨x,hx,y,hy,rfl,rfl,h⟩, refine ⟨x,rfl,y,rfl,h⟩ }
+        end
 
         def push_walk (p : walk G x y) (hp : ∀ z ∈ p.support, P z) :
             walk (select P G) ⟨x, hp x (walk.start_mem_support p)⟩ ⟨y, hp y (walk.end_mem_support p)⟩ :=
