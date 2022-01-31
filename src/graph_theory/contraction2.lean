@@ -81,36 +81,28 @@ namespace simple_graph
         lemma iso_left : G ≃g G' -> G' ≼cc G'' -> G ≼cc G'' :=
         trans ∘ of_iso
 
-        -- TODO: is pull incorporated `f x = f y` as edges, this would be `G ⊓ pull f G'`
-        def relative_pull (f : V → V') (G : simple_graph V) (G' : simple_graph V') : simple_graph V :=
-        {
-            adj := λ x y, G.adj x y ∧ (f x = f y ∨ G'.adj (f x) (f y)),
-            symm := λ x' y' ⟨h₄,h₅⟩, by { split, exact h₄.symm, cases h₅, left, exact h₅.symm, right, exact h₅.symm },
-            loopless := λ x', by { push_neg, intros h₄, have := G.ne_of_adj h₄, contradiction }
-        }
-
         -- TODO: rewrite for `f : V → V'`
-        lemma le_left_aux {f : V' → V} : H ≤ push f G' → H = push f (relative_pull f G' H) :=
+        lemma le_left_aux {f : V' → V} : H ≤ push f G' → H = push f (G' ⊓ pull' f H) :=
         begin
             intro h₁, ext x y, split,
-            { intro h, rcases h₁ h with ⟨h₄,x',y',rfl,rfl,h₅⟩, refine ⟨H.ne_of_adj h,x',y',rfl,rfl,h₅,or.inr h⟩ },
-            { rintros ⟨h₄,x',y',rfl,rfl,h₅⟩, cases h₅ with h₅ h₆, cases h₆, contradiction, exact h₆ }
+            { intro h, rcases h₁ h with ⟨h₄,x',y',rfl,rfl,h₅⟩, exact ⟨h₄,x',y',rfl,rfl,h₅,h₄ ∘ congr_arg f,or.inr h⟩ },
+            { rintros ⟨h₄,x',y',rfl,rfl,h₅,h₆,h₇⟩, cases h₇, contradiction, exact h₇ }
         end
 
         -- TODO: rewrite for `f : V → V'`
-        lemma le_left_aux2 {f : V' → V} (h₁ : H ≤ push f G') (h₂ : surjective f) (h₃ : adapted f G') : H ≼cc relative_pull f G' H :=
+        lemma le_left_aux2 {f : V' → V} (h₁ : H ≤ push f G') (h₂ : surjective f) (h₃ : adapted f G') : H ≼cc G' ⊓ pull' f H :=
         begin
             refine ⟨f,h₂,_,le_left_aux h₁⟩, rw adapted.iff at h₃ ⊢, intros x' y' h₄, specialize h₃ x' y' h₄,
             cases h₃ with p hp, induction p with a a b c h₅ p ih,
             { use walk.nil, exact hp },
             { have h₆ : f b = f c := by { apply hp, right, exact walk.start_mem_support p },
                 have h₇ : ∀ (z : V'), z ∈ p.support → f z = f c := by { intros z h, apply hp, right, exact h},
-                have h₈ : (relative_pull f G' H).adj a b := by { split, exact h₅, left, rwa h₆ },
+                have h₈ : (G' ⊓ pull' f H).adj a b := by { split, exact h₅, refine ⟨G'.ne_of_adj h₅,_⟩, left, rwa h₆ },
                 specialize ih h₆ h₇, cases ih with q h₉, use walk.cons h₈ q,
                 intros z h, cases h, rwa h, exact h₉ z h }
         end
 
         lemma le_left : H ≤ G → G ≼cc G' → ∃ H' : simple_graph V', H ≼cc H' ∧ H' ≤ G' :=
-        by { rintros h₁ ⟨f,h₂,h₃,rfl⟩, exact ⟨relative_pull f G' H, le_left_aux2 h₁ h₂ h₃, λ x y h, h.1⟩ }
+        by { rintros h₁ ⟨f,h₂,h₃,rfl⟩, exact ⟨G' ⊓ pull' f H, le_left_aux2 h₁ h₂ h₃, λ x y h, h.1⟩ }
     end is_contraction2
 end simple_graph

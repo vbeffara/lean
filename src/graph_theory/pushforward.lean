@@ -89,11 +89,26 @@ namespace simple_graph
             { intro h₁, exact ⟨h.ne (G.ne_of_adj h₁),x,y,rfl,rfl,h₁⟩ }
         end
 
+        lemma left_inv' (h : injective f) : left_inverse (pull' f) (push f) :=
+        begin
+            intro G, ext x y, split,
+            { rintro ⟨h₁,h₂⟩, cases h₂, have := h h₂, contradiction, rcases h₂ with ⟨h₂,x',y',h₃,h₄,h₅⟩, rwa [←h h₃, ←h h₄] },
+            { intro h₁, refine ⟨G.ne_of_adj h₁, _⟩, by_cases h₂ : f x = f y, left, exact h₂, right, refine ⟨h₂,x,y,rfl,rfl,h₁⟩ }
+        end
+
         lemma right_inv (h : surjective f) : right_inverse (pull f) (push f) :=
         begin
             intro G', ext x' y', split,
             { rintro ⟨h₁,x,y,rfl,rfl,h₂⟩, exact h₂ },
             { intro h₁, cases h x' with x, cases h y' with y, substs x' y', exact ⟨G'.ne_of_adj h₁,x,y,rfl,rfl,h₁⟩ }
+        end
+
+        lemma right_inv' (h : surjective f) : right_inverse (pull' f) (push f) :=
+        begin
+            intro G', ext x' y', split,
+            { rintro ⟨h₁,x,y,rfl,rfl,h₂,h₃⟩, cases h₃, contradiction, exact h₃ },
+            { intro h₁, cases h x' with x, cases h y' with y, substs x' y', refine ⟨G'.ne_of_adj h₁,x,y,rfl,rfl, _⟩,
+                refine ⟨_,_⟩, intro h₂, exact G'.ne_of_adj h₁ (congr_arg f h₂), right, exact h₁ }
         end
 
         def to_iso (f : V ≃ V') (G : simple_graph V) : G ≃g push f G :=
