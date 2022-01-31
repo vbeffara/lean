@@ -97,14 +97,14 @@ namespace simple_graph
             map_rel_iff' := λ a b, by { apply φ.map_rel_iff' }
         }
 
-        def map (f : V → V') (P' : V' → Prop) : {x // P' (f x)} → {x' // P' x'}
-        := λ x, ⟨f x.val, x.prop⟩
+        def map (f : V → V') (P' : V' → Prop) : {x // P' (f x)} → {x' // P' x'} :=
+        subtype.map f (λ _, id)
 
         lemma level_map {hz' : P' z'} : level (map f P') ⟨z',hz'⟩ (select (P' ∘ f) G) ≃g level f z' G :=
         begin
             refine ⟨⟨_,_,_,_⟩,_⟩,
-            { rintro ⟨⟨x,p₁x⟩,p₂x⟩, simp [map] at p₂x, exact ⟨x,p₂x⟩ },
-            { rintro ⟨x,px⟩, use x, rw px, exact hz', simp [map], exact px },
+            { rintro ⟨⟨x,p₁x⟩,p₂x⟩, simp [map,subtype.map] at p₂x, exact ⟨x,p₂x⟩ },
+            { rintro ⟨x,px⟩, use x, rw px, exact hz', simp [map,subtype.map], exact px },
             { rintro ⟨⟨x,p₁x⟩,p₂x⟩, refl },
             { rintro ⟨x,px⟩, refl },
             { rintros ⟨⟨a,h₁a⟩,h₂a⟩ ⟨⟨b,h₁b⟩,h₂b⟩, simp [level,select,pull] }

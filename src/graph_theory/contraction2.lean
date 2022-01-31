@@ -6,40 +6,6 @@ namespace simple_graph
     variables {V V' V'' : Type} {x y z : V} {x' y' z' : V'} {f : V → V'} {g : V' → V''}
     variables {G H : simple_graph V} {G' : simple_graph V'} {G'' : simple_graph V''}
 
-    def is_surjective_push (G : simple_graph V) (G' : simple_graph V') : Prop
-        := ∃ φ : V' -> V, surjective φ ∧ G = push φ G'
-
-    lemma surjective_push_iff : (∃ S : setoid V', nonempty (G ≃g G'/S)) <-> is_surjective_push G G' :=
-    begin
-        split,
-        { rintro ⟨S,⟨⟨f,f',h₁,h₂⟩,h₃⟩⟩,
-            let φ : V' -> V := f' ∘ quotient.mk', refine ⟨φ,_,_⟩,
-            { exact (left_inverse.right_inverse h₁).surjective.comp quotient.surjective_quotient_mk' },
-            { ext a b, rw <-h₃, simp, split,
-                { rintros ⟨p₁,x,y,p₂,p₃,p₄⟩, refine ⟨ne_of_apply_ne f p₁,x,y,_,_,p₄⟩,
-                    convert congr_arg f' p₂, rw h₁, convert congr_arg f' p₃, rw h₁, },
-                { rintros ⟨p₁,x,y,rfl,rfl,p₂⟩, refine ⟨h₁.injective.ne p₁,x,y,_,_,p₂⟩,
-                    simp [φ], rw h₂, refl, simp [φ], rw h₂, refl } }
-        },
-        { rintro ⟨φ,h₁,h₂⟩, subst G,
-            have K := @setoid.ker_apply_mk_out V' V φ,
-            have L := surj_inv_eq h₁,
-            let S : setoid V' := setoid.ker φ, use S,
-            let ψ := (setoid.quotient_ker_equiv_of_surjective φ h₁).symm, refine ⟨⟨ψ,_⟩⟩,
-            introv, split,
-            { rintro ⟨p₁,x,y,p₂,p₃,p₄⟩, refine ⟨ne_of_apply_ne _ p₁,x,y,_,_,p₄⟩,
-                simp [ψ,setoid.quotient_ker_equiv_of_surjective] at p₂,
-                rw [<-K x,p₂], convert K (surj_inv h₁ a), exact (surj_inv_eq h₁ a).symm,
-                simp [ψ,setoid.quotient_ker_equiv_of_surjective] at p₃,
-                rw [<-K y,p₃], convert K (surj_inv h₁ b), exact (surj_inv_eq h₁ b).symm },
-            { rintro ⟨p₁,x,y,rfl,rfl,p₂⟩, refine ⟨ψ.left_inv.injective.ne p₁,x,y,_,_,p₂⟩,
-                simp [ψ,setoid.quotient_ker_equiv_of_surjective], apply quotient.eq.mpr,
-                apply setoid.ker_def.mpr, rw L,
-                simp [ψ,setoid.quotient_ker_equiv_of_surjective], apply quotient.eq.mpr,
-                apply setoid.ker_def.mpr, rw L }
-        }
-    end
-
     def adapted (f : V → V') (G : simple_graph V) : Prop :=
         ∀ (z : V'), connected (level f z G)
 
@@ -59,9 +25,9 @@ namespace simple_graph
                 specialize h₁ x y hx, obtain ⟨p,hp⟩ := h₁, use select.push_walk p hp },
         end
 
-        lemma comp_left (h : bijective g) : adapted f G → adapted (g ∘ f) G :=
+        lemma comp_left (h : injective g) : adapted f G → adapted (g ∘ f) G :=
         begin
-            simp_rw adapted.iff, rintros h₁ x y h₂, specialize h₁ x y (h.injective h₂), cases h₁ with p h₃, use p,
+            simp_rw adapted.iff, rintros h₁ x y h₂, specialize h₁ x y (h h₂), cases h₁ with p h₃, use p,
             intros z h₄, have := congr_arg g (h₃ z h₄), exact this
         end
 
