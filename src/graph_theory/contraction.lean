@@ -25,10 +25,11 @@ namespace simple_graph
                 specialize h₁ x y hx, obtain ⟨p,hp⟩ := h₁, use select.push_walk p hp },
         end
 
-        lemma comp_left (h : injective g) : adapted f G → adapted (g ∘ f) G :=
+        lemma comp_left (g_inj : injective g) : adapted f G → adapted (g ∘ f) G :=
         begin
-            simp_rw adapted.iff, rintros h₁ x y h₂, specialize h₁ x y (h h₂), cases h₁ with p h₃, use p,
-            intros z h₄, have := congr_arg g (h₃ z h₄), exact this
+            rintros f_adp z'', by_cases ∃ z', g z' = z'',
+            { rcases h with ⟨z',rfl⟩, exact connected_of_iso (select.level_comp g_inj).symm (f_adp z') },
+            { push_neg at h, rintro ⟨z,hz⟩, specialize h (f z), contradiction }
         end
 
         noncomputable def lift_path (hf : adapted f G) : walk (push f G) x' y' → Π (x y : V), f x = x' → f y = y' → walk G x y :=
@@ -91,7 +92,6 @@ namespace simple_graph
             { rintros ⟨h₄,x,y,rfl,rfl,-,-,h₇⟩, cases h₇, contradiction, exact h₇ }
         end
 
-        -- TODO: rewrite for `f : V → V'`
         lemma le_left_aux2 {f : V → V'} (h₁ : H' ≤ push f G) (h₂ : surjective f) (h₃ : adapted f G) : H' ≼c G ⊓ pull' f H' :=
         begin
             refine ⟨f,h₂,_,le_left_aux h₁⟩, rw adapted.iff at h₃ ⊢, intros x' y' h₄, specialize h₃ x' y' h₄,

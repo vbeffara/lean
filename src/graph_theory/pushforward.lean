@@ -150,6 +150,15 @@ namespace simple_graph
         def map (f : V → V') (P' : V' → Prop) : {x // P' (f x)} → {x' // P' x'} :=
         subtype.map f (λ _, id)
 
+        lemma level_comp (g_inj : injective g) {z : V'} : level (g ∘ f) (g z) G ≃g level f z G :=
+        {
+            to_fun := λ x, ⟨x.val, g_inj x.prop⟩,
+            inv_fun := λ x, ⟨x.val, congr_arg g x.prop⟩,
+            left_inv := λ x, by simp,
+            right_inv := λ x, by simp,
+            map_rel_iff' := λ x y, iff.rfl
+        }
+
         lemma level_map {hz' : P' z'} : level (map f P') ⟨z',hz'⟩ (select (P' ∘ f) G) ≃g level f z' G :=
         begin
             refine ⟨⟨_,_,_,_⟩,_⟩,
