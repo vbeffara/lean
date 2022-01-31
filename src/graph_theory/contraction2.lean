@@ -55,7 +55,7 @@ namespace simple_graph
             intros hf hg z,
             let H := select (λ x, g (f x) = z) G,
             let ff := select.map f (λ x', g x' = z),
-            have hff : adapted ff H := by { rintro ⟨z',hz'⟩,
+            have hff : adapted ff H := by { rintro ⟨z',hz'⟩, -- TODO: reused below
                 exact connected_of_iso select.level_map.symm (hf z') },
             have hpf : (push ff H).connected := by { dsimp only [ff,H], rw ←select.of_push, exact hg z },
             exact connected hff hpf,
@@ -104,5 +104,21 @@ namespace simple_graph
 
         lemma le_left : H ≤ G → G ≼cc G' → ∃ H' : simple_graph V', H ≼cc H' ∧ H' ≤ G' :=
         by { rintros h₁ ⟨f,h₂,h₃,rfl⟩, exact ⟨G' ⊓ pull' f H, le_left_aux2 h₁ h₂ h₃, λ x y h, h.1⟩ }
+
+        lemma select_left {P : V → Prop} : G ≼cc G' -> ∃ P' : V' → Prop, select P G ≼cc select P' G' :=
+        begin
+            rintros ⟨f,h₁,h₂,h₃⟩, use (λ x, P (f x)), refine ⟨select.map f P,_,_,_⟩,
+            { rintro ⟨x,py⟩, cases h₁ x with x', refine ⟨⟨x',_⟩,_⟩, rwa h, ext, exact h },
+            { rintros ⟨z,hz⟩, exact connected_of_iso select.level_map.symm (h₂ z) }, -- TODO: factor out
+            { ext ⟨x,hx⟩ ⟨y,hy⟩, simp [select,pull,on_fun], split,
+                { intro h₄, rw h₃ at h₄, rcases h₄ with ⟨h₄,x',y',h₅,h₆,h₇⟩, simp at h₅ h₆, substs h₅ h₆,
+                    refine ⟨_,⟨x',hx⟩,⟨y',hy⟩,rfl,rfl,h₇⟩,
+                    intro h, rw subtype.ext_iff at h, contradiction },
+                { rintros ⟨h₄,⟨x',hx⟩,⟨y',hy⟩,h₅,h₆,h₇⟩, rw h₃, refine ⟨_,x',y',_,_,h₇⟩,
+                    { intro h, rw ←subtype.ext_iff at h, contradiction },
+                    { simp [select.map,subtype.map] at h₅, exact h₅ },
+                    { simp [select.map,subtype.map] at h₆, exact h₆ } }
+            }
+        end
     end is_contraction2
 end simple_graph
