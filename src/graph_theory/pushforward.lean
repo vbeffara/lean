@@ -2,7 +2,7 @@ import combinatorics.simple_graph.basic combinatorics.simple_graph.connectivity 
 import graph_theory.to_mathlib
 open function set classical
 
-variables {V V' V'' : Type} {x y z : V} {f : V → V'} {g : V' → V''}
+variables {V V' V'' : Type} {x y z : V} {x' y' z' : V'} {f : V → V'} {g : V' → V''}
 variables {G G₁ G₂ : simple_graph V} {G' G'₁ G'₂ : simple_graph V'} {G'' : simple_graph V''}
 
 namespace simple_graph
@@ -79,6 +79,9 @@ namespace simple_graph
     def select (P : V → Prop) (G : simple_graph V) : simple_graph (subtype P) :=
     pull subtype.val G
 
+    def level (f : V → V') (z : V') (G : simple_graph V) : simple_graph {x // f x = z}
+    := select (λ x, f x = z) G
+
     namespace select
         variables {P : V → Prop} {P' : V' → Prop}
 
@@ -94,8 +97,18 @@ namespace simple_graph
             map_rel_iff' := λ a b, by { apply φ.map_rel_iff' }
         }
 
-        def map (f : V → V') (P' : V' → Prop) : subtype (P' ∘ f) → subtype P'
-        := λ ⟨x, p⟩, ⟨f x, p⟩
+        def map (f : V → V') (P' : V' → Prop) : {x // P' (f x)} → {x' // P' x'}
+        := λ x, ⟨f x.val, x.prop⟩
+
+        lemma level_map {hz' : P' z'} : level (map f P') ⟨z',hz'⟩ (select (P' ∘ f) G) ≃g level f z' G :=
+        begin
+            refine ⟨⟨_,_,_,_⟩,_⟩,
+            { rintro ⟨⟨x,p₁x⟩,p₂x⟩, simp [map] at p₂x, exact ⟨x,p₂x⟩ },
+            { rintro ⟨x,px⟩, use x, rw px, exact hz', simp [map], exact px },
+            { rintro ⟨⟨x,p₁x⟩,p₂x⟩, refl },
+            { rintro ⟨x,px⟩, refl },
+            { rintros ⟨⟨a,h₁a⟩,h₂a⟩ ⟨⟨b,h₁b⟩,h₂b⟩, simp [level,select,pull] }
+        end
 
         lemma of_push : select P' (push f G) = push (map f P') (select (P' ∘ f) G) := sorry
 

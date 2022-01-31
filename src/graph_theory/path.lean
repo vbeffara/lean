@@ -65,6 +65,8 @@ namespace simple_graph
     def linked    (G : simple_graph V) := refl_trans_gen G.adj
     def connected (G : simple_graph V) := ∀ x y, linked G x y
 
+    lemma connected_of_iso : G ≃g G' → G.connected → G'.connected := sorry
+
     class connected_graph (G : simple_graph V) := (conn : connected G)
 
     namespace linked

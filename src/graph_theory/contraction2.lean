@@ -44,7 +44,7 @@ namespace simple_graph
         ∀ (x y : V), f x = f y → ∃ p : walk G x y, ∀ z ∈ p.support, f z = f y
 
     def adapted' (f : V → V') (G : simple_graph V) : Prop :=
-        ∀ (z : V'), connected (select (λ x, f x = z) G)
+        ∀ (z : V'), connected (level f z G)
 
     namespace adapted
         lemma iff {f : V → V'} : adapted f G ↔ adapted' f G :=
@@ -84,15 +84,10 @@ namespace simple_graph
         lemma comp_push' : adapted' f G → adapted' g (push f G) → adapted' (g ∘ f) G :=
         begin
             intros hf' hg' z,
-            let H := select (λ x, g (f x) = z) G, change H.connected,
-            let G' := select (λ x', g x' = z) (push f G),
-            have h₁ : G'.connected := hg' z,
-            have hf : adapted f G := adapted.iff.mpr hf',
+            let H := select (λ x, g (f x) = z) G,
             let ff := select.map f (λ x', g x' = z),
-            have hff : adapted ff H := by {
-                apply adapted.iff.mpr, intro z',
-                sorry
-            },
+            have hff : adapted ff H := by { apply adapted.iff.mpr, rintro ⟨z',hz'⟩,
+                exact connected_of_iso select.level_map.symm (hf' z') },
             have hpf : (push ff H).connected := by { dsimp only [ff,H], rw ←select.of_push, exact hg' z },
             exact connected hff hpf,
         end
@@ -168,7 +163,7 @@ namespace simple_graph
         @[trans] lemma trans : G ≼cc G' → G' ≼cc G'' → G ≼cc G'' :=
         begin
             rintros ⟨φ,h₁,h₂,rfl⟩ ⟨ψ,h₄,h₅,rfl⟩, refine ⟨φ ∘ ψ, h₁.comp h₄,_,_⟩,
-            { exact adapted.comp_push h₅ h₂ },
+            { exact adapted.iff.mpr (adapted.comp_push' (adapted.iff.mp h₅) (adapted.iff.mp h₂)) },
             { rw ←push.comp }
         end
 
