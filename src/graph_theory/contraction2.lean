@@ -86,7 +86,6 @@ namespace simple_graph
             intros hf hg z,
             let H := select (λ x, g (f x) = z) G,
             let ff := select.map f (λ x', g x' = z),
-            have hf' := adapted.iff.mp hf,
             have hff : adapted ff H := by { rintro ⟨z',hz'⟩,
                 exact connected_of_iso select.level_map.symm (hf z') },
             have hpf : (push ff H).connected := by { dsimp only [ff,H], rw ←select.of_push, exact hg z },
