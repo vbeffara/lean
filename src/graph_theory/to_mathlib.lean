@@ -1,4 +1,5 @@
 import combinatorics.simple_graph.basic
-import data.setoid.basic
 
-def simple_graph.adj.symm {V : Type} {G : simple_graph V} := G.symm
+namespace simple_graph
+    def adj.symm {V : Type} {G : simple_graph V} := G.symm
+end simple_graph
