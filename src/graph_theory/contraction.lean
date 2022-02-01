@@ -63,7 +63,6 @@ namespace simple_graph
         end
     end adapted
 
-    -- TODO: contraction_old as data of `φ` and so on?
     def is_contraction (G : simple_graph V) (G' : simple_graph V') : Prop
         := ∃ φ : V' → V, surjective φ ∧ adapted φ G' ∧ G = push φ G'
 
