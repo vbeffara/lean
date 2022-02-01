@@ -1,6 +1,5 @@
-import graph_theory.basic graph_theory.path
+import graph_theory.path
 import topology.metric_space.basic
-set_option trace.check true
 
 namespace simple_graph
     open walk

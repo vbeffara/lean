@@ -133,12 +133,22 @@ namespace simple_graph
         theorem trans : embeds_into G G' -> embeds_into G' G'' -> embeds_into G G''
             | ⟨F⟩ ⟨F'⟩ := ⟨comp F F'⟩
 
-        def from_hom (f : G →g G') (inj : injective f) : path_embedding G G'
-            := { f       := ⟨f, inj⟩,
-                df       := λ e, cons (f.map_rel' e.h) nil,
-                nodup    := λ e, by { have := G'.ne_of_adj (f.map_rel' e.h), simpa },
-                sym      := λ e, by simp,
-                endpoint := λ e x h, by { simp at h ⊢, cases h, { left, exact inj h }, { right, exact inj h }},
-                disjoint := by finish } -- TODO simplify the proof of disjoint
+        def from_hom (f : G →g G') (inj : injective f) : path_embedding G G' :=
+        {
+            f := ⟨f, inj⟩,
+            df := λ e, cons (f.map_rel' e.h) nil,
+            nodup := λ e, by {
+                simp only [support_cons, embedding.coe_fn_mk, support_nil, rel_hom.coe_fn_to_fun, list.nodup_cons,
+                            list.mem_singleton, list.not_mem_nil, not_false_iff, list.nodup_nil, and_true],
+                exact G'.ne_of_adj (f.map_rel' e.h) },
+            sym := λ e, by { simp only [step.flip, reverse_cons, reverse_nil, nil_append, rel_hom.coe_fn_to_fun,
+                            embedding.coe_fn_mk, eq_self_iff_true, heq_iff_eq, and_self] },
+            endpoint := λ e x h, by {
+                simp only [embedding.coe_fn_mk, support_cons, support_nil, rel_hom.coe_fn_to_fun, list.mem_cons_iff,
+                            list.mem_singleton] at h,
+                simp only [step.ends, sym2.mem_iff], cases h, { left, exact inj h }, { right, exact inj h } },
+            disjoint := by { intros e e' z h₁ h₂, right, cases h₁, subst h₁, exact ⟨e.x,rfl⟩,
+                                cases h₁, subst h₁, exact ⟨e.y,rfl⟩, cases h₁ }
+        }
     end path_embedding
 end simple_graph

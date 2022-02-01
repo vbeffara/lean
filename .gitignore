@@ -2,3 +2,5 @@
 /_target
 /leanpkg.path
 leanpkg.toml
+import_graph.dot
+import_graph.dot.pdf

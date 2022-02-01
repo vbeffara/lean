@@ -154,8 +154,8 @@ namespace simple_graph
         {
             to_fun := λ x, ⟨x.val, g_inj x.prop⟩,
             inv_fun := λ x, ⟨x.val, congr_arg g x.prop⟩,
-            left_inv := λ x, by simp,
-            right_inv := λ x, by simp,
+            left_inv := λ x, by { simp only [subtype.val_eq_coe, subtype.coe_eta] },
+            right_inv := λ x, by { simp only [subtype.val_eq_coe, subtype.coe_eta] },
             map_rel_iff' := λ x y, iff.rfl
         }
 

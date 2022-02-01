@@ -1,6 +1,6 @@
 import tactic
 import combinatorics.simple_graph.basic data.set.basic
-import graph_theory.to_mathlib graph_theory.pushforward
+import graph_theory.pushforward
 
 variables {V V' V'' : Type} {G H : simple_graph V} {G' : simple_graph V'} {G'' : simple_graph V''}
 

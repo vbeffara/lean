@@ -1,5 +1,5 @@
 import tactic data.equiv.basic
-import graph_theory.path graph_theory.pushforward
+import graph_theory.path
 open function classical
 
 namespace simple_graph

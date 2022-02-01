@@ -1,5 +1,5 @@
 import tactic data.finset.lattice data.set.basic
-import graph_theory.path graph_theory.metric topology.metric_space.lipschitz
+import graph_theory.metric topology.metric_space.lipschitz
 
 namespace simple_graph
     namespace cayley
