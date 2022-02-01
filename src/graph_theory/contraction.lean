@@ -112,7 +112,8 @@ namespace simple_graph
             { rintro ⟨x,py⟩, cases h₁ x with x', refine ⟨⟨x',_⟩,_⟩, rwa h, ext, exact h },
             { rintros ⟨z,hz⟩, exact connected_of_iso select.level_map.symm (h₂ z) }, -- TODO: factor out
             { ext ⟨x,hx⟩ ⟨y,hy⟩, simp [select,pull,on_fun], split,
-                { intro h₄, rw h₃ at h₄, rcases h₄ with ⟨h₄,x',y',h₅,h₆,h₇⟩, simp at h₅ h₆, substs h₅ h₆,
+                { intro h₄, rw h₃ at h₄, rcases h₄ with ⟨h₄,x',y',h₅,h₆,h₇⟩,
+                    simp only [subtype.coe_mk] at h₅ h₆, substs h₅ h₆,
                     refine ⟨_,⟨x',hx⟩,⟨y',hy⟩,rfl,rfl,h₇⟩,
                     intro h, rw subtype.ext_iff at h, contradiction },
                 { rintros ⟨h₄,⟨x',hx⟩,⟨y',hy⟩,h₅,h₆,h₇⟩, rw h₃, refine ⟨_,x',y',_,_,h₇⟩,

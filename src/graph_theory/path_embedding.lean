@@ -37,38 +37,45 @@ namespace simple_graph
 
         lemma mem_follow {z} (h : 0 < length p) : z ∈ (follow F p).support <-> ∃ e ∈ myedges p, z ∈ (F.df e).support
             := by {
-                revert h, induction p with u u v w h p ih; simp, split; intro H,
-                    { cases H,
-                        { exact ⟨⟨h⟩,or.inl rfl,H⟩ },
-                        { cases p,
-                            { refine ⟨⟨h⟩,or.inl rfl,_⟩, simp only [follow,support_nil,list.mem_singleton] at H,
-                                rw H, apply end_mem_support },
-                            { simp at ih H, obtain ⟨e,h1,h2⟩ := ih.mp H, refine ⟨e,or.inr h1,h2⟩ },
-                        }
-                    },
-                    { obtain ⟨e,H1,H2⟩ := H, cases H1,
-                        { left, subst H1, exact H2 },
-                        { right, cases p,
-                            { simp at H1, contradiction },
-                            { refine (ih _).mpr ⟨e,H1,H2⟩, simp }
-                        }
+                revert h, induction p with u u v w h p ih, simp only [length_nil, nat.not_lt_zero, forall_false_left],
+                simp only [follow, myedges, length_cons, nat.succ_pos', mem_support_append_iff, list.mem_cons_iff, forall_true_left],
+                split; intro H,
+                { cases H,
+                    { exact ⟨⟨h⟩,or.inl rfl,H⟩ },
+                    { cases p,
+                        { refine ⟨⟨h⟩,or.inl rfl,_⟩, simp only [follow,support_nil,list.mem_singleton] at H,
+                            rw H, apply end_mem_support },
+                        { simp only [follow, length_cons, nat.succ_pos', mem_support_append_iff, forall_true_left] at ih,
+                            simp only [follow, mem_support_append_iff] at H,
+                            obtain ⟨e,h1,h2⟩ := ih.mp H, refine ⟨e,or.inr h1,h2⟩ } } },
+                { obtain ⟨e,H1,H2⟩ := H, cases H1,
+                    { left, subst H1, exact H2 },
+                    { right, cases p,
+                        { simp only [myedges, list.not_mem_nil] at H1, contradiction },
+                        { refine (ih _).mpr ⟨e,H1,H2⟩, simp only [length_cons, nat.succ_pos'] }
                     }
+                }
             }
 
         lemma follow_nodup {p : walk G x y} (h : p.support.nodup) : (follow F p).support.nodup
             := by {
-                induction p with u u v w h p ih; simp, simp at h, apply nodup_concat.mpr,
-
+                induction p with u u v w h p ih,
+                { simp only [follow, support_nil, list.nodup_cons, list.not_mem_nil, not_false_iff, list.nodup_nil, and_self] },
+                simp only [follow], simp only [support_cons, list.nodup_cons] at h, apply nodup_concat.mpr,
                 refine ⟨F.nodup _, ih h.2, _⟩, rintros z h3 h4,
-                cases nat.eq_zero_or_pos p.length with h5 h5, { cases p, simp at h4, exact h4, simp at h5, contradiction },
+                cases nat.eq_zero_or_pos p.length with h5 h5, { cases p,
+                    { simp only [follow, support_nil, list.mem_singleton] at h4, exact h4 },
+                    { simp only [length_cons, nat.succ_ne_zero] at h5, contradiction } },
                 obtain ⟨e,h7,h8⟩ := (mem_follow F h5).mp h4,
                 cases mem_edges h7, cases F.disjoint h3 h8 with h9 h9,
                     { exfalso, apply h.1, apply (mem_of_edges h5).mpr ⟨e,h7,_⟩, rw <-h9, exact sym2.mem_mk_left _ _ },
-                    {
-                        obtain ⟨v,_⟩ := h9, subst z, have h10 := F.endpoint h3,
-                        cases sym2.mem_iff.mp h10 with h10 h10; simp at h10; subst h10,
-                        exfalso, apply h.1, cases sym2.mem_iff.mp (F.endpoint h8) with h12 h12;
-                        subst h12, exact left, exact right
+                    { obtain ⟨v,_⟩ := h9, subst z, have h10 := F.endpoint h3,
+                        cases sym2.mem_iff.mp h10 with h10 h10,
+                        { simp only at h10, subst h10, exfalso, apply h.1,
+                            cases sym2.mem_iff.mp (F.endpoint h8) with h12 h12,
+                            { subst h12, exact left },
+                            { subst h12, exact right } },
+                        { rw h10 }
                     }
             }
 
@@ -102,7 +109,7 @@ namespace simple_graph
                     replace h5 := walk.mem_edges h5,
                     replace h5 : e1.x ∈ (F.df e').support ∧ e1.y ∈ (F.df e').support := by {
                         cases step.same_iff.mpr h7; subst e2,
-                        exact h5, simp at h5, exact h5.symm
+                        exact h5, simp only [step.flip] at h5, exact h5.symm
                     }, clear h7,
                     cases F.disjoint h3.1 h5.1 with h10 h10, exact h10,
                     obtain ⟨x,h10⟩ := h10, rw h10 at h3 h5,
@@ -121,8 +128,10 @@ namespace simple_graph
                     replace h6 := F'.endpoint h6,
                     replace h3 := walk.mem_edges h3,
                     replace h5 := walk.mem_edges h5,
-                    replace h3 : y ∈ (F.df e).support, by { simp at h4, cases h4; subst h4, exact h3.1, exact h3.2 },
-                    replace h5 : y ∈ (F.df e').support, by { simp at h6, cases h6; subst h6, exact h5.1, exact h5.2 },
+                    replace h3 : y ∈ (F.df e).support, by { simp only [step.ends, sym2.mem_iff] at h4,
+                        cases h4; subst h4, exact h3.1, exact h3.2 },
+                    replace h5 : y ∈ (F.df e').support, by { simp only [step.ends, sym2.mem_iff] at h6,
+                        cases h6; subst h6, exact h5.1, exact h5.2 },
                     cases F.disjoint h3 h5 with h9 h9,
                         { left, exact h9 },
                         { obtain ⟨x,h9⟩ := h9, subst h9, right, use x, refl }

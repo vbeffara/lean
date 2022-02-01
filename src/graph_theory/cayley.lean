@@ -85,8 +85,9 @@ namespace simple_graph
 
         lemma lipschitz : (Cay S2).dist x y <= (distorsion S1 S2) * (Cay S1).dist x y
             := by { obtain ⟨p,hp⟩ := simple_graph.shortest_path (Cay S1) x y, rw <-hp, clear hp,
-                induction p with u u v w h p ih; simp,
-                transitivity (Cay S2).dist u v + (Cay S2).dist v w, apply simple_graph.dist_triangle,
-                rw [mul_add,mul_one,add_comm], apply add_le_add ih, apply distorsion_le, exact h }
+                induction p with u u v w h p ih, simp only [dist_self, walk.length_nil, mul_zero],
+                simp only [walk.length_cons], transitivity (Cay S2).dist u v + (Cay S2).dist v w,
+                apply simple_graph.dist_triangle, rw [mul_add,mul_one,add_comm],
+                apply add_le_add ih, apply distorsion_le, exact h }
     end cayley
 end simple_graph

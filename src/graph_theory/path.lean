@@ -20,33 +20,52 @@ namespace simple_graph
 
         lemma point_of_size_0 : p.length = 0 -> x = y := by { intro h, cases p, refl, contradiction }
 
-        lemma mem_edges : e ∈ myedges p -> e.x ∈ p.support ∧ e.y ∈ p.support
-            := by { induction p with u u v w h p ih; simp, intro h', cases h',
-                { subst e, split, left, refl, right, exact start_mem_support _ },
-                { specialize ih h', exact ⟨or.inr ih.1, or.inr ih.2⟩ }
-            }
+        lemma mem_edges : e ∈ myedges p -> e.x ∈ p.support ∧ e.y ∈ p.support :=
+        begin
+            induction p with u u v w h p ih, simp only [myedges, list.not_mem_nil, forall_false_left],
+            simp only [myedges, list.mem_cons_iff, support_cons], intro h', cases h',
+            { subst e, split, left, refl, right, exact start_mem_support _ },
+            { specialize ih h', exact ⟨or.inr ih.1, or.inr ih.2⟩ }
+        end
 
-        lemma mem_of_edges (h : 0 < p.length) : u ∈ p.support <-> ∃ e ∈ myedges p, u ∈ step.ends e
-            := by { induction p with u u v w h p ih, { simp at h, contradiction }, clear h,
-                cases nat.eq_zero_or_pos (length p), { cases p, simp, simp at h_1, contradiction },
-                specialize ih h_1, clear h_1, simp at ih, split; simp,
-                    { intro h1, cases h1,
-                        { subst h1, exact ⟨⟨h⟩, or.inl rfl, or.inl rfl⟩ },
-                        { obtain ⟨e,h2,h3⟩ := ih.mp h1, exact ⟨e, or.inr h2, h3⟩ } },
+        lemma mem_of_edges (h : 0 < p.length) : u ∈ p.support <-> ∃ e ∈ myedges p, u ∈ step.ends e :=
+        begin
+            induction p with u u v w h p ih, { simp only [length_nil, nat.not_lt_zero] at h, contradiction },
+            clear h, cases nat.eq_zero_or_pos (length p),
+            { cases p,
+                simp only [myedges, step.ends, support_cons, support_nil, list.mem_cons_iff, list.mem_singleton,
+                            sym2.mem_iff, exists_prop, exists_eq_left],
+                simp only [length_cons, nat.succ_ne_zero] at h_1, contradiction },
+            { specialize ih h_1, clear h_1,
+                simp only [step.ends, sym2.mem_iff] at ih,
+                split,
+                { simp only [myedges, step.ends, support_cons, list.mem_cons_iff, sym2.mem_iff, exists_prop],
+                    intro h1, cases h1,
+                    { subst h1, exact ⟨⟨h⟩, or.inl rfl, or.inl rfl⟩ },
+                    { obtain ⟨e,h2,h3⟩ := ih.mp h1, exact ⟨e, or.inr h2, h3⟩ } },
+                { simp only [myedges, step.ends, list.mem_cons_iff, sym2.mem_iff, support_cons,
+                        forall_exists_index, and_imp, forall_eq_or_imp],
                     exact ⟨(λ h, or.cases_on h or.inl (λ h, by { subst h, exact or.inr (start_mem_support _) })),
-                        (λ e he h1, or.inr (ih.mpr ⟨e,he,h1⟩))⟩,
-            }
+                    (λ e he h1, or.inr (ih.mpr ⟨e,he,h1⟩))⟩ } }
+        end
 
         lemma nodup_rev : p.support.nodup -> p.reverse.support.nodup
             := by { rw (support_reverse p), exact list.nodup_reverse.mpr }
 
-        lemma nodup_concat : (append p p').support.nodup <-> p.support.nodup ∧ p'.support.nodup ∧ (∀ u, u ∈ p.support -> u ∈ p'.support -> u = y)
-            := by { induction p with a a b c h q ih; simp, push_neg, split,
+        lemma nodup_concat : (append p p').support.nodup <->
+                p.support.nodup ∧ p'.support.nodup ∧ (∀ u, u ∈ p.support -> u ∈ p'.support -> u = y) :=
+        begin
+            induction p with a a b c h q ih,
+            { simp only [nil_append, support_nil, list.nodup_cons, list.not_mem_nil, not_false_iff, list.nodup_nil,
+                list.mem_singleton, forall_eq, start_mem_support, eq_self_iff_true, forall_true_left, and_true, true_and] },
+            { simp only [cons_append, support_cons, list.nodup_cons, mem_support_append_iff, list.mem_cons_iff, forall_eq_or_imp],
+                push_neg, split,
                 { rintros ⟨⟨h1,h2⟩,h3⟩, replace ih := ih.mp h3, refine ⟨⟨h1,ih.1⟩,ih.2.1,_,λ u h4 h5, _⟩,
                     intro, contradiction, exact ih.2.2 u h4 h5 },
                 { rintros ⟨⟨h1,h2⟩,h3,h4,h5⟩, refine ⟨⟨h1,_⟩,_⟩,
                     intro h5, apply h1, rw h4 h5, exact end_mem_support _,
                     refine ih.mpr ⟨h2,h3,_⟩, intros u hu h'u, exact h5 u hu h'u } }
+        end
 
         def path_from_subgraph (sub : ∀ {x y}, G₁.adj x y -> G₂.adj x y) : Π {x y : V}, walk G₁ x y -> walk G₂ x y
             | _ _ nil        := nil
