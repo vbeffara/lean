@@ -12,13 +12,13 @@ namespace simple_graph
         loopless := λ _ ⟨h₁,h₂⟩, G₁.loopless _ h₁
     }
 
-    infixr ` × ` := tensor_product
+    infix ` × ` := tensor_product
 
     def cartesian_product (G₁ : simple_graph V₁) (G₂ : simple_graph V₂) := (⊥ × G₂) ⊔ (G₁ × ⊥)
 
-    infixr ` □ `:50 := cartesian_product
+    infix ` □ `:50 := cartesian_product
 
     def strong_product (G₁ : simple_graph V₁) (G₂ : simple_graph V₂) := (G₁ □ G₂) ⊔ (G₁ × G₂)
 
-    infixr ` ⊠ `:50 := strong_product
+    infix ` ⊠ `:50 := strong_product
 end simple_graph
