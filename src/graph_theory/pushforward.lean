@@ -207,11 +207,9 @@ namespace simple_graph
             inv_fun := ψ,
             left_inv := λ x, f_inj (some_spec (subtype.prop (φ x))),
             right_inv := λ y, subtype.ext (some_spec y.prop),
-            map_rel_iff' := by {
-                simp [φ,embed,push,select,pull,on_fun],
-                simp_rw [subtype.coe_mk], intros a b, split,
-                { rintro ⟨h₁,x,h₂,y,h₃,h₄⟩, rwa [←f_inj h₂,←f_inj h₃] },
-                { intro h₁, exact ⟨f_inj.ne (G.ne_of_adj h₁),a,rfl,b,rfl,h₁⟩ }
+            map_rel_iff' := λ a b, by { dsimp only [φ], split,
+                { rintros ⟨h₁,x,y,h₂,h₃,h₄⟩, rwa [←f_inj h₂, ←f_inj h₃] },
+                { intro h₁, refine ⟨f_inj.ne (G.ne_of_adj h₁),a,b,rfl,rfl,h₁⟩ }
             }
         }
 

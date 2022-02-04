@@ -40,7 +40,7 @@ namespace simple_graph
             := fmap (left_shift S a)
 
         lemma shift : linked (Cay S) x y -> linked (Cay S) (a*x) (a*y)
-            := by { intro h, induction h with u v h₁ h₂ ih, refl, refine ih.trans (tail refl _), apply shift_adj, exact h₂ }
+            := by { intro h, induction h with u v h₁ h₂ ih, refl, exact tail ih (shift_adj a h₂) }
 
         lemma inv : linked (Cay S) 1 x -> linked (Cay S) 1 x⁻¹
             := by { intro h, symmetry, convert shift S x⁻¹ h; group }
