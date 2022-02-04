@@ -162,11 +162,11 @@ namespace simple_graph
         lemma level_map {hz' : P' z'} : level (map f P') ⟨z',hz'⟩ (select (P' ∘ f) G) ≃g level f z' G :=
         begin
             refine ⟨⟨_,_,_,_⟩,_⟩,
-            { rintro ⟨⟨x,p₁x⟩,p₂x⟩, simp [map,subtype.map] at p₂x, exact ⟨x,p₂x⟩ },
-            { rintro ⟨x,px⟩, use x, rw px, exact hz', simp [map,subtype.map], exact px },
+            { rintro ⟨⟨x,p₁x⟩,p₂x⟩, simp only [map, subtype.map] at p₂x, exact ⟨x,p₂x⟩ },
+            { rintro ⟨x,px⟩, use x, rw px, exact hz', simp only [map,subtype.map], exact px },
             { rintro ⟨⟨x,p₁x⟩,p₂x⟩, refl },
             { rintro ⟨x,px⟩, refl },
-            { rintros ⟨⟨a,h₁a⟩,h₂a⟩ ⟨⟨b,h₁b⟩,h₂b⟩, simp [level,select,pull] }
+            { rintros ⟨⟨a,h₁a⟩,h₂a⟩ ⟨⟨b,h₁b⟩,h₂b⟩, simp only [level, select, pull, equiv.coe_fn_mk] }
         end
 
         lemma of_push : select P' (push f G) = push (map f P') (select (P' ∘ f) G) :=

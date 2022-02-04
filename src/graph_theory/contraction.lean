@@ -111,15 +111,15 @@ namespace simple_graph
             rintros ⟨f,h₁,h₂,h₃⟩, use (λ x, P (f x)), refine ⟨select.map f P,_,_,_⟩,
             { rintro ⟨x,py⟩, cases h₁ x with x', refine ⟨⟨x',_⟩,_⟩, rwa h, ext, exact h },
             { rintros ⟨z,hz⟩, exact connected_of_iso select.level_map.symm (h₂ z) }, -- TODO: factor out
-            { ext ⟨x,hx⟩ ⟨y,hy⟩, simp [select,pull,on_fun], split,
+            { ext ⟨x,hx⟩ ⟨y,hy⟩, simp only [select, pull, on_fun, subtype.val_eq_coe], split,
                 { intro h₄, rw h₃ at h₄, rcases h₄ with ⟨h₄,x',y',h₅,h₆,h₇⟩,
                     simp only [subtype.coe_mk] at h₅ h₆, substs h₅ h₆,
                     refine ⟨_,⟨x',hx⟩,⟨y',hy⟩,rfl,rfl,h₇⟩,
                     intro h, rw subtype.ext_iff at h, contradiction },
                 { rintros ⟨h₄,⟨x',hx⟩,⟨y',hy⟩,h₅,h₆,h₇⟩, rw h₃, refine ⟨_,x',y',_,_,h₇⟩,
                     { intro h, rw ←subtype.ext_iff at h, contradiction },
-                    { simp [select.map,subtype.map] at h₅, exact h₅ },
-                    { simp [select.map,subtype.map] at h₆, exact h₆ } }
+                    { simp only [select.map, subtype.map] at h₅, exact h₅ },
+                    { simp only [select.map, subtype.map] at h₆, exact h₆ } }
             }
         end
     end is_contraction

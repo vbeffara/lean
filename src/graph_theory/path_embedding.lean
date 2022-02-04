@@ -80,7 +80,9 @@ namespace simple_graph
             }
 
         lemma follow_rev {p : walk G x y} : follow F p.reverse = (follow F p).reverse
-            := by { induction p with u u v w h p ih, refl, simp [ih.symm], congr, exact F.sym ⟨h⟩ }
+            := by { induction p with u u v w h p ih, refl,
+                simp only [ih.symm, follow, reverse_cons, follow_append, append_nil, reverse_append],
+                congr, exact F.sym ⟨h⟩ }
     end path_embedding
 
     namespace path_embedding
