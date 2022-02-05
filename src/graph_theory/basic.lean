@@ -1,12 +1,12 @@
 import tactic
 import combinatorics.simple_graph.basic data.set.basic
-import graph_theory.pushforward
+import graph_theory.to_mathlib
 
 variables {V V' V'' : Type} {G H : simple_graph V} {G' : simple_graph V'} {G'' : simple_graph V''}
 
 namespace simple_graph
     variables
-    open function classical set
+    open function classical set finset
 
     @[ext] structure step (G : simple_graph V) := {x y : V} (h : G.adj x y)
 
@@ -26,6 +26,25 @@ namespace simple_graph
             }
     end step
 
+    section finite
+        variables [fintype V]
+
+        noncomputable instance fintype_step : fintype G.step :=
+        begin
+            let f : G.step → V × V := λ e, (e.x, e.y), apply fintype.of_injective f,
+            rintros ⟨x₁,y₁,h₁⟩ ⟨x₂,y₂,h₂⟩, simp only [prod.mk.inj_iff], exact id
+        end
+
+        variables [decidable_eq V] [decidable_rel G.adj]
+
+        def number_of_edges (G : simple_graph V) [decidable_rel G.adj] : ℕ :=
+        fintype.card G.edge_set
+
+        notation `∥ ` G ` ∥` := number_of_edges G
+
+        lemma nb_edges_of_nb_steps : fintype.card G.step = 2 * ∥ G ∥ := sorry
+    end finite
+
     def is_smaller (G : simple_graph V) (G' : simple_graph V') : Prop := ∃ f : G →g G', injective f
 
     infix ` ≼s `:50 := is_smaller
@@ -41,11 +60,6 @@ namespace simple_graph
 
         lemma le_left : G ≤ H -> H ≼s G' -> G ≼s G'
             | h₁ ⟨⟨f,h₂⟩,h₃⟩ := ⟨⟨f,λ _ _ h, h₂ (h₁ h)⟩,h₃⟩
-
-        lemma select_left {pred : V → Prop} : G ≼s G' -> select pred G ≼s G'
-            | ⟨⟨f,h₁⟩,h₂⟩ :=
-                let g : {x // pred x} -> V' := f ∘ subtype.val
-                in ⟨⟨g,λ a b,h₁⟩,h₂.comp subtype.val_injective⟩
 
         lemma iso_right : G ≼s G' -> G' ≃g G'' -> G ≼s G''
             | ⟨ψ,h⟩ φ := ⟨φ.to_hom.comp ψ, (equiv.comp_injective ψ φ.to_equiv).mpr h⟩
