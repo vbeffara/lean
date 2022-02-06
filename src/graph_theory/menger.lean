@@ -1,6 +1,7 @@
 import combinatorics.simple_graph.connectivity data.finset data.setoid.basic
 import graph_theory.contraction graph_theory.pushforward
 open finset classical function
+open_locale classical
 
 variables {V : Type} [decidable_eq V] [fintype V] {G : simple_graph V} [decidable_rel G.adj] {A B : finset V}
 
@@ -47,47 +48,51 @@ namespace simple_graph
     --     end
     -- end contraction_stuff
 
-    structure AB_path (G : simple_graph V) (A B : finset V) := (a : A) (b : B) (p : walk G a b)
+    structure AB_path (G : simple_graph V) (A B : finset V) :=
+        {a b : V} (p : walk G a b)
+        (ha : a ∈ A) (hb : b ∈ B)
 
     def separates (G : simple_graph V) (A B : finset V) (X : finset V) : Prop :=
     ∀ γ : AB_path G A B, ∃ z : V, z ∈ X ∧ z ∈ γ.p.support
 
-    structure cut_set (G : simple_graph V) (A B : finset V) extends (finset V) :=
-        (disjoint : to_finset ∩ (A ∪ B) = ∅)
-        (sep : separates G A B to_finset)
+    lemma separates_self : separates G A B A :=
+    λ γ, ⟨γ.a, ⟨γ.ha, γ.p.start_mem_support⟩⟩
 
-    def separable (G : simple_graph V) (A B : finset V) : Prop :=
-    nonempty (cut_set G A B)
+    structure cut_set (G : simple_graph V) (A B : finset V) :=
+        (X : finset V)
+        (sep : separates G A B X)
+
+    lemma nonempty_cut_set : nonempty (cut_set G A B) :=
+    ⟨⟨A, separates_self⟩⟩
 
     def cut_set_sizes (G : simple_graph V) (A B : finset V) : set ℕ :=
-    set.range (λ X : cut_set G A B, X.to_finset.card)
+    set.range (λ X : cut_set G A B, X.X.card)
 
-    noncomputable def min_cut (h : separable G A B) : ℕ :=
-    well_founded.min nat.lt_wf (cut_set_sizes G A B) $ set.range_nonempty_iff_nonempty.mpr h
+    noncomputable def min_cut (G : simple_graph V) (A B : finset V) : ℕ :=
+    well_founded.min nat.lt_wf (cut_set_sizes G A B) $ set.range_nonempty_iff_nonempty.mpr nonempty_cut_set
 
-    def joinable (G : simple_graph V) (A B : finset V) : Prop :=
-    ∃ (a : A) (b : B), nonempty (G.walk a b)
+    def joinable (G : simple_graph V) (A B : finset V) : Prop := nonempty (AB_path G A B)
 
-    structure path_set (G : simple_graph V) (A B : finset V) :=
-        (size : ℕ)
-        (path : fin size → AB_path G A B)
-        (disjoint : ∀ {i j : fin size} {z : V}, z ∈ (path i).p.support → z ∈ (path j).p.support → i = j)
+    structure path_set (G : simple_graph V) (A B : finset V) extends finset (AB_path G A B) :=
+    (disjoint : ∀ {γ₁ γ₂ : to_finset} {z : V}, z ∈ γ₁.val.p.support → z ∈ γ₂.val.p.support → γ₁ = γ₂)
 
-    lemma path_le_cut {P : path_set G A B} {X : cut_set G A B} : P.size ≤ X.to_finset.card :=
+    lemma path_le_cut {P : path_set G A B} {X : cut_set G A B} : P.to_finset.card ≤ X.X.card :=
     begin
-        let φ : Π i : fin P.size, {z : V // z ∈ X.to_finset ∧ z ∈ (P.path i).p.support} :=
-            λ i, subtype_of_exists (X.sep (P.path i)),
-        let ψ : fin P.size → X.to_finset := λ i, ⟨φ i, (φ i).prop.1⟩,
-        have h₁ : ∀ i, (ψ i).val ∈ (P.path i).p.support := λ i, (φ i).prop.2,
+        let φ : Π γ : P.to_finset, {z : V // z ∈ X.X ∧ z ∈ γ.val.p.support} :=
+            λ γ, subtype_of_exists (X.sep γ),
+        let ψ : P.to_finset → X.X := λ γ, ⟨φ γ, (φ γ).prop.1⟩,
+        have h₁ : ∀ γ, (ψ γ).val ∈ γ.val.p.support := λ γ, (φ γ).prop.2,
         have ψ_inj : injective ψ := λ i j h, P.disjoint (h₁ i) (by { rw h, exact h₁ j }),
         have := fintype.card_le_of_injective ψ ψ_inj,
-        simp only [fintype.card_fin, fintype.card_coe] at this, sorry
+        simp_rw [←fintype.card_coe], convert this,
     end
 
-    lemma upper_bound (h : separable G A B) (P : path_set G A B) : P.size ≤ min_cut h :=
+    lemma upper_bound (P : path_set G A B) : fintype.card P.to_finset ≤ min_cut G A B :=
     begin
-        have h₁ := well_founded.min_mem nat.lt_wf (cut_set_sizes G A B) (set.range_nonempty_iff_nonempty.mpr h),
-        obtain ⟨X,hX⟩ := subtype_of_exists h₁, simp at hX, rw [min_cut,←hX], exact path_le_cut
+        have h₁ := well_founded.min_mem nat.lt_wf (cut_set_sizes G A B)
+            (set.range_nonempty_iff_nonempty.mpr nonempty_cut_set),
+        obtain ⟨X,hX⟩ := subtype_of_exists h₁, simp at hX, rw [min_cut,←hX,fintype.card_coe],
+        exact path_le_cut
     end
 
     -- theorem menger (h : separable G A B) : max_path_number G A B = min_cut h :=
