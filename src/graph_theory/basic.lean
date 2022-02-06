@@ -42,7 +42,42 @@ namespace simple_graph
 
         notation `∥ ` G ` ∥` := number_of_edges G
 
-        lemma nb_edges_of_nb_steps : fintype.card G.step = 2 * ∥ G ∥ := sorry
+        lemma nb_edges_of_nb_steps : fintype.card G.step = 2 * ∥ G ∥ :=
+        begin
+            let φ : G.step → bool × G.edge_set := by {
+                rintros ⟨x,y,h⟩,
+                let xy : sym2 V := ⟦(x,y)⟧,
+                let ε : bool := if xy.out = (x,y) then tt else ff,
+                have := (mem_edge_set G).mpr h,
+                refine (ε,⟨_,this⟩),
+            },
+            suffices : bijective φ, by {
+                rw fintype.card_of_bijective this,
+                simp [number_of_edges]
+            },
+            split,
+            { rintros ⟨x,y,h⟩ ⟨x',y',h'⟩, simp, intros h₁ h₂,
+                replace h₂ := quotient.eq.mpr h₂,
+                have := sym2.eq_iff.mp h₂, cases this, exact this,
+                cases this, substs x' y', rw ←h₂ at h₁,
+                set xy : sym2 V := ⟦(x,y)⟧,
+                have := (quotient.out_eq xy).trans h₂,
+                cases xy.out,
+                have := sym2.eq_iff.mp this, cases this,
+                { cases this_1, substs fst snd, simp at h₁, exact h₁.symm },
+                { cases this_1, substs fst snd, replace h₁ := h₁.symm, simp at h₁, exact h₁ }
+            },
+            { rintros ⟨ε,⟨xy,h⟩⟩, have h₁ := quotient.out_eq xy, set e := xy.out with he,
+                have : e = (e.fst,e.snd) := prod.ext rfl rfl, rw this at *, rw ←h₁ at h,
+                have adj := G.mem_edge_set.mp h, have hxy := @sym2.eq_swap V e.fst e.snd,
+                cases ε,
+                { use ⟨adj.symm⟩, simp [φ], refine ⟨_,_⟩,
+                    { rw [←hxy,he,quotient.out_eq,←he], intro h, have := (prod.ext_iff.mp h).1,
+                        exact G.ne_of_adj adj this },
+                    { rw [←hxy], exact h₁ } },
+                { use ⟨adj⟩, simp [φ] }
+            }
+        end
     end finite
 
     def is_smaller (G : simple_graph V) (G' : simple_graph V') : Prop := ∃ f : G →g G', injective f
