@@ -1,7 +1,6 @@
 import combinatorics.simple_graph.connectivity data.finset data.setoid.basic
 import graph_theory.contraction graph_theory.pushforward
 open finset classical function
-open_locale classical
 
 variables {V : Type} [decidable_eq V] [fintype V] {G : simple_graph V} [decidable_rel G.adj] {A B : finset V}
 
@@ -68,7 +67,7 @@ namespace simple_graph
     def cut_set_sizes (G : simple_graph V) (A B : finset V) : set ℕ :=
     set.range (λ X : cut_set G A B, X.X.card)
 
-    noncomputable def min_cut (G : simple_graph V) (A B : finset V) : ℕ :=
+    noncomputable def min_cut (G : simple_graph V) [decidable_rel G.adj] (A B : finset V) : ℕ :=
     well_founded.min nat.lt_wf (cut_set_sizes G A B) $ set.range_nonempty_iff_nonempty.mpr nonempty_cut_set
 
     def joinable (G : simple_graph V) (A B : finset V) : Prop := nonempty (AB_path G A B)

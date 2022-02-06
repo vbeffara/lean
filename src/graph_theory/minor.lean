@@ -1,7 +1,6 @@
 import tactic
 import graph_theory.path_embedding graph_theory.contraction
 open function
-open_locale classical
 
 namespace simple_graph
     open walk classical
