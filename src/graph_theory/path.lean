@@ -1,6 +1,6 @@
 import tactic
 import combinatorics.simple_graph.connectivity
-import graph_theory.basic
+import graph_theory.basic graph_theory.pushforward
 
 namespace simple_graph
     variables {V V' : Type} {G G₁ G₂ : simple_graph V} {G' : simple_graph V'} {u v x y z : V} {e : step G}

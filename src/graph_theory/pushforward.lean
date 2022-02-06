@@ -1,5 +1,5 @@
 import combinatorics.simple_graph.basic combinatorics.simple_graph.connectivity data.set.basic
-import graph_theory.to_mathlib
+import graph_theory.basic
 open function set classical
 
 variables {V V' V'' : Type} {x y z : V} {x' y' z' : V'} {f : V → V'} {g : V' → V''}
@@ -135,6 +135,40 @@ namespace simple_graph
         by { rintros x' y' ⟨-,x,y,rfl,rfl,h₂⟩, exact φ.map_rel h₂ }
     end push
 
+    def merge [decidable_eq V] (e : step G) : V → {z // z ≠ e.y} :=
+    λ z, dite (z = e.y) (λ _, ⟨e.x, G.ne_of_adj e.h⟩) (λ h, ⟨z, h⟩)
+
+    def contract_edge (G : simple_graph V) [decidable_eq V] (e : step G) : simple_graph {z // z ≠ e.y} :=
+    G.push (merge e)
+
+    infix ` / ` := contract_edge
+
+    namespace contract_edge
+        variables [fintype V] [decidable_eq V] [decidable_eq V'] [decidable_rel G.adj]
+
+        @[reducible] def preserved (f : V → V') (G : simple_graph V) : Type := {e : G.step // f e.x ≠ f e.y}
+
+        def proj_edge (e : G.step) : preserved (merge e) G → (G/e).step :=
+        begin
+            rintro ⟨e',h₁⟩, suffices : (G/e).adj (merge e e'.x) (merge e e'.y), by { exact ⟨this⟩ },
+            cases push.adj (merge e) e'.h, contradiction, assumption
+        end
+
+        lemma proj_edge_surj {e : G.step} : surjective (proj_edge e) :=
+        begin
+            rintro ⟨x,y,h₁,u,v,rfl,rfl,h₂⟩, use ⟨⟨h₂⟩,h₁⟩, simp only [proj_edge, eq_self_iff_true, and_self]
+        end
+
+        lemma fewer_edges {e : G.step} [decidable_rel (G/e).adj] : fintype.card (G/e).step < fintype.card G.step :=
+        begin
+            have : fintype.card (G/e).step ≤ fintype.card (preserved (merge e) G) := fintype.card_le_of_surjective _ proj_edge_surj,
+            have : fintype.card (preserved (merge e) G) < fintype.card (G.step) := by {
+                apply fintype.card_lt_of_injective_of_not_mem _ subtype.coe_injective, swap, exact e, simp [merge]
+            },
+            linarith
+        end
+    end contract_edge
+
     def select (P : V → Prop) (G : simple_graph V) : simple_graph (subtype P) :=
     pull subtype.val G
 
@@ -193,6 +227,13 @@ namespace simple_graph
             { intros z hz, cases hz, rw hz, exact a.prop, cases hz },
             { intros z hz, cases hz, rw hz, exact a.prop, exact ih z hz }}
     end select
+
+    namespace is_smaller
+        lemma select_left {pred : V → Prop} : G ≼s G' -> select pred G ≼s G'
+            | ⟨⟨f,h₁⟩,h₂⟩ :=
+                let g : {x // pred x} -> V' := f ∘ subtype.val
+                in ⟨⟨g,λ a b,h₁⟩,h₂.comp subtype.val_injective⟩
+    end is_smaller
 
     def embed (f : V → V') : simple_graph V → simple_graph (range f) :=
     select (range f) ∘ push f
