@@ -115,3 +115,5 @@ example (n : ℤ) (h : ∃ p q : ℤ, n = p * q) : n*n ≥ 0 :=
 begin
     rcases h with ⟨p,q,h⟩, wlog' : p ≥ 0,
 end
+
+#reduce fintype.card ((fin 3) ⊕ (fin 4))

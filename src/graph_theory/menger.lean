@@ -1,5 +1,5 @@
 import combinatorics.simple_graph.connectivity data.finset data.setoid.basic
-import graph_theory.contraction graph_theory.pushforward
+import graph_theory.contraction graph_theory.pushforward graph_theory.basic
 open finset classical function
 open_locale classical
 
@@ -43,10 +43,10 @@ namespace simple_graph
             simp_rw [←fintype.card_coe], convert this,
         end
 
-        lemma upper_bound (dis : pairwise_disjoint P) : fintype.card P ≤ min_cut G A B :=
+        lemma upper_bound (dis : pairwise_disjoint P) : P.card ≤ min_cut G A B :=
         begin
             obtain ⟨X,hX⟩ := @nat.find_spec (is_cut_set_size G A B) _ ⟨A.card,⟨A,rfl,separates_self⟩⟩,
-            rw [min_cut,←hX.1,fintype.card_coe], apply path_le_cut, assumption, exact hX.2
+            rw [min_cut,←hX.1], apply path_le_cut, assumption, exact hX.2
         end
 
         lemma bot_iff_no_edge : ∥G∥ = 0 ↔ G = ⊥ :=
@@ -102,13 +102,47 @@ namespace simple_graph
             }
         end
 
+        def proj (G : simple_graph V) (e : step G) (A : finset V) : set (G/e).vertices
+            | (sum.inl x) := x.val ∈ A
+            | (sum.inr _) := e.x ∈ A ∨ e.y ∈ A
+
+        instance (e : step G) : fintype (proj G e A) := sorry
+
         lemma lower_bound_aux (n : ℕ) : ∀ (G : simple_graph V), ∥G∥ = n →
             ∃ P : finset (AB_path G A B), pairwise_disjoint P ∧ P.card = min_cut G A B :=
         begin
+            -- We apply induction on ∥G∥.
             induction n using nat.strong_induction_on with n ih, simp at ih, by_cases (n=0),
+            -- If G has no edge, then |A∩B| = k and we have k trivial AB paths.
             { subst n, intros G hG, replace hG := bot_iff_no_edge.mp hG, subst G,
                 let P := bot_path_set A B, use P.val, convert P.prop, exact bot_min_cut },
-            { sorry }
+            -- So we assume that G has an edge e = xy.
+            { intros G hG, subst hG,
+                have h₁ : 0 < ∥G∥, by { exact pos_iff_ne_zero.mpr h },
+                have h₂ : 0 < fintype.card G.step, by { rw nb_edges_of_nb_steps, exact (1:ℕ).succ_mul_pos h₁ },
+                have h₃ : fintype.card G.step ≠ 0, by { intro h, linarith },
+                have h₄ : ¬ is_empty G.step, by { intro h, have := fintype.card_eq_zero_iff.mpr h, contradiction },
+                have h₅ : nonempty G.step, by { exact not_is_empty_iff.mp h₄ },
+                cases h₅ with e,
+                -- If G has no k disjoint AB paths
+                by_contradiction h₆, push_neg at h₆,
+                have h₇ : ∀ (P : finset (AB_path G A B)), pairwise_disjoint P → finset.card P < min_cut G A B := by {
+                    intros P h, apply lt_of_le_of_ne, apply upper_bound, assumption, apply h₆, assumption },
+                -- then neither does G/e; here, we count the contracted vertex
+                -- ve as an element of A (resp.B) in G/e if in G at least one of
+                -- x,y lies in A (resp.B)
+                let G₁ := G/e,
+                let A₁ : finset G₁.vertices := set.to_finset (proj G e A),
+                let B₁ : finset G₁.vertices := set.to_finset (proj G e B),
+                let Φ : AB_path G₁ A₁ B₁ → AB_path G A B := sorry,
+                have Φ_inj : injective Φ := sorry,
+                have h₇ : ∀ (P₁ : finset (AB_path G₁ A₁ B₁)), pairwise_disjoint P₁ → P₁.card < min_cut G A B := by {
+                    intros P₁ h₈, rw ← finset.card_image_of_injective P₁ Φ_inj, apply h₇, sorry
+                },
+                have h₈ : ∥G₁∥ < ∥G∥ := by sorry,
+                specialize ih (∥G₁∥) h₈ G₁,
+                sorry
+            }
         end
 
         lemma lower_bound : ∃ P : finset (AB_path G A B), pairwise_disjoint P ∧ P.card = min_cut G A B :=

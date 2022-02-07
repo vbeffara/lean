@@ -8,6 +8,8 @@ namespace simple_graph
     variables
     open function classical set finset
 
+    def vertices (G : simple_graph V) : Type := V
+
     @[ext] structure step (G : simple_graph V) := {x y : V} (h : G.adj x y)
 
     namespace step

@@ -1,6 +1,7 @@
 import combinatorics.simple_graph.basic combinatorics.simple_graph.connectivity data.set.basic
 import graph_theory.basic
 open function set classical
+open_locale classical
 
 variables {V V' V'' : Type} {x y z : V} {x' y' z' : V'} {f : V → V'} {g : V' → V''}
 variables {G G₁ G₂ : simple_graph V} {G' G'₁ G'₂ : simple_graph V'} {G'' : simple_graph V''}
@@ -135,11 +136,14 @@ namespace simple_graph
         by { rintros x' y' ⟨-,x,y,rfl,rfl,h₂⟩, exact φ.map_rel h₂ }
     end push
 
-    def merge [decidable_eq V] (e : step G) : V → {z // z ≠ e.y} :=
-    λ z, dite (z = e.y) (λ _, ⟨e.x, G.ne_of_adj e.h⟩) (λ h, ⟨z, h⟩)
+    def merge [decidable_eq V] (P : V → Prop) [decidable_pred P]: V → {z // ¬ (P z)} ⊕ unit :=
+    λ z, dite (P z) (λ _, sum.inr unit.star) (λ h, sum.inl ⟨z,h⟩)
 
-    def contract_edge (G : simple_graph V) [decidable_eq V] (e : step G) : simple_graph {z // z ≠ e.y} :=
-    G.push (merge e)
+    def merge_edge [decidable_eq V] {G : simple_graph V} (e : step G) :=
+    merge (λ z, z = e.x ∨ z = e.y)
+
+    def contract_edge (G : simple_graph V) [decidable_eq V] (e : step G) :=
+    G.push (merge_edge e)
 
     infix ` / ` := contract_edge
 
@@ -148,26 +152,24 @@ namespace simple_graph
 
         @[reducible] def preserved (f : V → V') (G : simple_graph V) : Type := {e : G.step // f e.x ≠ f e.y}
 
-        def proj_edge (e : G.step) : preserved (merge e) G → (G/e).step :=
+        def proj_edge (e : G.step) : preserved (merge_edge e) G → (G/e).step :=
         begin
-            rintro ⟨e',h₁⟩, suffices : (G/e).adj (merge e e'.x) (merge e e'.y), by { exact ⟨this⟩ },
-            cases push.adj (merge e) e'.h, contradiction, assumption
+            rintro ⟨e',h₁⟩, suffices : (G/e).adj (merge_edge e e'.x) (merge_edge e e'.y), by { exact ⟨this⟩ },
+            cases push.adj (merge_edge e) e'.h, contradiction, assumption
         end
 
         lemma proj_edge_surj {e : G.step} : surjective (proj_edge e) :=
         begin
-            rintro ⟨x,y,h₁,u,v,rfl,rfl,h₂⟩, use ⟨⟨h₂⟩,h₁⟩, simp only [proj_edge, eq_self_iff_true, and_self]
+            rintro ⟨x,y,h₁,u,v,rfl,rfl,h₂⟩, use ⟨⟨h₂⟩,h₁⟩, simp only [proj_edge, eq_self_iff_true, and_self, merge_edge]
         end
 
         lemma fewer_edges {e : G.step} [decidable_rel (G/e).adj] : fintype.card (G/e).step < fintype.card G.step :=
-        begin
-            have : fintype.card (G/e).step ≤ fintype.card (preserved (merge e) G) := fintype.card_le_of_surjective _ proj_edge_surj,
-            have : fintype.card (preserved (merge e) G) < fintype.card (G.step) := by {
-                apply fintype.card_lt_of_injective_of_not_mem _ subtype.coe_injective, swap, exact e, simp [merge]
-            },
-            linarith
-        end
-    end contract_edge
+        calc fintype.card (G/e).step ≤ fintype.card (preserved (merge_edge e) G) :
+                                                    fintype.card_le_of_surjective _ proj_edge_surj
+                                ...  < fintype.card (G.step) :
+                                                    by { apply fintype.card_lt_of_injective_of_not_mem _ subtype.coe_injective,
+                                                        swap, exact e, simp [merge,merge_edge] }
+        end contract_edge
 
     def select (P : V → Prop) (G : simple_graph V) : simple_graph (subtype P) :=
     pull subtype.val G
