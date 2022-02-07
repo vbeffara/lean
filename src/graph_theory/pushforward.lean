@@ -136,11 +136,11 @@ namespace simple_graph
         by { rintros x' y' ⟨-,x,y,rfl,rfl,h₂⟩, exact φ.map_rel h₂ }
     end push
 
-    def merge [decidable_eq V] (P : V → Prop) [decidable_pred P]: V → {z // ¬ (P z)} ⊕ unit :=
+    def merge [decidable_eq V] (P : V → Prop) [decidable_pred P] : V → {z // ¬ (P z)} ⊕ unit :=
     λ z, dite (P z) (λ _, sum.inr unit.star) (λ h, sum.inl ⟨z,h⟩)
 
-    def merge_edge [decidable_eq V] {G : simple_graph V} (e : step G) :=
-    merge (λ z, z = e.x ∨ z = e.y)
+    def merge_edge [decidable_eq V] {G : simple_graph V} (e : step G) : V → V :=
+    λ z, ite (z = e.y) e.x z
 
     def contract_edge (G : simple_graph V) [decidable_eq V] (e : step G) :=
     G.push (merge_edge e)

@@ -24,13 +24,26 @@ namespace simple_graph
         def is_cut_set_size (G : simple_graph V) (A B : finset V) (n : ℕ) : Prop :=
         ∃ X : finset V, X.card = n ∧ separates G A B X
 
+        noncomputable def min_cut' (G : simple_graph V) (A B : finset V) :
+            {n : ℕ // (is_cut_set_size G A B n) ∧ (∀ m < n, ¬is_cut_set_size G A B m) } :=
+        begin
+            let n := @nat.find (is_cut_set_size G A B) _ ⟨A.card,⟨A,rfl,separates_self⟩⟩,
+            have p₁ := @nat.find_spec (is_cut_set_size G A B) _ ⟨A.card,⟨A,rfl,separates_self⟩⟩,
+            have p₂ := λ m, @nat.find_eq_iff m (is_cut_set_size G A B) _ ⟨A.card,⟨A,rfl,separates_self⟩⟩,
+            exact ⟨n, p₁, ((p₂ n).mp rfl).2⟩
+        end
+
         noncomputable def min_cut (G : simple_graph V) (A B : finset V) : ℕ :=
-        @nat.find (is_cut_set_size G A B) _ ⟨A.card,⟨A,rfl,separates_self⟩⟩
+        (min_cut' G A B).val
+
+        noncomputable lemma min_cut_set (G : simple_graph V) (A B : finset V) :
+            {X : finset V // X.card = min_cut G A B ∧ separates G A B X} :=
+        ⟨_,some_spec (min_cut' G A B).prop.1⟩
 
         variables {P : finset (AB_path G A B)}
 
-        def pairwise_disjoint (P : finset (AB_path G A B)) : Prop :=
-        ∀ {γ₁ γ₂ : P} {z : V}, z ∈ γ₁.val.p.support → z ∈ γ₂.val.p.support → γ₁ = γ₂
+        def pairwise_disjoint : finset (AB_path G A B) → Prop :=
+        λ P, ∀ ⦃γ₁ γ₂ : P⦄ {z : V}, z ∈ γ₁.val.p.support → z ∈ γ₂.val.p.support → γ₁ = γ₂
 
         lemma path_le_cut {dis : pairwise_disjoint P} {sep : separates G A B X} : P.card ≤ X.card :=
         begin
@@ -45,8 +58,8 @@ namespace simple_graph
 
         lemma upper_bound (dis : pairwise_disjoint P) : P.card ≤ min_cut G A B :=
         begin
-            obtain ⟨X,hX⟩ := @nat.find_spec (is_cut_set_size G A B) _ ⟨A.card,⟨A,rfl,separates_self⟩⟩,
-            rw [min_cut,←hX.1], apply path_le_cut, assumption, exact hX.2
+            rw [min_cut], obtain ⟨n,h₁,h₂⟩ := min_cut' G A B, obtain ⟨X,rfl,h₄⟩ := h₁,
+            refine path_le_cut, exact dis, exact h₄
         end
 
         lemma bot_iff_no_edge : ∥G∥ = 0 ↔ G = ⊥ :=
@@ -103,21 +116,20 @@ namespace simple_graph
         end
 
         def proj (G : simple_graph V) (e : step G) (A : finset V) : set (G/e).vertices
-            | (sum.inl x) := x.val ∈ A
-            | (sum.inr _) := e.x ∈ A ∨ e.y ∈ A
+        := λ z, ite (z = e.x) (e.x ∈ A ∨ e.y ∈ A) (z ∈ A)
 
         instance (e : step G) : fintype (proj G e A) := sorry
 
         lemma lower_bound_aux (n : ℕ) : ∀ (G : simple_graph V), ∥G∥ = n →
-            ∃ P : finset (AB_path G A B), pairwise_disjoint P ∧ P.card = min_cut G A B :=
+            ∀ A B : finset V, ∃ P : finset (AB_path G A B), pairwise_disjoint P ∧ P.card = min_cut G A B :=
         begin
             -- We apply induction on ∥G∥.
             induction n using nat.strong_induction_on with n ih, simp at ih, by_cases (n=0),
             -- If G has no edge, then |A∩B| = k and we have k trivial AB paths.
-            { subst n, intros G hG, replace hG := bot_iff_no_edge.mp hG, subst G,
+            { subst n, intros G hG A B, replace hG := bot_iff_no_edge.mp hG, subst G,
                 let P := bot_path_set A B, use P.val, convert P.prop, exact bot_min_cut },
             -- So we assume that G has an edge e = xy.
-            { intros G hG, subst hG,
+            { intros G hG A B, subst hG,
                 have h₁ : 0 < ∥G∥, by { exact pos_iff_ne_zero.mpr h },
                 have h₂ : 0 < fintype.card G.step, by { rw nb_edges_of_nb_steps, exact (1:ℕ).succ_mul_pos h₁ },
                 have h₃ : fintype.card G.step ≠ 0, by { intro h, linarith },
@@ -139,8 +151,22 @@ namespace simple_graph
                 have h₇ : ∀ (P₁ : finset (AB_path G₁ A₁ B₁)), pairwise_disjoint P₁ → P₁.card < min_cut G A B := by {
                     intros P₁ h₈, rw ← finset.card_image_of_injective P₁ Φ_inj, apply h₇, sorry
                 },
+                -- By the induction hypothesis, G/e contains an AB separator Y
+                -- of fewer than k vertices.
                 have h₈ : ∥G₁∥ < ∥G∥ := by sorry,
-                specialize ih (∥G₁∥) h₈ G₁,
+                have h₁₂ : min_cut G₁ A₁ B₁ < min_cut G A B := by {
+                    specialize ih (∥G₁∥) h₈ G₁ rfl A₁ B₁, rcases ih with ⟨P₁,h₉,h₁₀⟩,
+                    rw ← h₁₀, exact h₇ P₁ h₉ },
+                obtain ⟨Y,h₁₄,h₁₅⟩ := min_cut_set G₁ A₁ B₁,
+                have h₁₆ : Y.card < min_cut G A B := by { rw h₁₄, exact h₁₂ },
+                -- Among these must be the vertex ve, since otherwise Y ⊆ V
+                -- would be an AB separator in G.
+                have h₁₇ : e.x ∈ Y := by { by_contradiction, sorry },
+                -- Then X := (Y-ve)∪{x,y} is an AB separator in G of exactly k
+                -- vertices.
+                let X := Y ∪ {e.y},
+                have h₁₈ : separates G A B X := sorry,
+                have h₁₉ : X.card = min_cut G A B := sorry,
                 sorry
             }
         end
