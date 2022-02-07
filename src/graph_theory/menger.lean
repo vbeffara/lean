@@ -3,7 +3,8 @@ import graph_theory.contraction graph_theory.pushforward
 open finset classical function
 open_locale classical
 
-variables {V : Type} [decidable_eq V] [fintype V] {G : simple_graph V} [decidable_rel G.adj] {A B : finset V}
+variables {V : Type} [fintype V] {G : simple_graph V}
+variables {A B X : finset V}
 
 namespace simple_graph
     structure AB_path (G : simple_graph V) (A B : finset V) :=
@@ -15,18 +16,14 @@ namespace simple_graph
     lemma separates_self : separates G A B A :=
     λ γ, ⟨γ.a, ⟨γ.ha, γ.p.start_mem_support⟩⟩
 
-    structure cut_set (G : simple_graph V) (A B : finset V) :=
-        (X : finset V)
-        (sep : separates G A B X)
+    lemma nonempty_cut_set : ∃ X : finset V, separates G A B X :=
+    ⟨A, separates_self⟩
 
-    lemma nonempty_cut_set : nonempty (cut_set G A B) :=
-    ⟨⟨A, separates_self⟩⟩
+def is_cut_set_size (G : simple_graph V) (A B : finset V) (n : ℕ) : Prop :=
+    ∃ X : finset V, X.card = n ∧ separates G A B X
 
-    def cut_set_sizes (G : simple_graph V) (A B : finset V) : set ℕ :=
-    set.range (λ X : cut_set G A B, X.X.card)
-
-    noncomputable def min_cut (G : simple_graph V) [decidable_rel G.adj] (A B : finset V) : ℕ :=
-    well_founded.min nat.lt_wf (cut_set_sizes G A B) $ set.range_nonempty_iff_nonempty.mpr nonempty_cut_set
+    noncomputable def min_cut (G : simple_graph V) (A B : finset V) : ℕ :=
+    @nat.find (is_cut_set_size G A B) _ ⟨A.card,⟨A,rfl,separates_self⟩⟩
 
     def joinable (G : simple_graph V) (A B : finset V) : Prop := nonempty (AB_path G A B)
 
@@ -34,11 +31,11 @@ namespace simple_graph
         (P : finset (AB_path G A B))
         (disjoint : ∀ {γ₁ γ₂ : P} {z : V}, z ∈ γ₁.val.p.support → z ∈ γ₂.val.p.support → γ₁ = γ₂)
 
-    lemma path_le_cut {P : path_set G A B} {X : cut_set G A B} : P.P.card ≤ X.X.card :=
+    lemma path_le_cut {P : path_set G A B} {sep : separates G A B X} : P.P.card ≤ X.card :=
     begin
-        let φ : Π γ : P.P, {z : V // z ∈ X.X ∧ z ∈ γ.val.p.support} :=
-            λ γ, subtype_of_exists (X.sep γ),
-        let ψ : P.P → X.X := λ γ, ⟨φ γ, (φ γ).prop.1⟩,
+        let φ : Π γ : P.P, {z : V // z ∈ X ∧ z ∈ γ.val.p.support} :=
+            λ γ, subtype_of_exists (sep γ),
+        let ψ : P.P → X := λ γ, ⟨φ γ, (φ γ).prop.1⟩,
         have h₁ : ∀ γ, (ψ γ).val ∈ γ.val.p.support := λ γ, (φ γ).prop.2,
         have ψ_inj : injective ψ := λ i j h, P.disjoint (h₁ i) (by { rw h, exact h₁ j }),
         have := fintype.card_le_of_injective ψ ψ_inj,
@@ -47,10 +44,8 @@ namespace simple_graph
 
     lemma upper_bound (P : path_set G A B) : fintype.card P.P ≤ min_cut G A B :=
     begin
-        have h₁ := well_founded.min_mem nat.lt_wf (cut_set_sizes G A B)
-            (set.range_nonempty_iff_nonempty.mpr nonempty_cut_set),
-        obtain ⟨X,hX⟩ := subtype_of_exists h₁, simp at hX, rw [min_cut,←hX,fintype.card_coe],
-        exact path_le_cut
+        obtain ⟨X,hX⟩ := @nat.find_spec (is_cut_set_size G A B) _ ⟨A.card,⟨A,rfl,separates_self⟩⟩,
+        rw [min_cut,←hX.1,fintype.card_coe], apply path_le_cut, exact hX.2
     end
 
     lemma bot_iff_no_edge : ∥G∥ = 0 ↔ G = ⊥ :=
@@ -66,7 +61,7 @@ namespace simple_graph
             induction e, change false at h₁, contradiction, refl }
     end
 
-    lemma bot_separates_if {X : finset V} : separates ⊥ A B X ↔ (A ∩ B) ⊆ X :=
+    lemma bot_separates_iff {X : finset V} : separates ⊥ A B X ↔ (A ∩ B) ⊆ X :=
     begin
         split; intro h,
         { rintros z hz, simp at hz,
@@ -78,7 +73,9 @@ namespace simple_graph
 
     lemma bot_min_cut : min_cut ⊥ A B = (A ∩ B).card :=
     begin
-        sorry
+        apply (nat.find_eq_iff _).mpr, simp [bot_separates_iff], split,
+        { use A ∩ B, exact ⟨rfl,subset.rfl⟩ },
+        { rintros n h₁ X rfl h₂, have := finset.card_le_of_subset h₂, linarith }
     end
 
     noncomputable def bot_path_set (A B : finset V) : {P : path_set ⊥ A B // P.P.card = (A ∩ B).card} :=
