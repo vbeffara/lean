@@ -62,17 +62,11 @@ namespace simple_graph
             refine path_le_cut, exact dis, exact h₄
         end
 
-        lemma bot_iff_no_edge : ∥G∥ = 0 ↔ G = ⊥ :=
+        lemma bot_iff_no_edge : fintype.card G.step = 0 ↔ G = ⊥ :=
         begin
             split; intro h,
-            { ext x y, simp, intro h₁, let xy : sym2 V := ⟦(x,y)⟧,
-                have h₂ : xy ∈ G.edge_set := h₁,
-                let e : G.edge_set := ⟨⟦(x,y)⟧,h₂⟩,
-                have := fintype.card_eq_zero_iff.mp h,
-                exact is_empty_iff.mp this e },
-            { simp_rw h, apply fintype.card_eq_zero_iff.mpr,
-                apply is_empty_iff.mpr, rintro ⟨e,h₁⟩,
-                induction e, change false at h₁, contradiction, refl }
+            { ext x y, simp, intro h₁, exact is_empty_iff.mp (fintype.card_eq_zero_iff.mp h) ⟨h₁⟩ },
+            { rw h, exact fintype.card_eq_zero_iff.mpr (is_empty_iff.mpr step.h), }
         end
 
         lemma bot_separates_iff : separates ⊥ A B X ↔ (A ∩ B) ⊆ X :=
@@ -92,7 +86,8 @@ namespace simple_graph
             { rintros n h₁ X rfl h₂, have := finset.card_le_of_subset h₂, linarith }
         end
 
-        noncomputable def bot_path_set (A B : finset V) : {P : finset (AB_path ⊥ A B) // pairwise_disjoint P ∧ P.card = (A ∩ B).card} :=
+        noncomputable def bot_path_set (A B : finset V) : {P : finset (AB_path ⊥ A B) //
+                                                            pairwise_disjoint P ∧ P.card = (A ∩ B).card} :=
         begin
             let φ : A ∩ B → AB_path ⊥ A B := by { intro z,
                 have h' : z.val ∈ A ∧ z.val ∈ B := mem_inter.mp z.property,
@@ -118,85 +113,82 @@ namespace simple_graph
         def proj (G : simple_graph V) (e : step G) (A : finset V) : set (G/e).vertices
         := λ z, ite (z = e.x) (e.x ∈ A ∨ e.y ∈ A) (z ∈ A)
 
-        lemma lower_bound_aux (n : ℕ) : ∀ (G : simple_graph V), ∥G∥ = n →
+        lemma lower_bound_aux (n : ℕ) : ∀ (G : simple_graph V), fintype.card G.step = n →
             ∀ A B : finset V, ∃ P : finset (AB_path G A B), pairwise_disjoint P ∧ P.card = min_cut G A B :=
         begin
             -- We apply induction on ∥G∥.
-            induction n using nat.strong_induction_on with n ih, simp at ih, by_cases (n=0),
+            induction n using nat.strong_induction_on with n ih,
+
             -- If G has no edge, then |A∩B| = k and we have k trivial AB paths.
-            { subst n, intros G hG A B, replace hG := bot_iff_no_edge.mp hG, subst G,
-                let P := bot_path_set A B, use P.val, convert P.prop, exact bot_min_cut },
+            by_cases (n=0), { subst n, intros G hG A B, rw [bot_iff_no_edge.mp hG,bot_min_cut],
+                exact (bot_path_set A B).exists_of_subtype },
+
             -- So we assume that G has an edge e = xy.
-            { intros G hG A B, subst hG,
-                have G_nonempty : nonempty G.step, by {
-                    have : ¬ is_empty (G.edge_set) := h ∘ fintype.card_eq_zero_iff.mpr,
-                    have h₁ : 0 < ∥G∥, by { exact pos_iff_ne_zero.mpr h },
-                    have h₂ : 0 < fintype.card G.step, by { rw nb_edges_of_nb_steps, exact (1:ℕ).succ_mul_pos h₁ },
-                    have h₃ : fintype.card G.step ≠ 0, by { intro h, linarith },
-                    have h₄ : ¬ is_empty G.step := h₃ ∘ fintype.card_eq_zero_iff.mpr,
-                    exact not_is_empty_iff.mp h₄
-                },
-                cases G_nonempty with e,
+            rintros G rfl A B,
+            cases not_is_empty_iff.mp (h ∘ fintype.card_eq_zero_iff.mpr) with e,
 
-                -- If G has no k disjoint AB paths
-                by_contradiction h₆, push_neg at h₆,
-                replace h₆ : ∀ (P : finset (AB_path G A B)), pairwise_disjoint P → P.card < min_cut G A B := by {
-                    intros P h, exact lt_of_le_of_ne (upper_bound h) (h₆ P h) },
+            -- If G has no k disjoint AB paths
+            by_contradiction h₆, push_neg at h₆,
+            replace h₆ : ∀ {P : finset (AB_path G A B)}, pairwise_disjoint P → P.card < min_cut G A B :=
+                by { intros P h, exact lt_of_le_of_ne (upper_bound h) (h₆ P h) },
 
-                -- then neither does G/e; here, we count the contracted vertex
-                -- ve as an element of A (resp.B) in G/e if in G at least one of
-                -- x,y lies in A (resp.B)
-                let G₁ := G/e,
-                let A₁ : finset G₁.vertices := set.to_finset (proj G e A),
-                let B₁ : finset G₁.vertices := set.to_finset (proj G e B),
-                let Φ : AB_path G₁ A₁ B₁ ↪ AB_path G A B := sorry,
-                have h₇ : ∀ (P₁ : finset (AB_path G₁ A₁ B₁)), pairwise_disjoint P₁ → P₁.card < min_cut G A B := by {
-                    intros P₁ h₈, rw ← finset.card_image_of_injective P₁ Φ.injective, apply h₆, sorry
-                },
+            -- then neither does G/e; here, we count the contracted vertex
+            -- ve as an element of A (resp.B) in G/e if in G at least one of
+            -- x,y lies in A (resp.B)
+            let G₁ := G/e,
+            let A₁ : finset G₁.vertices := set.to_finset (proj G e A),
+            let B₁ : finset G₁.vertices := set.to_finset (proj G e B),
 
-                -- By the induction hypothesis, G/e contains an AB separator Y
-                -- of fewer than k vertices.
-                have h₁₂ : min_cut G₁ A₁ B₁ < min_cut G A B := by {
-                    have h₈ : ∥G₁∥ < ∥G∥ := by sorry,
-                    specialize ih (∥G₁∥) h₈ G₁ rfl A₁ B₁, rcases ih with ⟨P₁,h₉,h₁₀⟩,
-                    rw ← h₁₀, exact h₇ P₁ h₉ },
-                obtain ⟨Y,h₁₄,h₁₅⟩ := min_cut_set G₁ A₁ B₁,
-                have h₁₆ : Y.card < min_cut G A B := by { rw h₁₄, exact h₁₂ },
-                -- Among these must be the vertex ve, since otherwise Y ⊆ V
-                -- would be an AB separator in G.
-                have h₁₇ : e.x ∈ Y := by { by_contradiction, sorry },
-                -- Then X := (Y-ve)∪{x,y} is an AB separator in G of exactly k
-                -- vertices.
-                let X := Y ∪ {e.y},
-                have h₁₈ : separates G A B X := sorry,
-                have h₁₉ : X.card = min_cut G A B := sorry,
+            let Φ : AB_path G₁ A₁ B₁ → AB_path G A B := sorry,
+            have Φ_inj : injective Φ := sorry,
+            have Φ_nip : ∀ {P}, pairwise_disjoint P → pairwise_disjoint (image Φ P) := sorry,
 
-                -- We now consider the graph G−e.
-                let Gₑ : simple_graph V := {
-                    adj := λ x y, ((x = e.x ∧ y = e.y) ∨ (x = e.y ∧ y = e.x)),
-                    symm := λ x y h, by { cases h, right, exact h_1.symm, left, exact h_1.symm },
-                    loopless := λ x h, by { cases h; { cases h_1, subst x, apply G.ne_of_adj e.h, rw h_1_right } }
-                },
-                let G₂ : simple_graph V := G \ Gₑ,
-                -- Since x,y ∈ X, every AX separator in G−e is also an AB
-                -- separator in G
-                have h₂₀ : ∀ Z : finset V, separates G₂ A X Z → separates G A B Z := sorry,
-                -- and hence contains at least k vertices
-                have h₂₁ : ∀ Z : finset V, separates G₂ A X Z → min_cut G A B ≤ Z.card := sorry,
-                -- So by induction there are k disjoint AX paths in G−e
-                have h₂₂ : min_cut G₂ A X = min_cut G A B := sorry,
-                have h₂₃ : ∃ P₂ : finset (AB_path G₂ A X), pairwise_disjoint P₂ ∧ P₂.card = min_cut G A B := by {
-                    have : ∥ G₂ ∥ < ∥ G ∥ := sorry, rw ← h₂₂, apply ih (∥G₂∥) this, simp [number_of_edges] },
+            have h₇ : ∀ (P₁ : finset (AB_path G₁ A₁ B₁)), pairwise_disjoint P₁ → P₁.card < min_cut G A B :=
+                by { intros P₁ h₈, rw ← finset.card_image_of_injective P₁ Φ_inj, exact h₆ (Φ_nip h₈) },
 
-                -- and similarly there are k disjoint XB paths in G−e
-                have h₂₄ : ∃ P₂ : finset (AB_path G₂ A X), pairwise_disjoint P₂ ∧ P₂.card = min_cut G A B := sorry,
+            -- By the induction hypothesis, G/e contains an AB separator Y
+            -- of fewer than k vertices.
+            have h₁₂ : min_cut G₁ A₁ B₁ < min_cut G A B := by {
+                have h₈ : fintype.card G₁.step < fintype.card G.step := by sorry,
+                specialize ih (fintype.card G₁.step) h₈ G₁ rfl A₁ B₁, rcases ih with ⟨P₁,h₉,h₁₀⟩,
+                rw ← h₁₀, exact h₇ P₁ h₉ },
+            obtain ⟨Y,h₁₄,h₁₅⟩ := min_cut_set G₁ A₁ B₁,
+            have h₁₆ : Y.card < min_cut G A B := by { rw h₁₄, exact h₁₂ },
+            -- Among these must be the vertex ve, since otherwise Y ⊆ V
+            -- would be an AB separator in G.
+            have h₁₇ : e.x ∈ Y := by { by_contradiction, sorry },
+            -- Then X := (Y-ve)∪{x,y} is an AB separator in G of exactly k
+            -- vertices.
+            let X := Y ∪ {e.y},
+            have h₁₈ : separates G A B X := sorry,
+            have h₁₉ : X.card = min_cut G A B := sorry,
 
-                -- As X separates A from B, these two path systems do not meet
-                -- outside X
+            -- We now consider the graph G−e.
+            let Gₑ : simple_graph V := {
+                adj := λ x y, ((x = e.x ∧ y = e.y) ∨ (x = e.y ∧ y = e.x)),
+                symm := λ x y h, by { cases h, right, exact h_1.symm, left, exact h_1.symm },
+                loopless := λ x h, by { cases h; { cases h_1, subst x, apply G.ne_of_adj e.h, rw h_1_right } }
+            },
+            let G₂ : simple_graph V := G \ Gₑ,
+            -- Since x,y ∈ X, every AX separator in G−e is also an AB
+            -- separator in G
+            have h₂₀ : ∀ Z : finset V, separates G₂ A X Z → separates G A B Z := sorry,
+            -- and hence contains at least k vertices
+            have h₂₁ : ∀ Z : finset V, separates G₂ A X Z → min_cut G A B ≤ Z.card := sorry,
+            -- So by induction there are k disjoint AX paths in G−e
+            have h₂₂ : min_cut G₂ A X = min_cut G A B := sorry,
+            have h₂₃ : ∃ P₂ : finset (AB_path G₂ A X), pairwise_disjoint P₂ ∧ P₂.card = min_cut G A B := by {
+                have : fintype.card G₂.step < fintype.card G.step := sorry,
+                rw ← h₂₂, apply ih (fintype.card G₂.step) this, simp [number_of_edges] },
 
-                -- and can thus be combined to k disjoint AB paths.
-                sorry
-            }
+            -- and similarly there are k disjoint XB paths in G−e
+            have h₂₄ : ∃ P₂ : finset (AB_path G₂ A X), pairwise_disjoint P₂ ∧ P₂.card = min_cut G A B := sorry,
+
+            -- As X separates A from B, these two path systems do not meet
+            -- outside X
+
+            -- and can thus be combined to k disjoint AB paths.
+            sorry
         end
 
         lemma lower_bound : ∃ P : finset (AB_path G A B), pairwise_disjoint P ∧ P.card = min_cut G A B :=
