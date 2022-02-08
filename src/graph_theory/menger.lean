@@ -3,7 +3,7 @@ import graph_theory.contraction graph_theory.pushforward graph_theory.basic
 open finset classical function
 open_locale classical
 
-variables {V : Type} [fintype V] {G : simple_graph V}
+variables {V V' : Type} [fintype V] {G : simple_graph V}
 
 namespace simple_graph
     namespace menger
@@ -17,9 +17,6 @@ namespace simple_graph
 
         lemma separates_self : separates G A B A :=
         λ γ, ⟨γ.a, ⟨γ.ha, γ.p.start_mem_support⟩⟩
-
-        lemma nonempty_cut_set : ∃ X : finset V, separates G A B X :=
-        ⟨A, separates_self⟩
 
         def is_cut_set_size (G : simple_graph V) (A B : finset V) (n : ℕ) : Prop :=
         ∃ X : finset V, X.card = n ∧ separates G A B X
@@ -112,6 +109,27 @@ namespace simple_graph
 
         def proj (G : simple_graph V) (e : step G) (A : finset V) : set (G/e).vertices
         := λ z, ite (z = e.x) (e.x ∈ A ∨ e.y ∈ A) (z ∈ A)
+
+        -- TODO this will belong in pushforward or in contraction (push_path)
+        -- TODO this is one of the points where `graph` would be more natural
+        def lower [decidable_eq V'] (f : V → V') {x y : V} (γ : walk G x y) : walk (push f G) (f x) (f y) :=
+        begin
+            induction γ with a a b c adj p ih, refl,
+            by_cases f a = f b, rw h, exact ih,
+            exact walk.cons ⟨h,a,b,rfl,rfl,adj⟩ ih
+        end
+
+        -- TODO this will belong in pushforward or in contraction (lift_path)
+        noncomputable def raise (f : V → V') (hf : adapted f G) {x' y' : V'} (γ : walk (push f G) x' y') :
+            Π (x y : V), f x = x' → f y = y' → walk G x y :=
+        begin
+            rw adapted.iff at hf, induction γ with a a b c h₁ p ih,
+            { rintros x y h₁ rfl, have h₂ := hf x y h₁, exact (some h₂) },
+            { rintros x y h₂ h₃, cases h₁ with h₄ h₅, let xx := some h₅, have h₆ := some_spec h₅,
+                let yy := some h₆, have h₇ := some_spec h₆, rcases h₇ with ⟨h₇,h₈,h₉⟩,
+                have h₁₀ := hf x xx (h₂.trans h₇.symm), let p₁ := some h₁₀, refine p₁.append (walk.cons h₉ _),
+                exact ih yy y h₈ h₃ }
+        end
 
         lemma lower_bound_aux (n : ℕ) : ∀ (G : simple_graph V), fintype.card G.step = n →
             ∀ A B : finset V, ∃ P : finset (AB_path G A B), pairwise_disjoint P ∧ P.card = min_cut G A B :=
