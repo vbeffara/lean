@@ -121,27 +121,26 @@ namespace simple_graph
 
         -- TODO this will belong in pushforward or in contraction (lift_path)
         noncomputable def raise (f : V → V') (hf : adapted' f G) (x' y' : V') (γ : walk (push f G) x' y')
-            (x y : V) (hx : f x = x') (hy : f y = y') : walk G x y :=
+            (x y : V) (hx : f x = x') (hy : f y = y') :
+            {p : walk G x y // true} :=
         begin
             revert x y, induction γ with a a b c h₁ p ih,
-            { rintros x y h₁ rfl, have h₂ := hf x y h₁, exact (some h₂) },
+            { rintros x y h₁ rfl, have h₂ := hf x y h₁, use (some h₂) },
             { rintros x y rfl rfl, rcases h₁ with ⟨h₁,h₂⟩,
                 set xx := some h₂ with hx, have h₃ := some_spec h₂, simp_rw ← hx at h₃,
                 set yy := some h₃ with hy, have h₄ := some_spec h₃, simp_rw ← hy at h₄,
                 rcases h₄ with ⟨h₄,h₅,h₆⟩, let p₁ := some (hf x xx h₄.symm), let p₂ := ih yy y h₅ rfl,
-                exact p₁.append (p₂.cons h₆) }
+                use p₁.append (p₂.val.cons h₆) }
         end
+
+        -- lemma lower_raise (f : V → V') (hf : adapted' f G) (x y : V) (x' y' : V') (γ : walk (push f G) x' y')
+        --     (hx : f x = x') (hy : f y = y') :
+        --     lower f x y (raise f hf x' y' γ x y hx hy) == γ :=
         -- begin
         --     induction γ with a a b c h₁ p ih,
-        --     { rintros x y h₁ rfl, have h₂ := hf x y h₁, cases h₂ with p hp, use p },
-        --     { rintros x y rfl rfl, rcases h₁ with ⟨-,xx,yy,h₂,h₃,h₄⟩,
-        --         obtain ⟨p₁,hp₁⟩ := hf x xx h₂.symm, obtain ⟨p₂,-⟩ := ih yy y h₃ rfl,
-        --         use p₁.append (p₂.cons h₄) },
+        --     { simp [raise,lower], sorry },
+        --     { sorry }
         -- end
-
-        lemma lower_raise (f : V → V') (hf : adapted' f G) (x y : V) (x' y' : V') (γ : walk (push f G) x' y')
-            (hx : f x = x') (hy : f y = y') :
-            lower f x y (raise f hf x' y' γ x y hx hy) == γ := sorry
 
         lemma lower_bound_aux (n : ℕ) : ∀ (G : simple_graph V), fintype.card G.step = n →
             ∀ A B : finset V, ∃ P : finset (AB_path G A B), pairwise_disjoint P ∧ P.card = min_cut G A B :=
