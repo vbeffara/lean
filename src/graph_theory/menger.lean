@@ -112,7 +112,7 @@ namespace simple_graph
 
         -- TODO this will belong in pushforward or in contraction (push_path)
         -- TODO this is one of the points where `graph` would be more natural
-        def lower [decidable_eq V'] (f : V → V') {x y : V} (γ : walk G x y) : walk (push f G) (f x) (f y) :=
+        def lower [decidable_eq V'] (f : V → V') (x y : V) (γ : walk G x y) : walk (push f G) (f x) (f y) :=
         begin
             induction γ with a a b c adj p ih, refl,
             by_cases f a = f b, rw h, exact ih,
@@ -120,16 +120,28 @@ namespace simple_graph
         end
 
         -- TODO this will belong in pushforward or in contraction (lift_path)
-        noncomputable def raise (f : V → V') (hf : adapted f G) {x' y' : V'} (γ : walk (push f G) x' y') :
-            Π (x y : V), f x = x' → f y = y' → walk G x y :=
+        noncomputable def raise (f : V → V') (hf : adapted' f G) (x' y' : V') (γ : walk (push f G) x' y')
+            (x y : V) (hx : f x = x') (hy : f y = y') : walk G x y :=
         begin
-            rw adapted.iff at hf, induction γ with a a b c h₁ p ih,
+            revert x y, induction γ with a a b c h₁ p ih,
             { rintros x y h₁ rfl, have h₂ := hf x y h₁, exact (some h₂) },
-            { rintros x y h₂ h₃, cases h₁ with h₄ h₅, let xx := some h₅, have h₆ := some_spec h₅,
-                let yy := some h₆, have h₇ := some_spec h₆, rcases h₇ with ⟨h₇,h₈,h₉⟩,
-                have h₁₀ := hf x xx (h₂.trans h₇.symm), let p₁ := some h₁₀, refine p₁.append (walk.cons h₉ _),
-                exact ih yy y h₈ h₃ }
+            { rintros x y rfl rfl, rcases h₁ with ⟨h₁,h₂⟩,
+                set xx := some h₂ with hx, have h₃ := some_spec h₂, simp_rw ← hx at h₃,
+                set yy := some h₃ with hy, have h₄ := some_spec h₃, simp_rw ← hy at h₄,
+                rcases h₄ with ⟨h₄,h₅,h₆⟩, let p₁ := some (hf x xx h₄.symm), let p₂ := ih yy y h₅ rfl,
+                exact p₁.append (p₂.cons h₆) }
         end
+        -- begin
+        --     induction γ with a a b c h₁ p ih,
+        --     { rintros x y h₁ rfl, have h₂ := hf x y h₁, cases h₂ with p hp, use p },
+        --     { rintros x y rfl rfl, rcases h₁ with ⟨-,xx,yy,h₂,h₃,h₄⟩,
+        --         obtain ⟨p₁,hp₁⟩ := hf x xx h₂.symm, obtain ⟨p₂,-⟩ := ih yy y h₃ rfl,
+        --         use p₁.append (p₂.cons h₄) },
+        -- end
+
+        lemma lower_raise (f : V → V') (hf : adapted' f G) (x y : V) (x' y' : V') (γ : walk (push f G) x' y')
+            (hx : f x = x') (hy : f y = y') :
+            lower f x y (raise f hf x' y' γ x y hx hy) == γ := sorry
 
         lemma lower_bound_aux (n : ℕ) : ∀ (G : simple_graph V), fintype.card G.step = n →
             ∀ A B : finset V, ∃ P : finset (AB_path G A B), pairwise_disjoint P ∧ P.card = min_cut G A B :=
