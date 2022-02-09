@@ -3,20 +3,40 @@ import graph_theory.contraction graph_theory.pushforward graph_theory.basic
 open finset classical function
 open_locale classical
 
-variables {V V' : Type} [fintype V] {G : simple_graph V}
+variables {V V' : Type} [fintype V] [fintype V'] {G : simple_graph V}
 
 namespace simple_graph
+    @[ext] structure Walk (G : simple_graph V) := {a b : V} (p : G.walk a b)
+
+    namespace Walk
+        variables {e : G.step} {p q : G.Walk} {hep : e.y = p.a} {hpq : p.b = q.a}
+
+        def cons (e : G.step) (p : G.Walk) (h : e.y = p.a) : G.Walk :=
+        by { let h' := e.h, rw h at h', exact ⟨p.p.cons h'⟩ }
+
+        @[simp] lemma cons_a : (cons e p hep).a = e.x := rfl
+        @[simp] lemma cons_b : (cons e p hep).b = p.b := rfl
+        lemma cons_p : (cons e p hep).p = by { let h' := e.h, rw hep at h', exact p.p.cons h' } := rfl
+
+        def append (p q : G.Walk) (hpq : p.b = q.a) : G.Walk :=
+        by { let p' := p.p, rw hpq at p', exact ⟨p' ++ q.p⟩ }
+
+        @[simp] lemma append_a : (append p q hpq).a = p.a := rfl
+        @[simp] lemma append_b : (append p q hpq).b = q.b := rfl
+        lemma append_p : (append p q hpq).p = by { let p' := p.p, rw hpq at p', exact p' ++ q.p } := rfl
+    end Walk
+
     namespace menger
         variables {A B X : finset V}
 
         structure AB_path (G : simple_graph V) (A B : finset V) :=
-            {a b : V} (p : walk G a b) (ha : a ∈ A) (hb : b ∈ B)
+            (p : Walk G) (ha : p.a ∈ A) (hb : p.b ∈ B)
 
         def separates (G : simple_graph V) (A B : finset V) (X : finset V) : Prop :=
-        ∀ γ : AB_path G A B, ∃ z : V, z ∈ X ∧ z ∈ γ.p.support
+        ∀ γ : AB_path G A B, ∃ z : V, z ∈ X ∧ z ∈ γ.p.p.support
 
         lemma separates_self : separates G A B A :=
-        λ γ, ⟨γ.a, ⟨γ.ha, γ.p.start_mem_support⟩⟩
+        λ γ, ⟨γ.p.a, ⟨γ.ha, γ.p.p.start_mem_support⟩⟩
 
         def is_cut_set_size (G : simple_graph V) (A B : finset V) (n : ℕ) : Prop :=
         ∃ X : finset V, X.card = n ∧ separates G A B X
@@ -40,14 +60,14 @@ namespace simple_graph
         variables {P : finset (AB_path G A B)}
 
         def pairwise_disjoint : finset (AB_path G A B) → Prop :=
-        λ P, ∀ ⦃γ₁ γ₂ : P⦄ {z : V}, z ∈ γ₁.val.p.support → z ∈ γ₂.val.p.support → γ₁ = γ₂
+        λ P, ∀ ⦃γ₁ γ₂ : P⦄ {z : V}, z ∈ γ₁.val.p.p.support → z ∈ γ₂.val.p.p.support → γ₁ = γ₂
 
         lemma path_le_cut {dis : pairwise_disjoint P} {sep : separates G A B X} : P.card ≤ X.card :=
         begin
-            let φ : Π γ : P, {z : V // z ∈ X ∧ z ∈ γ.val.p.support} :=
+            let φ : Π γ : P, {z : V // z ∈ X ∧ z ∈ γ.val.p.p.support} :=
                 λ γ, subtype_of_exists (sep γ),
             let ψ : P → X := λ γ, ⟨φ γ, (φ γ).prop.1⟩,
-            have h₁ : ∀ γ, (ψ γ).val ∈ γ.val.p.support := λ γ, (φ γ).prop.2,
+            have h₁ : ∀ γ, (ψ γ).val ∈ γ.val.p.p.support := λ γ, (φ γ).prop.2,
             have ψ_inj : injective ψ := λ i j h, dis (h₁ i) (by { rw h, exact h₁ j }),
             have := fintype.card_le_of_injective ψ ψ_inj,
             simp_rw [←fintype.card_coe], convert this,
@@ -70,9 +90,9 @@ namespace simple_graph
         begin
             split; intro h,
             { rintros z hz, simp at hz,
-                let γ : AB_path ⊥ A B := ⟨(walk.nil : walk ⊥ z z), hz.1, hz.2⟩,
+                let γ : AB_path ⊥ A B := ⟨⟨walk.nil⟩, hz.1, hz.2⟩,
                 rcases (h γ) with ⟨x,h₁,h₂⟩, simp at h₂, subst x, exact h₁ },
-            { rintro ⟨a,b,γ,ha,hb⟩, cases γ, swap, change false at γ_h, contradiction,
+            { rintro ⟨⟨a,b,γ⟩,ha,hb⟩, cases γ, swap, change false at γ_h, contradiction,
                 simp, apply mem_of_subset h, simp, exact ⟨ha,hb⟩ }
         end
 
@@ -88,13 +108,13 @@ namespace simple_graph
         begin
             let φ : A ∩ B → AB_path ⊥ A B := by { intro z,
                 have h' : z.val ∈ A ∧ z.val ∈ B := mem_inter.mp z.property,
-                exact AB_path.mk walk.nil h'.1 h'.2 },
+                exact ⟨⟨walk.nil⟩,h'.1,h'.2⟩ },
             have φ_inj : injective φ := λ _ _ h, by { simp only [φ] at h, ext, exact h.1 },
 
             refine ⟨image φ univ, _, _⟩,
             {
-                rintro ⟨⟨a₁,b₁,γ₁,h₁,h₂⟩,h₃⟩, cases γ₁, swap, change false at γ₁_h, contradiction,
-                rintro ⟨⟨a₂,b₂,γ₂,h₄,h₅⟩,h₆⟩, cases γ₂, swap, change false at γ₂_h, contradiction,
+                rintro ⟨⟨⟨a₁,b₁,γ₁⟩,h₁,h₂⟩,h₃⟩, cases γ₁, swap, change false at γ₁_h, contradiction,
+                rintro ⟨⟨⟨a₂,b₂,γ₂⟩,h₄,h₅⟩,h₆⟩, cases γ₂, swap, change false at γ₂_h, contradiction,
                 simp only [walk.support_nil, list.mem_singleton, subtype.mk_eq_mk, and_self_left, forall_eq],
                 intro a₁a₂, subst a₁a₂, simp only [eq_self_iff_true, heq_iff_eq, and_self]
             },
@@ -110,9 +130,11 @@ namespace simple_graph
         def proj (G : simple_graph V) (e : step G) (A : finset V) : set (G/e).vertices
         := λ z, ite (z = e.x) (e.x ∈ A ∨ e.y ∈ A) (z ∈ A)
 
+        variables {f : V → V'} {p : G.Walk}
+
         -- TODO this will belong in pushforward or in contraction (push_path)
         -- TODO this is one of the points where `graph` would be more natural
-        def lower [decidable_eq V'] (f : V → V') (x y : V) (γ : walk G x y) :
+        noncomputable def lower (f : V → V') (x y : V) (γ : walk G x y) :
             walk (push f G) (f x) (f y) :=
         begin
             induction γ with a a b c adj p ih, refl,
@@ -120,13 +142,28 @@ namespace simple_graph
             exact walk.cons ⟨h,a,b,rfl,rfl,adj⟩ ih
         end
 
+        noncomputable def Lower (f : V → V') (p : G.Walk) : (push f G).Walk :=
+        ⟨lower f p.a p.b p.p⟩
+
+        @[simp] lemma Lower_a : (Lower f p).a = f p.a := rfl
+        @[simp] lemma Lower_b : (Lower f p).b = f p.b := rfl
+        lemma Lower_p : (Lower f p).p = lower f p.a p.b p.p := rfl
+
         lemma lower_cons_eq (f : V → V') (x y z : V) (h : f x = f y) (e : G.adj x y) (p : G.walk y z) :
             lower f x z (e :: p) == lower f y z p :=
         by simp [lower,h]
 
+        lemma Lower_cons_eq (f : V → V') (e : G.step) (p : G.Walk) (h₁ : e.y = p.a) (h₂ : f e.x = f e.y) :
+            Lower f (p.cons e h₁) = Lower f p :=
+        by simp [Lower,lower,Walk.cons,h₁,h₂]
+
         lemma lower_cons_ne (f : V → V') (x y z : V) (h : f x ≠ f y) (e : G.adj x y) (p : G.walk y z) :
             lower f x z (e :: p) = ⟨h,x,y,rfl,rfl,e⟩ :: lower f y z p :=
         by simp [lower,h]
+
+        lemma Lower_cons_ne (f : V → V') (e : G.step) (p : G.Walk) (h₁ : e.y = p.a) (h₂ : f e.x ≠ f e.y) :
+            Lower f (p.cons e h₁) = Walk.cons ⟨⟨h₂,e.x,e.y,rfl,rfl,e.h⟩⟩ (Lower f p) (congr_arg f h₁) :=
+        by { sorry }
 
         lemma lower_append (f : V → V') (x y z : V) (p₁ : G.walk x y) (p₂ : G.walk y z) :
             lower f x z (p₁ ++ p₂) = lower f x y p₁ ++ lower f y z p₂ :=
@@ -139,6 +176,13 @@ namespace simple_graph
                 have h₃ := lower_cons_eq f a b c h h₁ p,
                 sorry },
             { sorry }
+        end
+
+        lemma Lower_append (f : V → V') (p q : G.Walk) (hpq : p.b = q.a) :
+            Lower f (Walk.append p q hpq) = Walk.append (Lower f p) (Lower f q) (by simp [hpq]) :=
+        begin
+            rcases p with ⟨a,b,p⟩, rcases q with ⟨b',c,q⟩, dsimp at hpq, subst b', ext; simp,
+            simp [Lower_p,Walk.append_p], apply lower_append
         end
 
         lemma lower_nil (f : V → V') (x y : V) (p : walk G x y) (hp : ∀ (z : V), z ∈ p.support → f z = f y) :
