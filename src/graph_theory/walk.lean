@@ -1,5 +1,5 @@
 import tactic combinatorics.simple_graph.connectivity
-import graph_theory.basic graph_theory.path graph_theory.pushforward graph_theory.contraction
+import graph_theory.path graph_theory.pushforward graph_theory.contraction
 open classical function
 open_locale classical
 
@@ -39,7 +39,8 @@ end
   @rec₀ V _ G motive h_nil h_cons (nil a) = h_nil a := rfl
 
 @[simp] lemma rec_cons {motive h_nil h_cons h} :
-  @rec₀ V _ G motive h_nil h_cons (cons e p h) = h_cons e p h (rec₀ motive h_nil h_cons p) :=
+  @rec₀ V _ G motive h_nil h_cons (cons e p h) =
+  h_cons e p h (rec₀ motive h_nil h_cons p) :=
 begin
   rcases e with ⟨u,v,e⟩, rcases p with ⟨a,b,p⟩, simp at h, subst v, refl
 end
@@ -137,12 +138,14 @@ end
 lemma push_cons_ne (f : V → V') (e : G.step) (p : G.Walk) (h : e.y = p.a) (h' : f e.x ≠ f e.y) :
   push_Walk f (p.cons e h) = Walk.cons ⟨⟨h',e.x,e.y,rfl,rfl,e.h⟩⟩ (push_Walk f p) (by simp [h]) :=
 begin
-  have : push_step f e = Walk.step ⟨⟨h',e.x,e.y,rfl,rfl,e.h⟩⟩ := by simp [push_step,push_step_aux,h'],
+  have : push_step f e = Walk.step ⟨⟨h',e.x,e.y,rfl,rfl,e.h⟩⟩ :=
+    by simp [push_step,push_step_aux,h'],
   rw [push_cons], simp [this,step]
 end
 
 lemma push_append (f : V → V') (p q : G.Walk) (hpq : p.b = q.a) :
-  push_Walk f (Walk.append p q hpq) = Walk.append (push_Walk f p) (push_Walk f q) (by simp [hpq]) :=
+  push_Walk f (Walk.append p q hpq) =
+  Walk.append (push_Walk f p) (push_Walk f q) (by simp [hpq]) :=
 begin
   revert p, refine Walk.rec₀ _ (by simp) _,
   intros e p h ih hpq, by_cases h' : f e.x = f e.y,
