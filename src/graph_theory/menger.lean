@@ -112,18 +112,46 @@ namespace simple_graph
 
         -- TODO this will belong in pushforward or in contraction (push_path)
         -- TODO this is one of the points where `graph` would be more natural
-        def lower [decidable_eq V'] (f : V → V') (x y : V) (γ : walk G x y) : walk (push f G) (f x) (f y) :=
+        def lower [decidable_eq V'] (f : V → V') (x y : V) (γ : walk G x y) :
+            walk (push f G) (f x) (f y) :=
         begin
             induction γ with a a b c adj p ih, refl,
             by_cases f a = f b, rw h, exact ih,
             exact walk.cons ⟨h,a,b,rfl,rfl,adj⟩ ih
         end
 
+        lemma lower_cons_eq (f : V → V') (x y z : V) (h : f x = f y) (e : G.adj x y) (p : G.walk y z) :
+            lower f x z (e :: p) == lower f y z p :=
+        by simp [lower,h]
+
+        lemma lower_cons_ne (f : V → V') (x y z : V) (h : f x ≠ f y) (e : G.adj x y) (p : G.walk y z) :
+            lower f x z (e :: p) = ⟨h,x,y,rfl,rfl,e⟩ :: lower f y z p :=
+        by simp [lower,h]
+
+        lemma lower_append (f : V → V') (x y z : V) (p₁ : G.walk x y) (p₂ : G.walk y z) :
+            lower f x z (p₁ ++ p₂) = lower f x y p₁ ++ lower f y z p₂ :=
+        begin
+            induction p₁ with a a b c h₁ p ih, refl,
+            by_cases f a = f b,
+            {
+                have h₂ := lower_cons_eq f a b z h h₁ (p++p₂),
+                simp, apply heq_iff_eq.mp, refine h₂.trans _, rw ih p₂,
+                have h₃ := lower_cons_eq f a b c h h₁ p,
+                sorry },
+            { sorry }
+        end
+
         lemma lower_nil (f : V → V') (x y : V) (p : walk G x y) (hp : ∀ (z : V), z ∈ p.support → f z = f y) :
             lower f x y p == (walk.nil : (push f G).walk (f y) (f y)) :=
         begin
             induction p with a a b c h₁ p ih, { refl },
-            { sorry }
+            { by_cases f a = f b,
+                { apply (lower_cons_eq f a b c h h₁ p).trans, apply ih,
+                    intros z h, apply hp, right, exact h },
+                { have := lower_cons_ne f a b c h h₁ p, rw this,
+                    have : f a = f c, by { apply hp, left, refl }, rw this at h,
+                    have : f b = f c, by { apply hp, right, exact p.start_mem_support }, rw this at h,
+                    contradiction } }
         end
 
         -- TODO this will belong in pushforward or in contraction (lift_path)
