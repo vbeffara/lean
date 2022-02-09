@@ -1,4 +1,9 @@
 {
     "editor.fontLigatures": false,
+    "editor.rulers" : [100],
     "editor.bracketPairColorization.enabled": true,
+    "workbench.colorCustomizations": {
+        "editorRuler.foreground": "#5f4081"
+    }
+
 }

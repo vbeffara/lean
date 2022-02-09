@@ -1,18 +1,24 @@
 import tactic combinatorics.simple_graph.connectivity
-import graph_theory.basic graph_theory.path graph_theory.pushforward
+import graph_theory.basic graph_theory.path graph_theory.pushforward graph_theory.contraction
 open classical function
 open_locale classical
 
 namespace simple_graph
+
 variables {V V' : Type} [decidable_eq V] [decidable_eq V'] {f : V → V'}
 variables {G : simple_graph V} {x y z u v w a b c : V}
 
 @[ext] structure Walk (G : simple_graph V) := {a b : V} (p : G.walk a b)
 
 namespace Walk
+
 variables {e : G.step} {p q : G.Walk} {hep : e.y = p.a} {hpq : p.b = q.a}
 
 def nil (a : V) : G.Walk := ⟨(walk.nil : G.walk a a)⟩
+
+@[simp] lemma nil_a : (nil a : G.Walk).a = a := rfl
+
+@[simp] lemma nil_b : (nil b : G.Walk).b = b := rfl
 
 def cons (e : G.step) (p : G.Walk) (h : e.y = p.a) : G.Walk :=
 by { let h' := e.h, rw h at h', exact ⟨p.p.cons h'⟩ }
@@ -160,29 +166,38 @@ begin
     apply ih, intros z hz, apply hp, right, exact hz }
 end
 
-        -- TODO this will belong in pushforward or in contraction (lift_path)
-        noncomputable def raise (f : V → V') (hf : adapted' f G) (x' y' : V') (γ : walk (push f G) x' y')
-            (x y : V) (hx : f x = x') (hy : f y = y') :
-            {p : walk G x y // lower f x y p == γ} :=
-        begin
-            revert x y, induction γ with a a b c h₁ p ih,
-            { rintros x y h₁ rfl,
-                have h₂ := hf x y h₁,
-                set p := some h₂ with hp, have h₃ := some_spec h₂, simp_rw ← hp at *,
-                use p, exact lower_nil f x y p h₃ },
-            { rintros x y rfl rfl, rcases h₁ with ⟨h₁,h₂⟩,
-                set xx := some h₂ with hx, have h₃ := some_spec h₂, simp_rw ← hx at h₃,
-                set yy := some h₃ with hy, have h₄ := some_spec h₃, simp_rw ← hy at h₄,
-                rcases h₄ with ⟨h₄,h₅,h₆⟩,
-                set p₁ := some (hf x xx h₄.symm) with hp₁, have h₇ := some_spec (hf x xx h₄.symm), simp_rw ← hp₁ at *,
-                obtain ⟨p₂,hp₂⟩ := ih yy y h₅ rfl,
-                use p₁.append (p₂.cons h₆), sorry }
-        end
+variables {hf : adapted' f G} {p' : (push f G).Walk} {hx : f x = p'.a} {hy : f y = p'.b}
 
-        lemma lower_raise (f : V → V') (hf : adapted' f G) (x y : V) (x' y' : V') (γ : walk (push f G) x' y')
-            (hx : f x = x') (hy : f y = y') :
-            lower f x y (raise f hf x' y' γ x y hx hy).val == γ :=
-        (raise f hf x' y' γ x y hx hy).prop
+noncomputable def pull_Walk_aux (f : V → V') (hf : adapted' f G) (p' : (push f G).Walk) (x y : V)
+  (hx : f x = p'.a) (hy : f y = p'.b) :
+  {w : G.Walk // w.a = x ∧ w.b = y} :=
+begin
+  revert p' x y, refine rec₀ _ _ _,
+  { rintros u x y hx hy, simp at hx hy, subst hy,
+    have h₁ := hf x y hx, set p := some h₁ with hp, have h₃ := some_spec h₁, simp_rw ← hp at *,
+    exact ⟨⟨p⟩,rfl,rfl⟩ },
+  { rintros e p h ih x y hx hy, simp at hx hy,
+    rcases e with ⟨u,v,⟨huv,ee⟩⟩, simp at hx h, substs hx h,
+    set xx := some ee with hxx, have h₁ := some_spec ee, simp_rw ← hxx at h₁,
+    set yy := some h₁ with hyy, have h₂ := some_spec h₁, simp_rw ← hyy at h₂,
+    rcases h₂ with ⟨h₂,h₃,h₄⟩,
+    have h₅ := hf x xx h₂.symm,
+    set p₁ := some h₅ with hp₁, have h₆ := some_spec h₅, simp_rw ← hp₁ at h₆,
+    obtain p₂ := ih yy y h₃ hy,
+    let pp := Walk.append ⟨p₁⟩ (p₂.val.cons ⟨h₄⟩ p₂.2.1.symm) rfl,
+    exact ⟨pp, rfl, p₂.2.2⟩ }
+end
+
+noncomputable def pull_Walk (f : V → V') (hf : adapted' f G) (p' : (push f G).Walk) (x y : V)
+  (hx : f x = p'.a) (hy : f y = p'.b) : G.Walk :=
+(pull_Walk_aux f hf p' x y hx hy).val
+
+lemma pull_Walk_a : (pull_Walk f hf p' x y hx hy).a = x :=
+(pull_Walk_aux f hf p' x y hx hy).prop.1
+
+lemma pull_Walk_b : (pull_Walk f hf p' x y hx hy).b = y :=
+(pull_Walk_aux f hf p' x y hx hy).prop.2
 
 end Walk
+
 end simple_graph
