@@ -135,44 +135,30 @@ begin
   rw [push_cons], simp [this,step]
 end
 
-        lemma Lower_append (f : V → V') (p q : G.Walk) (hpq : p.b = q.a) :
-            Lower f (Walk.append p q hpq) = Walk.append (Lower f p) (Lower f q) (by simp [hpq]) :=
-        begin
-            revert p, refine Walk.rec₀ _ _,
-            { simp },
-            { intros e p h ih hpq, by_cases h' : f e.x = f e.y,
-                { have h₁ := Lower_cons_eq f e p h h',
-                    have h₂ := Lower_cons_eq f e (Walk.append p q hpq) h h',
-                    simp [h₁,h₂,ih] },
-                { have h₁ := Lower_cons_ne f e p h h',
-                    have h₂ := Lower_cons_ne f e (Walk.append p q hpq) h h',
-                    simpa [h₁,h₂,ih] } }
-        end
+lemma push_append (f : V → V') (p q : G.Walk) (hpq : p.b = q.a) :
+  push_Walk f (Walk.append p q hpq) = Walk.append (push_Walk f p) (push_Walk f q) (by simp [hpq]) :=
+begin
+  revert p, refine Walk.rec₀ _ (by simp) _,
+  intros e p h ih hpq, by_cases h' : f e.x = f e.y,
+  { have h₁ := push_cons_eq f e p h h',
+    have h₂ := push_cons_eq f e (Walk.append p q hpq) (h.trans append_a.symm) h',
+      simp [h₁,h₂,ih] },
+  { have h₁ := push_cons_ne f e p h h',
+    have h₂ := push_cons_ne f e (Walk.append p q hpq) (h.trans append_a.symm) h',
+      simpa [h₁,h₂,ih] }
+end
 
-        lemma lower_nil (f : V → V') (x y : V) (p : walk G x y) (hp : ∀ (z : V), z ∈ p.support → f z = f y) :
-            lower f x y p == (walk.nil : (push f G).walk (f y) (f y)) :=
-        begin
-            induction p with a a b c h₁ p ih, { refl },
-            { by_cases f a = f b,
-                { apply (lower_cons_eq f a b c h h₁ p).trans, apply ih,
-                    intros z h, apply hp, right, exact h },
-                { have : f a = f c, by { apply hp, left, refl }, rw this at h,
-                    have : f b = f c, by { apply hp, right, exact p.start_mem_support }, rw this at h,
-                    contradiction } }
-        end
-
-        lemma Lower_eq_nil (f : V → V') (w : V') (p : G.Walk) (hp : ∀ (z : V), z ∈ p.p.support → f z = w) :
-            Lower f p = Walk.nil w :=
-        begin
-            revert p, refine Walk.rec₀ _ _,
-            { intros, specialize hp u (by simp [Walk.nil]), simp [hp] },
-            { intros e p h ih hp,
-                have h₁ : f e.x = w := by { apply hp, left, refl },
-                have h₂ : f e.y = w := by { apply hp, right, rw h, exact p.p.start_mem_support },
-                rw Lower_cons_eq f e p h (h₁.trans h₂.symm),
-                apply ih, intros z hz, apply hp, right, exact hz
-            }
-        end
+lemma push_eq_nil (f : V → V') (w : V') (p : G.Walk) (hp : ∀ (z : V), z ∈ p.p.support → f z = w) :
+  push_Walk f p = Walk.nil w :=
+begin
+  revert p, refine Walk.rec₀ _ _ _,
+  { intros, specialize hp u (by simp [Walk.nil]), simp [hp] },
+  { intros e p h ih hp,
+    have h₁ : f e.x = w := by { apply hp, left, refl },
+    have h₂ : f e.y = w := by { apply hp, right, rw h, exact p.p.start_mem_support },
+    rw push_cons_eq f e p h (h₁.trans h₂.symm),
+    apply ih, intros z hz, apply hp, right, exact hz }
+end
 
         -- TODO this will belong in pushforward or in contraction (lift_path)
         noncomputable def raise (f : V → V') (hf : adapted' f G) (x' y' : V') (γ : walk (push f G) x' y')
@@ -198,90 +184,5 @@ end
             lower f x y (raise f hf x' y' γ x y hx hy).val == γ :=
         (raise f hf x' y' γ x y hx hy).prop
 
-        lemma lower_bound_aux (n : ℕ) : ∀ (G : simple_graph V), fintype.card G.step = n →
-            ∀ A B : finset V, ∃ P : finset (AB_path G A B), pairwise_disjoint P ∧ P.card = min_cut G A B :=
-        begin
-            -- We apply induction on ∥G∥.
-            induction n using nat.strong_induction_on with n ih,
-
-            -- If G has no edge, then |A∩B| = k and we have k trivial AB paths.
-            by_cases (n=0), { subst n, intros G hG A B, rw [bot_iff_no_edge.mp hG,bot_min_cut],
-                exact (bot_path_set A B).exists_of_subtype },
-
-            -- So we assume that G has an edge e = xy.
-            rintros G rfl A B,
-            cases not_is_empty_iff.mp (h ∘ fintype.card_eq_zero_iff.mpr) with e,
-
-            -- If G has no k disjoint AB paths
-            by_contradiction h₆, push_neg at h₆,
-            replace h₆ : ∀ {P : finset (AB_path G A B)}, pairwise_disjoint P → P.card < min_cut G A B :=
-                by { intros P h, exact lt_of_le_of_ne (upper_bound h) (h₆ P h) },
-
-            -- then neither does G/e; here, we count the contracted vertex
-            -- ve as an element of A (resp.B) in G/e if in G at least one of
-            -- x,y lies in A (resp.B)
-            let G₁ := G/e,
-            let A₁ : finset G₁.vertices := set.to_finset (proj G e A),
-            let B₁ : finset G₁.vertices := set.to_finset (proj G e B),
-
-            let Φ : AB_path G₁ A₁ B₁ → AB_path G A B := sorry,
-            have Φ_inj : injective Φ := sorry,
-            have Φ_nip : ∀ {P}, pairwise_disjoint P → pairwise_disjoint (image Φ P) := sorry,
-
-            have h₇ : ∀ (P₁ : finset (AB_path G₁ A₁ B₁)), pairwise_disjoint P₁ → P₁.card < min_cut G A B :=
-                by { intros P₁ h₈, rw ← finset.card_image_of_injective P₁ Φ_inj, exact h₆ (Φ_nip h₈) },
-
-            -- By the induction hypothesis, G/e contains an AB separator Y
-            -- of fewer than k vertices.
-            have h₁₂ : min_cut G₁ A₁ B₁ < min_cut G A B := by {
-                have h₈ : fintype.card G₁.step < fintype.card G.step := by sorry,
-                specialize ih (fintype.card G₁.step) h₈ G₁ rfl A₁ B₁, rcases ih with ⟨P₁,h₉,h₁₀⟩,
-                rw ← h₁₀, exact h₇ P₁ h₉ },
-            obtain ⟨Y,h₁₄,h₁₅⟩ := min_cut_set G₁ A₁ B₁,
-            have h₁₆ : Y.card < min_cut G A B := by { rw h₁₄, exact h₁₂ },
-            -- Among these must be the vertex ve, since otherwise Y ⊆ V
-            -- would be an AB separator in G.
-            have h₁₇ : e.x ∈ Y := by { by_contradiction, sorry },
-            -- Then X := (Y-ve)∪{x,y} is an AB separator in G of exactly k
-            -- vertices.
-            let X := Y ∪ {e.y},
-            have h₁₈ : separates G A B X := sorry,
-            have h₁₉ : X.card = min_cut G A B := sorry,
-
-            -- We now consider the graph G−e.
-            let Gₑ : simple_graph V := {
-                adj := λ x y, ((x = e.x ∧ y = e.y) ∨ (x = e.y ∧ y = e.x)),
-                symm := λ x y h, by { cases h, right, exact h_1.symm, left, exact h_1.symm },
-                loopless := λ x h, by { cases h; { cases h_1, subst x, apply G.ne_of_adj e.h, rw h_1_right } }
-            },
-            let G₂ : simple_graph V := G \ Gₑ,
-            -- Since x,y ∈ X, every AX separator in G−e is also an AB
-            -- separator in G
-            have h₂₀ : ∀ Z : finset V, separates G₂ A X Z → separates G A B Z := sorry,
-            -- and hence contains at least k vertices
-            have h₂₁ : ∀ Z : finset V, separates G₂ A X Z → min_cut G A B ≤ Z.card := sorry,
-            -- So by induction there are k disjoint AX paths in G−e
-            have h₂₂ : min_cut G₂ A X = min_cut G A B := sorry,
-            have h₂₃ : ∃ P₂ : finset (AB_path G₂ A X), pairwise_disjoint P₂ ∧ P₂.card = min_cut G A B := by {
-                have : fintype.card G₂.step < fintype.card G.step := sorry,
-                rw ← h₂₂, apply ih (fintype.card G₂.step) this, simp [number_of_edges] },
-
-            -- and similarly there are k disjoint XB paths in G−e
-            have h₂₄ : ∃ P₂ : finset (AB_path G₂ A X), pairwise_disjoint P₂ ∧ P₂.card = min_cut G A B := sorry,
-
-            -- As X separates A from B, these two path systems do not meet
-            -- outside X
-
-            -- and can thus be combined to k disjoint AB paths.
-            sorry
-        end
-
-        lemma lower_bound : ∃ P : finset (AB_path G A B), pairwise_disjoint P ∧ P.card = min_cut G A B :=
-        begin
-            apply lower_bound_aux, exact rfl
-        end
-
-        -- theorem menger (h : separable G A B) : max_path_number G A B = min_cut h :=
-        -- sorry
-    end menger
+end Walk
 end simple_graph
