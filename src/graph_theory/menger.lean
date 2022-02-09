@@ -3,7 +3,7 @@ import graph_theory.contraction graph_theory.pushforward graph_theory.basic
 open finset classical function
 open_locale classical
 
-variables {V V' : Type} [fintype V] [fintype V'] {G : simple_graph V}
+variables {V V' : Type} {a : V} {G : simple_graph V}
 
 namespace simple_graph
     @[ext] structure Walk (G : simple_graph V) := {a b : V} (p : G.walk a b)
@@ -11,8 +11,18 @@ namespace simple_graph
     namespace Walk
         variables {e : G.step} {p q : G.Walk} {hep : e.y = p.a} {hpq : p.b = q.a}
 
+        def nil (a : V) : G.Walk := ⟨(walk.nil : G.walk a a)⟩
+
         def cons (e : G.step) (p : G.Walk) (h : e.y = p.a) : G.Walk :=
         by { let h' := e.h, rw h at h', exact ⟨p.p.cons h'⟩ }
+
+        lemma rec' ⦃P : G.Walk → Prop⦄ (h_nil : ∀ {a}, P (nil a))
+            (h_cons : ∀ e p h, P p → P (cons e p h)) : ∀ p, P p :=
+        begin
+            rintro ⟨a,b,p⟩, induction p with a a b c adj p ih,
+            { exact h_nil },
+            { exact h_cons ⟨adj⟩ ⟨p⟩ rfl ih }
+        end
 
         @[simp] lemma cons_a : (cons e p hep).a = e.x := rfl
         @[simp] lemma cons_b : (cons e p hep).b = p.b := rfl
@@ -24,10 +34,13 @@ namespace simple_graph
         @[simp] lemma append_a : (append p q hpq).a = p.a := rfl
         @[simp] lemma append_b : (append p q hpq).b = q.b := rfl
         lemma append_p : (append p q hpq).p = by { let p' := p.p, rw hpq at p', exact p' ++ q.p } := rfl
+        @[simp] lemma append_nil_left {haq : a = q.a} : append (nil a) q haq = q := sorry
+
+        @[simp] lemma append_cons : append (cons e p hep) q hpq = cons e (append p q hpq) hep := sorry
     end Walk
 
     namespace menger
-        variables {A B X : finset V}
+        variables  [fintype V] [fintype V'] {A B X : finset V}
 
         structure AB_path (G : simple_graph V) (A B : finset V) :=
             (p : Walk G) (ha : p.a ∈ A) (hb : p.b ∈ B)
@@ -145,6 +158,8 @@ namespace simple_graph
         noncomputable def Lower (f : V → V') (p : G.Walk) : (push f G).Walk :=
         ⟨lower f p.a p.b p.p⟩
 
+        @[simp] lemma Lower_nil : Lower f (@Walk.nil _ G a) = Walk.nil (f a) := rfl
+
         @[simp] lemma Lower_a : (Lower f p).a = f p.a := rfl
         @[simp] lemma Lower_b : (Lower f p).b = f p.b := rfl
         lemma Lower_p : (Lower f p).p = lower f p.a p.b p.p := rfl
@@ -181,8 +196,15 @@ namespace simple_graph
         lemma Lower_append (f : V → V') (p q : G.Walk) (hpq : p.b = q.a) :
             Lower f (Walk.append p q hpq) = Walk.append (Lower f p) (Lower f q) (by simp [hpq]) :=
         begin
-            rcases p with ⟨a,b,p⟩, rcases q with ⟨b',c,q⟩, dsimp at hpq, subst b', ext; simp,
-            simp [Lower_p,Walk.append_p], apply lower_append
+            revert p, refine Walk.rec' _ _,
+            { simp },
+            { intros e p h ih hpq, by_cases h' : f e.x = f e.y,
+                { have h₁ := Lower_cons_eq f e p h h',
+                    have h₂ := Lower_cons_eq f e (Walk.append p q hpq) h h',
+                    simp [h₁,h₂,ih] },
+                { have h₁ := Lower_cons_ne f e p h h',
+                    have h₂ := Lower_cons_ne f e (Walk.append p q hpq) h h',
+                    simpa [h₁,h₂,ih] } }
         end
 
         lemma lower_nil (f : V → V') (x y : V) (p : walk G x y) (hp : ∀ (z : V), z ∈ p.support → f z = f y) :
