@@ -204,7 +204,10 @@ lemma pull_Walk_a : (pull_Walk f hf p' x y hx hy).a = x :=
 (pull_Walk_aux f hf p' x y hx hy).prop.1
 
 lemma pull_Walk_b : (pull_Walk f hf p' x y hx hy).b = y :=
-(pull_Walk_aux f hf p' x y hx hy).prop.2
+(pull_Walk_aux f hf p' x y hx hy).prop.2.1
+
+lemma pull_Walk_push : push_Walk f (pull_Walk f hf p' x y hx hy) = p' :=
+(pull_Walk_aux f hf p' x y hx hy).prop.2.2
 
 end Walk
 
