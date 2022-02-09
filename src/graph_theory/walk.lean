@@ -1,129 +1,139 @@
-import combinatorics.simple_graph.connectivity data.finset data.setoid.basic
-import graph_theory.contraction graph_theory.pushforward graph_theory.basic graph_theory.walk
-open finset classical function
+import tactic combinatorics.simple_graph.connectivity
+import graph_theory.basic graph_theory.path graph_theory.pushforward
+open classical function
 open_locale classical
 
-variables {V V' : Type} {a : V} {G : simple_graph V}
-
 namespace simple_graph
-    namespace menger
-        variables  [fintype V] [fintype V'] {A B X : finset V}
+variables {V V' : Type} [decidable_eq V] [decidable_eq V'] {f : V → V'}
+variables {G : simple_graph V} {x y z u v w a b c : V}
 
-        structure AB_path (G : simple_graph V) (A B : finset V) :=
-            (p : Walk G) (ha : p.a ∈ A) (hb : p.b ∈ B)
+@[ext] structure Walk (G : simple_graph V) := {a b : V} (p : G.walk a b)
 
-        def separates (G : simple_graph V) (A B : finset V) (X : finset V) : Prop :=
-        ∀ γ : AB_path G A B, ∃ z : V, z ∈ X ∧ z ∈ γ.p.p.support
+namespace Walk
+variables {e : G.step} {p q : G.Walk} {hep : e.y = p.a} {hpq : p.b = q.a}
 
-        lemma separates_self : separates G A B A :=
-        λ γ, ⟨γ.p.a, ⟨γ.ha, γ.p.p.start_mem_support⟩⟩
+def nil (a : V) : G.Walk := ⟨(walk.nil : G.walk a a)⟩
 
-        def is_cut_set_size (G : simple_graph V) (A B : finset V) (n : ℕ) : Prop :=
-        ∃ X : finset V, X.card = n ∧ separates G A B X
+def cons (e : G.step) (p : G.Walk) (h : e.y = p.a) : G.Walk :=
+by { let h' := e.h, rw h at h', exact ⟨p.p.cons h'⟩ }
 
-        noncomputable def min_cut' (G : simple_graph V) (A B : finset V) :
-            {n : ℕ // (is_cut_set_size G A B n) ∧ (∀ m < n, ¬is_cut_set_size G A B m) } :=
-        begin
-            let n := @nat.find (is_cut_set_size G A B) _ ⟨A.card,⟨A,rfl,separates_self⟩⟩,
-            have p₁ := @nat.find_spec (is_cut_set_size G A B) _ ⟨A.card,⟨A,rfl,separates_self⟩⟩,
-            have p₂ := λ m, @nat.find_eq_iff m (is_cut_set_size G A B) _ ⟨A.card,⟨A,rfl,separates_self⟩⟩,
-            exact ⟨n, p₁, ((p₂ n).mp rfl).2⟩
-        end
+def step (e : G.step) : G.Walk := cons e (nil e.y) rfl
 
-        noncomputable def min_cut (G : simple_graph V) (A B : finset V) : ℕ :=
-        (min_cut' G A B).val
+def rec₀ (motive : G.Walk → Sort*) :
+  (Π u, motive (Walk.nil u)) →
+  (Π e p h, motive p → motive (cons e p h)) →
+  Π p, motive p :=
+begin
+  rintros h_nil h_cons ⟨a,b,p⟩, induction p with a a b c adj p ih,
+  { exact h_nil a },
+  { exact h_cons ⟨adj⟩ ⟨p⟩ rfl ih }
+end
 
-        noncomputable lemma min_cut_set (G : simple_graph V) (A B : finset V) :
-            {X : finset V // X.card = min_cut G A B ∧ separates G A B X} :=
-        ⟨_,some_spec (min_cut' G A B).prop.1⟩
+@[simp] lemma rec_nil {motive h_nil h_cons} :
+  @rec₀ V _ G motive h_nil h_cons (nil a) = h_nil a := rfl
 
-        variables {P : finset (AB_path G A B)}
+@[simp] lemma rec_cons {motive h_nil h_cons h} :
+  @rec₀ V _ G motive h_nil h_cons (cons e p h) = h_cons e p h (rec₀ motive h_nil h_cons p) :=
+begin
+  rcases e with ⟨u,v,e⟩, rcases p with ⟨a,b,p⟩, simp at h, subst v, refl
+end
 
-        def pairwise_disjoint : finset (AB_path G A B) → Prop :=
-        λ P, ∀ ⦃γ₁ γ₂ : P⦄ {z : V}, z ∈ γ₁.val.p.p.support → z ∈ γ₂.val.p.p.support → γ₁ = γ₂
+@[simp] lemma cons_a : (cons e p hep).a = e.x := rfl
 
-        lemma path_le_cut {dis : pairwise_disjoint P} {sep : separates G A B X} : P.card ≤ X.card :=
-        begin
-            let φ : Π γ : P, {z : V // z ∈ X ∧ z ∈ γ.val.p.p.support} :=
-                λ γ, subtype_of_exists (sep γ),
-            let ψ : P → X := λ γ, ⟨φ γ, (φ γ).prop.1⟩,
-            have h₁ : ∀ γ, (ψ γ).val ∈ γ.val.p.p.support := λ γ, (φ γ).prop.2,
-            have ψ_inj : injective ψ := λ i j h, dis (h₁ i) (by { rw h, exact h₁ j }),
-            have := fintype.card_le_of_injective ψ ψ_inj,
-            simp_rw [←fintype.card_coe], convert this,
-        end
+@[simp] lemma cons_b : (cons e p hep).b = p.b := rfl
 
-        lemma upper_bound (dis : pairwise_disjoint P) : P.card ≤ min_cut G A B :=
-        begin
-            rw [min_cut], obtain ⟨n,h₁,h₂⟩ := min_cut' G A B, obtain ⟨X,rfl,h₄⟩ := h₁,
-            refine path_le_cut, exact dis, exact h₄
-        end
+lemma cons_p : (cons e p hep).p = by { let h' := e.h, rw hep at h', exact p.p.cons h' } := rfl
 
-        lemma bot_iff_no_edge : fintype.card G.step = 0 ↔ G = ⊥ :=
-        begin
-            split; intro h,
-            { ext x y, simp, intro h₁, exact is_empty_iff.mp (fintype.card_eq_zero_iff.mp h) ⟨h₁⟩ },
-            { rw h, exact fintype.card_eq_zero_iff.mpr (is_empty_iff.mpr step.h), }
-        end
+def append_aux (p q : G.Walk) (hpq : p.b = q.a) : {w : G.Walk // w.a = p.a ∧ w.b = q.b} :=
+begin
+  rcases p with ⟨a,b,p⟩, rcases q with ⟨c,d,q⟩, simp only at hpq, subst c,
+  refine ⟨⟨p ++ q⟩, rfl, rfl⟩,
+end
 
-        lemma bot_separates_iff : separates ⊥ A B X ↔ (A ∩ B) ⊆ X :=
-        begin
-            split; intro h,
-            { rintros z hz, simp at hz,
-                let γ : AB_path ⊥ A B := ⟨⟨walk.nil⟩, hz.1, hz.2⟩,
-                rcases (h γ) with ⟨x,h₁,h₂⟩, simp at h₂, subst x, exact h₁ },
-            { rintro ⟨⟨a,b,γ⟩,ha,hb⟩, cases γ, swap, change false at γ_h, contradiction,
-                simp, apply mem_of_subset h, simp, exact ⟨ha,hb⟩ }
-        end
+def append_aux' (p q : G.Walk) (hpq : p.b = q.a) : {w : G.Walk // w.a = p.a ∧ w.b = q.b} :=
+begin
+  revert p, refine rec₀ _ _ _,
+  { intros, refine ⟨q,_,rfl⟩, rw ← hpq, refl },
+  { intros e p hep ih h', rcases (ih h') with ⟨p',hp'₁,hp'₂⟩,
+    exact ⟨cons e p' (hep.trans hp'₁.symm), rfl, hp'₂⟩ }
+end
 
-        lemma bot_min_cut : min_cut ⊥ A B = (A ∩ B).card :=
-        begin
-            apply (nat.find_eq_iff _).mpr, simp [bot_separates_iff], split,
-            { use A ∩ B, exact ⟨rfl,subset.rfl⟩ },
-            { rintros n h₁ X rfl h₂, have := finset.card_le_of_subset h₂, linarith }
-        end
+def append (p q : G.Walk) (hpq : p.b = q.a) : G.Walk :=
+(append_aux p q hpq).val
 
-        noncomputable def bot_path_set (A B : finset V) : {P : finset (AB_path ⊥ A B) //
-                                                            pairwise_disjoint P ∧ P.card = (A ∩ B).card} :=
-        begin
-            let φ : A ∩ B → AB_path ⊥ A B := by { intro z,
-                have h' : z.val ∈ A ∧ z.val ∈ B := mem_inter.mp z.property,
-                exact ⟨⟨walk.nil⟩,h'.1,h'.2⟩ },
-            have φ_inj : injective φ := λ _ _ h, by { simp only [φ] at h, ext, exact h.1 },
+@[simp] lemma append_a : (append p q hpq).a = p.a :=
+(append_aux p q hpq).prop.1
 
-            refine ⟨image φ univ, _, _⟩,
-            {
-                rintro ⟨⟨⟨a₁,b₁,γ₁⟩,h₁,h₂⟩,h₃⟩, cases γ₁, swap, change false at γ₁_h, contradiction,
-                rintro ⟨⟨⟨a₂,b₂,γ₂⟩,h₄,h₅⟩,h₆⟩, cases γ₂, swap, change false at γ₂_h, contradiction,
-                simp only [walk.support_nil, list.mem_singleton, subtype.mk_eq_mk, and_self_left, forall_eq],
-                intro a₁a₂, subst a₁a₂, simp only [eq_self_iff_true, heq_iff_eq, and_self]
-            },
-            {
-                rw [card_image_of_injective univ φ_inj, finset.card_univ],
-                convert fintype.card_of_finset (A ∩ B) _,
-                intro z, simp, split,
-                { rintros ⟨h₁,h₂⟩, exact set.mem_sep h₁ h₂ },
-                { rintros h₁, exact h₁ }
-            }
-        end
+@[simp] lemma append_b : (append p q hpq).b = q.b :=
+(append_aux p q hpq).prop.2
 
-        def proj (G : simple_graph V) (e : step G) (A : finset V) : set (G/e).vertices
-        := λ z, ite (z = e.x) (e.x ∈ A ∨ e.y ∈ A) (z ∈ A)
+@[simp] lemma append_nil_left {haq : a = q.a} : append (nil a) q haq = q :=
+by { subst haq, rcases q with ⟨a,b,q⟩, refl }
 
-        variables {f : V → V'} {p : G.Walk}
+@[simp] lemma append_cons :
+  append (cons e p hep) q hpq = cons e (append p q hpq) (by simp [hep]) :=
+begin
+  rcases e with ⟨u,v,e⟩, rcases p with ⟨a,b,p⟩, rcases q with ⟨c,d,q⟩,
+  simp at hep hpq, substs a b, refl
+end
 
-        lemma lower_append (f : V → V') (x y z : V) (p₁ : G.walk x y) (p₂ : G.walk y z) :
-            lower f x z (p₁ ++ p₂) = lower f x y p₁ ++ lower f y z p₂ :=
-        begin
-            induction p₁ with a a b c h₁ p ih, refl,
-            by_cases f a = f b,
-            {
-                have h₂ := lower_cons_eq f a b z h h₁ (p++p₂),
-                simp, apply heq_iff_eq.mp, refine h₂.trans _, rw ih p₂,
-                have h₃ := lower_cons_eq f a b c h h₁ p,
-                sorry },
-            { sorry }
-        end
+def push_step_aux (f : V → V') (e : G.step) :
+  {w : (push f G).Walk // w.a = f e.x ∧ w.b = f e.y} :=
+begin
+  by_cases f e.x = f e.y,
+  refine ⟨Walk.nil (f e.x), rfl, h⟩,
+  refine ⟨Walk.step ⟨⟨h,e.x,e.y,rfl,rfl,e.h⟩⟩, rfl, rfl⟩
+end
+
+def push_step (f : V → V') (e : G.step) : (push f G).Walk :=
+(push_step_aux f e).val
+
+@[simp] lemma push_step_a : (push_step f e).a = f e.x :=
+(push_step_aux f e).prop.1
+
+@[simp] lemma push_step_b : (push_step f e).b = f e.y :=
+(push_step_aux f e).prop.2
+
+def push_Walk_aux (f : V → V') (p : G.Walk) :
+  {w : (push f G).Walk // w.a = f p.a ∧ w.b = f p.b} :=
+begin
+  refine rec₀ _ _ _ p,
+  { intro u, exact ⟨Walk.nil (f u), rfl, rfl⟩ },
+  { intros e p h q, simp only [cons_a, cons_b],
+    let ee := push_step f e,
+    let ww := ee.append q.1 (by { rw [q.2.1,←h], exact push_step_b }),
+    refine ⟨ww, _, _⟩, simp,
+    rw [←q.2.2], exact (ee.append_aux q.1 (by { rw [q.2.1,←h], exact push_step_b })).2.2 }
+end
+
+def push_Walk (f : V → V') (p : G.Walk) : (push f G).Walk :=
+(push_Walk_aux f p).val
+
+@[simp] lemma push_Walk_a : (push_Walk f p).a = f p.a :=
+ (push_Walk_aux f p).prop.1
+
+@[simp] lemma push_Walk_b : (push_Walk f p).b = f p.b :=
+ (push_Walk_aux f p).prop.2
+
+@[simp] lemma push_nil : push_Walk f (@Walk.nil _ _ G a) = Walk.nil (f a) := rfl
+
+lemma push_cons (f : V → V') (e : G.step) (p : G.Walk) (h : e.y = p.a) :
+  push_Walk f (p.cons e h) = Walk.append (push_step f e) (push_Walk f p) (by simp [h]) :=
+by { rcases p with ⟨a,b,p⟩, rcases e with ⟨u,v,e⟩, simp at h, subst a, refl }
+
+lemma push_cons_eq (f : V → V') (e : G.step) (p : G.Walk) (h : e.y = p.a) (h' : f e.x = f e.y) :
+  push_Walk f (p.cons e h) = push_Walk f p :=
+begin
+  have : push_step f e = Walk.nil (f e.x) := by simp [push_step,push_step_aux,h'],
+  rw [push_cons], simp only [this], exact append_nil_left
+end
+
+lemma push_cons_ne (f : V → V') (e : G.step) (p : G.Walk) (h : e.y = p.a) (h' : f e.x ≠ f e.y) :
+  push_Walk f (p.cons e h) = Walk.cons ⟨⟨h',e.x,e.y,rfl,rfl,e.h⟩⟩ (push_Walk f p) (by simp [h]) :=
+begin
+  have : push_step f e = Walk.step ⟨⟨h',e.x,e.y,rfl,rfl,e.h⟩⟩ := by simp [push_step,push_step_aux,h'],
+  rw [push_cons], simp [this,step]
+end
 
         lemma Lower_append (f : V → V') (p q : G.Walk) (hpq : p.b = q.a) :
             Lower f (Walk.append p q hpq) = Walk.append (Lower f p) (Lower f q) (by simp [hpq]) :=
