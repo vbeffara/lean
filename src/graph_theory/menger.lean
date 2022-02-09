@@ -16,13 +16,26 @@ namespace simple_graph
         def cons (e : G.step) (p : G.Walk) (h : e.y = p.a) : G.Walk :=
         by { let h' := e.h, rw h at h', exact ⟨p.p.cons h'⟩ }
 
-        lemma rec' ⦃P : G.Walk → Prop⦄ (h_nil : ∀ {a}, P (nil a))
-            (h_cons : ∀ e p h, P p → P (cons e p h)) : ∀ p, P p :=
+        def rec₀ {motive : G.Walk → Sort*} :
+            (Π {u}, motive (Walk.nil u)) →
+            (Π e p h, motive p → motive (cons e p h)) →
+            Π p, motive p :=
         begin
-            rintro ⟨a,b,p⟩, induction p with a a b c adj p ih,
+            rintros h_nil h_cons ⟨a,b,p⟩, induction p with a a b c adj p ih,
             { exact h_nil },
             { exact h_cons ⟨adj⟩ ⟨p⟩ rfl ih }
         end
+
+        lemma rec' {P : G.Walk → Prop} :
+            (∀ {a}, P (nil a)) →
+            (∀ e p h, P p → P (cons e p h)) →
+            ∀ p, P p := rec₀
+
+        def rec'' {α : Type} :
+            (V → α) →
+            (Π (e : G.step) (p : G.Walk) (h : e.y = p.a), α → α) →
+            G.Walk → α :=
+        @rec₀ _ _ (λ _, α)
 
         @[simp] lemma cons_a : (cons e p hep).a = e.x := rfl
         @[simp] lemma cons_b : (cons e p hep).b = p.b := rfl
@@ -34,7 +47,11 @@ namespace simple_graph
         @[simp] lemma append_a : (append p q hpq).a = p.a := rfl
         @[simp] lemma append_b : (append p q hpq).b = q.b := rfl
         lemma append_p : (append p q hpq).p = by { let p' := p.p, rw hpq at p', exact p' ++ q.p } := rfl
-        @[simp] lemma append_nil_left {haq : a = q.a} : append (nil a) q haq = q := sorry
+
+        @[simp] lemma append_nil_left {haq : a = q.a} : append (nil a) q haq = q :=
+        begin
+            sorry
+        end
 
         @[simp] lemma append_cons : append (cons e p hep) q hpq = cons e (append p q hpq) hep := sorry
     end Walk
