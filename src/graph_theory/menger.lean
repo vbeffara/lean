@@ -9,7 +9,7 @@ namespace simple_graph
     namespace menger
         variables  [fintype V] [fintype V'] {A B X : finset V}
 
-        structure AB_path (G : simple_graph V) (A B : finset V) :=
+        @[ext] structure AB_path (G : simple_graph V) (A B : finset V) :=
             (p : Walk G) (ha : p.a ∈ A) (hb : p.b ∈ B)
 
         def separates (G : simple_graph V) (A B : finset V) (X : finset V) : Prop :=
@@ -107,6 +107,8 @@ namespace simple_graph
             }
         end
 
+        variables {f : V → V'} {hf : adapted' f G}
+
         noncomputable def AB_lift (f : V → V') (hf : adapted' f G) (A B : finset V) :
             AB_path (push f G) (A.image f) (B.image f) → AB_path G A B :=
         begin
@@ -120,13 +122,19 @@ namespace simple_graph
             rw ←γ.2.1 at h₂, rw ←γ.2.2.1 at h₅, refine ⟨γ,h₂,h₅⟩,
         end
 
-        lemma AB_lift_inj {f : V → V'} {hf : adapted' f G} : injective (AB_lift f hf A B) :=
+        noncomputable def AB_push (f : V → V') (A B : finset V) :
+            AB_path G A B → AB_path (push f G) (A.image f) (B.image f) :=
         begin
-            intros γ₁ γ₂ h, rcases γ₁ with ⟨γ₁,h₁,h₂⟩, rcases γ₂ with ⟨γ₂,h₃,h₄⟩, simp,
-            rw ← @Walk.pull_Walk_push V V' _ _ f G _ _ hf γ₁ _ _,
-            rw ← @Walk.pull_Walk_push V V' _ _ f G _ _ hf γ₂ _ _,
-            exact congr_arg (Walk.push_Walk f) (congr_arg AB_path.p h),
+            rintro ⟨p,ha,hb⟩, refine ⟨Walk.push_Walk f p, _, _⟩,
+            rw Walk.push_Walk_a, exact mem_image_of_mem f ha,
+            rw Walk.push_Walk_b, exact mem_image_of_mem f hb,
         end
+
+        lemma AB_push_lift : left_inverse (AB_push f A B) (AB_lift f hf A B) :=
+        by { rintro ⟨p,ha,hb⟩, simp [AB_lift,AB_push], exact Walk.pull_Walk_push, }
+
+        lemma AB_lift_inj : injective (AB_lift f hf A B) :=
+        left_inverse.injective AB_push_lift
 
         lemma lower_bound_aux (n : ℕ) : ∀ (G : simple_graph V), fintype.card G.step = n →
             ∀ A B : finset V, ∃ P : finset (AB_path G A B), pairwise_disjoint P ∧ P.card = min_cut G A B :=
