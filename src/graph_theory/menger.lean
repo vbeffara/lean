@@ -195,9 +195,11 @@ namespace simple_graph
                 rw ← h₁₀, exact h₇ P₁ h₉ },
             obtain ⟨Y,h₁₄,h₁₅⟩ := min_cut_set G₁ A₁ B₁,
             have h₁₆ : Y.card < min_cut G A B := by { rw h₁₄, exact h₁₂ },
+
             -- Among these must be the vertex ve, since otherwise Y ⊆ V
             -- would be an AB separator in G.
             have h₁₇ : e.x ∈ Y := by { by_contradiction, sorry },
+
             -- Then X := (Y-ve)∪{x,y} is an AB separator in G of exactly k
             -- vertices.
             let X := Y ∪ {e.y},
@@ -226,9 +228,7 @@ namespace simple_graph
             have h₂₄ : ∃ P₂ : finset (AB_path G₂ A X), pairwise_disjoint P₂ ∧ P₂.card = min_cut G A B := sorry,
 
             -- As X separates A from B, these two path systems do not meet
-            -- outside X
-
-            -- and can thus be combined to k disjoint AB paths.
+            -- outside X and can thus be combined to k disjoint AB paths.
             sorry
         end
 
