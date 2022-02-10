@@ -125,9 +125,9 @@ namespace simple_graph
         noncomputable def AB_push (f : V → V') (A B : finset V) :
             AB_path G A B → AB_path (push f G) (A.image f) (B.image f) :=
         begin
-            rintro ⟨p,ha,hb⟩, refine ⟨Walk.push_Walk f p, _, _⟩,
-            rw Walk.push_Walk_a, exact mem_image_of_mem f ha,
-            rw Walk.push_Walk_b, exact mem_image_of_mem f hb,
+            intro p, refine ⟨Walk.push_Walk f p.p, _, _⟩,
+            rw Walk.push_Walk_a, exact mem_image_of_mem f p.ha,
+            rw Walk.push_Walk_b, exact mem_image_of_mem f p.hb,
         end
 
         lemma AB_push_lift : left_inverse (AB_push f A B) (AB_lift f hf A B) :=
@@ -135,6 +135,24 @@ namespace simple_graph
 
         lemma AB_lift_inj : injective (AB_lift f hf A B) :=
         left_inverse.injective AB_push_lift
+
+        lemma AB_lift_dis (P' : finset (AB_path (push f G) (A.image f) (B.image f))) :
+            pairwise_disjoint P' → pairwise_disjoint (P'.image (AB_lift f hf A B)) :=
+        begin
+            contrapose, rw pairwise_disjoint, rw pairwise_disjoint, simp,
+            rintros ⟨p₁,hp₁⟩ ⟨p₂,hp₂⟩ x hx₁ hx₂,
+            contrapose, simp, intro dis,
+            have h₁ := finset.mem_image.mp hp₁, have h₂ := finset.mem_image.mp hp₂,
+            set p'₁ := some h₁ with dp'₁, have hp'₁ := some_spec h₁, rw ← dp'₁ at hp'₁,
+            set p'₂ := some h₂ with dp'₂, have hp'₂ := some_spec h₂, rw ← dp'₂ at hp'₂,
+            cases hp'₁ with hp'₁ hp''₁, cases hp'₂ with hp'₂ hp''₂,
+            have h₃ := congr_arg (AB_push f A B) hp''₁, rw AB_push_lift at h₃,
+            have h₄ := congr_arg (AB_push f A B) hp''₂, rw AB_push_lift at h₄,
+            have h₅ : f x ∈ p'₁.p.p.support := by { rw [h₃,AB_push], exact Walk.push_support hx₁ },
+            have h₆ : f x ∈ p'₂.p.p.support := by { rw [h₄,AB_push], exact Walk.push_support hx₂ },
+            specialize dis ⟨p'₁,hp'₁⟩ ⟨p'₂,hp'₂⟩ (f x) h₅ h₆, simp at dis,
+            rw [←hp''₁, ←hp''₂, dis]
+        end
 
         lemma lower_bound_aux (n : ℕ) : ∀ (G : simple_graph V), fintype.card G.step = n →
             ∀ A B : finset V, ∃ P : finset (AB_path G A B), pairwise_disjoint P ∧ P.card = min_cut G A B :=
@@ -164,7 +182,7 @@ namespace simple_graph
 
             let Φ : AB_path G₁ A₁ B₁ → AB_path G A B := AB_lift _ merge_edge_adapted A B,
             have Φ_inj : injective Φ := AB_lift_inj,
-            have Φ_nip : ∀ {P}, pairwise_disjoint P → pairwise_disjoint (image Φ P) := sorry,
+            have Φ_nip : ∀ {P}, pairwise_disjoint P → pairwise_disjoint (image Φ P) := AB_lift_dis,
 
             have h₇ : ∀ (P₁ : finset (AB_path G₁ A₁ B₁)), pairwise_disjoint P₁ → P₁.card < min_cut G A B :=
                 by { intros P₁ h₈, rw ← finset.card_image_of_injective P₁ Φ_inj, exact h₆ (Φ_nip h₈) },
