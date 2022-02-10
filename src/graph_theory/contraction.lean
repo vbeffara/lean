@@ -12,6 +12,24 @@ namespace simple_graph
     def adapted' (f : V → V') (G : simple_graph V) : Prop :=
         ∀ (x y : V), f x = f y → ∃ p : walk G x y, ∀ z ∈ p.support, f z = f y
 
+    lemma merge_edge_adapted [decidable_eq V] {e : G.step} : adapted' (merge_edge e) G :=
+    begin
+        intros x y hxy, rcases e with ⟨u,v,e⟩, have : u ≠ v := G.ne_of_adj e,
+        have l₁ : ∀ {z}, z = u ∨ z = v → merge_edge ⟨e⟩ z = u :=
+            by { intros z hz, cases hz; simp [merge_edge,hz] },
+        have l₂ : ∀ {z}, ¬(z = u ∨ z = v) → merge_edge ⟨e⟩ z = z :=
+            by { simp [merge_edge], intros z hz h', simp [h'] at hz, contradiction },
+        by_cases hx : x = u ∨ x = v; by_cases hy : y = u ∨ y = v,
+        { cases hx; cases hy; substs x y,
+            { use walk.nil, intros z hz, simp at hz, rw hz },
+            { use walk.nil.cons e, intros z hz, simp at hz, cases hz; subst hz, exact hxy },
+            { use walk.nil.cons e.symm, intros z hz, simp at hz, cases hz; subst hz, exact hxy },
+            { use walk.nil, intros z hz, simp at hz, rw hz } },
+        { rw [l₁ hx, l₂ hy] at hxy, subst hxy, simp at hy, contradiction },
+        { rw [l₁ hy, l₂ hx] at hxy, subst hxy, simp at hx, contradiction },
+        { rw [l₂ hx, l₂ hy] at hxy, subst y, use walk.nil, intros z hz, simp at hz, rw hz }
+    end
+
     namespace adapted
         lemma of_injective : injective f → adapted f G :=
         by { rintros hf z ⟨x,hx⟩ ⟨y,rfl⟩, have := hf hx, subst this }

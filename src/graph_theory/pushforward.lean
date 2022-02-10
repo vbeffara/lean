@@ -142,6 +142,10 @@ namespace simple_graph
     def merge_edge [decidable_eq V] {G : simple_graph V} (e : step G) : V → V :=
     λ z, ite (z = e.y) e.x z
 
+    lemma merge_edge_idempotent [decidable_eq V] {G : simple_graph V} {e : step G} (z : V) :
+        merge_edge e (merge_edge e z) = merge_edge e z :=
+    by { by_cases z = e.y; simp [merge_edge,h] }
+
     def contract_edge (G : simple_graph V) [decidable_eq V] (e : step G) :=
     G.push (merge_edge e)
 

@@ -107,8 +107,18 @@ namespace simple_graph
             }
         end
 
-        def proj (G : simple_graph V) (e : step G) (A : finset V) : set (G/e).vertices
-        := λ z, ite (z = e.x) (e.x ∈ A ∨ e.y ∈ A) (z ∈ A)
+        noncomputable def AB_lift (f : V → V') (hf : adapted' f G) :
+            AB_path (push f G) (A.image f) (B.image f) → AB_path G A B :=
+        begin
+            rintro ⟨p,ha,hb⟩,
+            have hfa := finset.mem_image.mp ha, have hfb := finset.mem_image.mp hb,
+            set a := some hfa with haa, have h'a := some_spec hfa, rw ←haa at h'a,
+            set b := some hfb with hbb, have h'b := some_spec hfb, rw ←hbb at h'b,
+            set h₂ := some h'a, set h₃ := some_spec h'a,
+            set h₅ := some h'b, set h₆ := some_spec h'b,
+            let γ := Walk.pull_Walk_aux f hf p a b h₃ h₆,
+            rw ←γ.2.1 at h₂, rw ←γ.2.2.1 at h₅, refine ⟨γ,h₂,h₅⟩,
+        end
 
         lemma lower_bound_aux (n : ℕ) : ∀ (G : simple_graph V), fintype.card G.step = n →
             ∀ A B : finset V, ∃ P : finset (AB_path G A B), pairwise_disjoint P ∧ P.card = min_cut G A B :=
@@ -133,10 +143,10 @@ namespace simple_graph
             -- ve as an element of A (resp.B) in G/e if in G at least one of
             -- x,y lies in A (resp.B)
             let G₁ := G/e,
-            let A₁ : finset G₁.vertices := set.to_finset (proj G e A),
-            let B₁ : finset G₁.vertices := set.to_finset (proj G e B),
+            let A₁ : finset G₁.vertices := finset.image (merge_edge e) A,
+            let B₁ : finset G₁.vertices := finset.image (merge_edge e) B,
 
-            let Φ : AB_path G₁ A₁ B₁ → AB_path G A B := sorry,
+            let Φ : AB_path G₁ A₁ B₁ → AB_path G A B := AB_lift _ merge_edge_adapted,
             have Φ_inj : injective Φ := sorry,
             have Φ_nip : ∀ {P}, pairwise_disjoint P → pairwise_disjoint (image Φ P) := sorry,
 

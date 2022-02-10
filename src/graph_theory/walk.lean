@@ -151,10 +151,10 @@ begin
   intros e p h ih hpq, by_cases h' : f e.x = f e.y,
   { have h₁ := push_cons_eq f e p h h',
     have h₂ := push_cons_eq f e (Walk.append p q hpq) (h.trans append_a.symm) h',
-      simp [h₁,h₂,ih] },
+      simp only [h₁, h₂, ih, append_cons] },
   { have h₁ := push_cons_ne f e p h h',
     have h₂ := push_cons_ne f e (Walk.append p q hpq) (h.trans append_a.symm) h',
-      simpa [h₁,h₂,ih] }
+      simpa only [h₁, h₂, ih, append_cons] }
 end
 
 lemma push_eq_nil (f : V → V') (w : V') (p : G.Walk) (hp : ∀ (z : V), z ∈ p.p.support → f z = w) :
