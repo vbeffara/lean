@@ -57,14 +57,6 @@ begin
   refine ⟨⟨p ++ q⟩, rfl, rfl⟩,
 end
 
-def append_aux' (p q : G.Walk) (hpq : p.b = q.a) : {w : G.Walk // w.a = p.a ∧ w.b = q.b} :=
-begin
-  revert p, refine rec₀ _ _ _,
-  { intros, refine ⟨q,_,rfl⟩, rw ← hpq, refl },
-  { intros e p hep ih h', rcases (ih h') with ⟨p',hp'₁,hp'₂⟩,
-    exact ⟨cons e p' (hep.trans hp'₁.symm), rfl, hp'₂⟩ }
-end
-
 def append (p q : G.Walk) (hpq : p.b = q.a) : G.Walk :=
 (append_aux p q hpq).val
 
@@ -82,6 +74,12 @@ by { subst haq, rcases q with ⟨a,b,q⟩, refl }
 begin
   rcases e with ⟨u,v,e⟩, rcases p with ⟨a,b,p⟩, rcases q with ⟨c,d,q⟩,
   simp at hep hpq, substs a b, refl
+end
+
+lemma mem_append : z ∈ (append p q hpq).p.support ↔ z ∈ p.p.support ∨ z ∈ q.p.support :=
+begin
+  rcases p with ⟨a,b,p⟩, rcases q with ⟨d,c,q⟩, simp at hpq, subst d,
+  rw [append, append_aux], simp only [walk.mem_support_append_iff]
 end
 
 def push_step_aux (f : V → V') (e : G.step) :
@@ -167,6 +165,17 @@ begin
     have h₂ : f e.y = w := by { apply hp, right, rw h, exact p.p.start_mem_support },
     rw push_cons_eq f e p h (h₁.trans h₂.symm),
     apply ih, intros z hz, apply hp, right, exact hz }
+end
+
+lemma push_support : z ∈ p.p.support → f z ∈ (push_Walk f p).p.support :=
+begin
+  refine rec₀ _ _ _ p,
+  { intros z hz, rw nil at hz, simp at hz, simp [nil,hz] },
+  { intros e p h ih z, cases e, cases p, rw cons at z, simp at z, cases z,
+    { subst z,
+      have : (push_Walk f (cons ⟨e_h⟩ ⟨p_p⟩ h)).a = f e_x := by simp [push_Walk_a],
+      rw ← this, apply walk.start_mem_support },
+    { specialize ih z_1, rw Walk.push_cons, rw mem_append, right, exact ih } }
 end
 
 variables {hf : adapted' f G} {p' : (push f G).Walk} {hx : f x = p'.a} {hy : f y = p'.b}
