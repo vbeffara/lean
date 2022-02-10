@@ -107,7 +107,7 @@ namespace simple_graph
             }
         end
 
-        noncomputable def AB_lift (f : V → V') (hf : adapted' f G) :
+        noncomputable def AB_lift (f : V → V') (hf : adapted' f G) (A B : finset V) :
             AB_path (push f G) (A.image f) (B.image f) → AB_path G A B :=
         begin
             rintro ⟨p,ha,hb⟩,
@@ -118,6 +118,14 @@ namespace simple_graph
             set h₅ := some h'b, set h₆ := some_spec h'b,
             let γ := Walk.pull_Walk_aux f hf p a b h₃ h₆,
             rw ←γ.2.1 at h₂, rw ←γ.2.2.1 at h₅, refine ⟨γ,h₂,h₅⟩,
+        end
+
+        lemma AB_lift_inj {f : V → V'} {hf : adapted' f G} : injective (AB_lift f hf A B) :=
+        begin
+            intros γ₁ γ₂ h, rcases γ₁ with ⟨γ₁,h₁,h₂⟩, rcases γ₂ with ⟨γ₂,h₃,h₄⟩, simp,
+            rw ← @Walk.pull_Walk_push V V' _ _ f G _ _ hf γ₁ _ _,
+            rw ← @Walk.pull_Walk_push V V' _ _ f G _ _ hf γ₂ _ _,
+            exact congr_arg (Walk.push_Walk f) (congr_arg AB_path.p h),
         end
 
         lemma lower_bound_aux (n : ℕ) : ∀ (G : simple_graph V), fintype.card G.step = n →
@@ -146,8 +154,8 @@ namespace simple_graph
             let A₁ : finset G₁.vertices := finset.image (merge_edge e) A,
             let B₁ : finset G₁.vertices := finset.image (merge_edge e) B,
 
-            let Φ : AB_path G₁ A₁ B₁ → AB_path G A B := AB_lift _ merge_edge_adapted,
-            have Φ_inj : injective Φ := sorry,
+            let Φ : AB_path G₁ A₁ B₁ → AB_path G A B := AB_lift _ merge_edge_adapted A B,
+            have Φ_inj : injective Φ := AB_lift_inj,
             have Φ_nip : ∀ {P}, pairwise_disjoint P → pairwise_disjoint (image Φ P) := sorry,
 
             have h₇ : ∀ (P₁ : finset (AB_path G₁ A₁ B₁)), pairwise_disjoint P₁ → P₁.card < min_cut G A B :=
