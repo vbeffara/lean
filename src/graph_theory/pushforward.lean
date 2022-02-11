@@ -134,6 +134,40 @@ namespace simple_graph
 
         lemma le {φ : G →g G'} : push φ G ≤ G' :=
         by { rintros x' y' ⟨-,x,y,rfl,rfl,h₂⟩, exact φ.map_rel h₂ }
+
+        noncomputable def lift_step_aux (e' : (push f G).step) : {e : G.step // f e.x = e'.x ∧ f e.y = e'.y} :=
+        by { choose x y h₁ h₂ h₃ using e'.h.2, exact ⟨⟨h₃⟩,h₁,h₂⟩ }
+
+        noncomputable def lift_step (e' : (push f G).step) : G.step :=
+        (lift_step_aux e').val
+
+        @[simp] lemma lift_step_x {e' : (push f G).step} : f (lift_step e').x = e'.x := (lift_step_aux e').2.1
+
+        @[simp] lemma lift_step_y {e' : (push f G).step} : f (lift_step e').y = e'.y := (lift_step_aux e').2.2
+
+        lemma lift_step_inj : injective (lift_step : (push f G).step → G.step) :=
+        λ f₁ f₂ h, by { ext, rw [←lift_step_x, ←lift_step_x, h], rw [←lift_step_y, ←lift_step_y, h] }
+
+        lemma lift_step_ne_of_mem {e : G.step} : e ∈ set.range (lift_step : (push f G).step → G.step) → f e.x ≠ f e.y :=
+        begin
+            rintro ⟨e',h₄⟩,
+            rw [←h₄,@lift_step_x V V' f G e',@lift_step_y V V' f G e'],
+            exact (push f G).ne_of_adj e'.h
+        end
+
+        lemma lift_step_ne_mem {e : G.step} : f e.x = f e.y → e ∉ set.range (lift_step : (push f G).step → G.step) :=
+        begin
+            contrapose, push_neg, exact lift_step_ne_of_mem
+        end
+
+        by { -- TODO too pedestrian, should be general
+                        intro h, choose f h using h,
+                        have h₁ : merge_edge e (Φ f).x = f.x := push.lift_step_x,
+                        have h₂ : merge_edge e (Φ f).y = f.y := push.lift_step_y,
+                        rw congr_arg step.x h at h₁,
+                        rw congr_arg step.y h at h₂,
+                        simp [merge_edge] at h₁ h₂, rw h₁ at h₂,
+                        exact G₁.ne_of_adj f.h h₂ },
     end push
 
     def merge [decidable_eq V] (P : V → Prop) [decidable_pred P] : V → {z // ¬ (P z)} ⊕ unit :=

@@ -186,26 +186,8 @@ namespace simple_graph
             -- of fewer than k vertices.
             have h₁₂ : min_cut G₁ A₁ B₁ < min_cut G A B := by {
                 have h₈ : fintype.card G₁.step < fintype.card G.step := by {
-                    let Φ_aux : Π e' : G₁.step,
-                        { f : G.step // merge_edge e f.x = e'.x ∧ merge_edge e f.y = e'.y } :=
-                        λ e', by { choose x y h₁ h₂ h₃ using e'.h.2, exact ⟨⟨h₃⟩,h₁,h₂⟩ },
-                    let Φ : G₁.step → G.step := λ f, (Φ_aux f).val,
-                    have Φ_inj : injective Φ := by { -- TODO that should be a general def+lemma + use left_inverse
-                        rintros f₁ f₂ h, set e₁ := Φ_aux f₁, set e₂ := Φ_aux f₂,
-                        have h₁ : merge_edge e (Φ f₁).x = f₁.x := e₁.2.1,
-                        have h₂ : merge_edge e (Φ f₁).y = f₁.y := e₁.2.2,
-                        have h₃ : merge_edge e (Φ f₂).x = f₂.x := e₂.2.1,
-                        have h₄ : merge_edge e (Φ f₂).y = f₂.y := e₂.2.2,
-                        rw ←h at h₃ h₄, ext, exact h₁.symm.trans h₃, exact h₂.symm.trans h₄
-                    },
-                    have : e ∉ set.range Φ := by { -- TODO too pedestrian, should be general
-                        intro h, choose f h using h,
-                        have h₁ : merge_edge e (Φ f).x = f.x := (Φ_aux f).2.1,
-                        have h₂ : merge_edge e (Φ f).y = f.y := (Φ_aux f).2.2,
-                        rw congr_arg step.x h at h₁, rw congr_arg step.y h at h₂,
-                        simp [merge_edge] at h₁ h₂, rw h₁ at h₂,
-                        exact G₁.ne_of_adj f.h h₂ },
-                    exact fintype.card_lt_of_injective_of_not_mem Φ Φ_inj this
+                    refine fintype.card_lt_of_injective_of_not_mem _ push.lift_step_inj _,
+                    use e, exact push.lift_step_ne_mem (by {simp [merge_edge]})
                 },
                 specialize ih (fintype.card G₁.step) h₈ G₁ rfl A₁ B₁, rcases ih with ⟨P₁,h₉,h₁₀⟩,
                 rw ← h₁₀, exact h₇ P₁ h₉ },
@@ -226,8 +208,8 @@ namespace simple_graph
             -- We now consider the graph G−e.
             let Gₑ : simple_graph V := {
                 adj := λ x y, ((x = e.x ∧ y = e.y) ∨ (x = e.y ∧ y = e.x)),
-                symm := λ x y h, by { cases h, right, exact h_1.symm, left, exact h_1.symm },
-                loopless := λ x h, by { cases h; { cases h_1, subst x, apply G.ne_of_adj e.h, rw h_1_right } }
+                symm := λ x y h, by { cases h, right, exact h.symm, left, exact h.symm },
+                loopless := λ x h, by { cases h; { cases h, subst x, apply G.ne_of_adj e.h, rw h_right } }
             },
             let G₂ : simple_graph V := G \ Gₑ,
 
