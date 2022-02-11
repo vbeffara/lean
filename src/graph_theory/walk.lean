@@ -185,23 +185,18 @@ noncomputable def pull_Walk_aux (f : V → V') (hf : adapted' f G) (p' : (push f
   {w : G.Walk // w.a = x ∧ w.b = y ∧ push_Walk f w = p'} :=
 begin
   revert p' x y, refine rec₀ _ _ _,
-  { rintros u x y hx hy, simp at hx hy, subst hy,
-    have h₁ := hf x y hx, set p := some h₁ with hp, have h₃ := some_spec h₁, simp_rw ← hp at *,
-    refine ⟨⟨p⟩,rfl,rfl,_⟩,
-    apply push_eq_nil, exact h₃ },
-  { rintros e p h ih x y hx hy, simp at hx hy,
-    rcases e with ⟨u,v,⟨huv,ee⟩⟩, simp at hx h,
-    set xx := some ee with hxx, have h₁ := some_spec ee, simp_rw ← hxx at h₁,
-    set yy := some h₁ with hyy, have h₂ := some_spec h₁, simp_rw ← hyy at h₂,
-    rcases h₂ with ⟨h₂,h₃,h₄⟩,
-    have h₅ := hf x xx (hx.trans h₂.symm),
-    set p₁ := some h₅ with hp₁, have h₆ := some_spec h₅, simp_rw [←hp₁,h₂] at h₆,
+  { rintros u x y hx hy, simp at hx hy, subst hy, choose p h₃ using hf x y hx,
+    refine ⟨⟨p⟩,rfl,rfl,_⟩, apply push_eq_nil, exact h₃ },
+  { rintros ⟨u,v,⟨huv,ee⟩⟩ p h ih x y hx hy,
+    choose xx yy h₂ h₃ h₄ using ee, -- TODO `substs u v`
+    choose p₁ h₆ using hf x xx (hx.trans h₂.symm),
+    simp_rw [h₂] at h₆,
     obtain p₂ := ih yy y (h₃.trans h) hy,
     let pp := Walk.append ⟨p₁⟩ (p₂.val.cons ⟨h₄⟩ p₂.2.1.symm) rfl,
     refine ⟨pp, rfl, p₂.2.2.1, _⟩,
     have h₇ := push_eq_nil f u ⟨p₁⟩ h₆,
     simp [pp,push_append,h₇], rw [←h₂,←h₃] at huv,
-    have h₈ := push_cons_ne f ⟨h₄⟩ p₂.val p₂.2.1.symm huv, refine h₈.trans _, clear h₈,
+    have h₈ := push_cons_ne f ⟨h₄⟩ p₂.val p₂.2.1.symm huv, refine h₈.trans _,
     simp [h₂,h₃], congr, exact p₂.2.2.2 }
 end
 

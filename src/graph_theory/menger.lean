@@ -113,13 +113,10 @@ namespace simple_graph
             AB_path (push f G) (A.image f) (B.image f) → AB_path G A B :=
         begin
             rintro ⟨p,ha,hb⟩,
-            have hfa := finset.mem_image.mp ha, have hfb := finset.mem_image.mp hb,
-            set a := some hfa with haa, have h'a := some_spec hfa, rw ←haa at h'a,
-            set b := some hfb with hbb, have h'b := some_spec hfb, rw ←hbb at h'b,
-            set h₂ := some h'a, set h₃ := some_spec h'a,
-            set h₅ := some h'b, set h₆ := some_spec h'b,
+            choose a h₂ h₃ using finset.mem_image.mp ha,
+            choose b h₅ h₆ using finset.mem_image.mp hb,
             let γ := Walk.pull_Walk_aux f hf p a b h₃ h₆,
-            rw ←γ.2.1 at h₂, rw ←γ.2.2.1 at h₅, refine ⟨γ,h₂,h₅⟩,
+            rw ←γ.2.1 at h₂, rw ←γ.2.2.1 at h₅, exact ⟨γ,h₂,h₅⟩
         end
 
         noncomputable def AB_push (f : V → V') (A B : finset V) :
@@ -143,9 +140,7 @@ namespace simple_graph
             rintros ⟨p₁,hp₁⟩ ⟨p₂,hp₂⟩ x hx₁ hx₂,
             contrapose, simp, intro dis,
             have h₁ := finset.mem_image.mp hp₁, have h₂ := finset.mem_image.mp hp₂,
-            set p'₁ := some h₁ with dp'₁, have hp'₁ := some_spec h₁, rw ← dp'₁ at hp'₁,
-            set p'₂ := some h₂ with dp'₂, have hp'₂ := some_spec h₂, rw ← dp'₂ at hp'₂,
-            cases hp'₁ with hp'₁ hp''₁, cases hp'₂ with hp'₂ hp''₂,
+            choose p'₁ hp'₁ hp''₁ using h₁, choose p'₂ hp'₂ hp''₂ using h₂,
             have h₃ := congr_arg (AB_push f A B) hp''₁, rw AB_push_lift at h₃,
             have h₄ := congr_arg (AB_push f A B) hp''₂, rw AB_push_lift at h₄,
             have h₅ : f x ∈ p'₁.p.p.support := by { rw [h₃,AB_push], exact Walk.push_support hx₁ },
@@ -166,7 +161,7 @@ namespace simple_graph
 
             -- So we assume that G has an edge e = xy.
             rintros G rfl A B,
-            cases not_is_empty_iff.mp (h ∘ fintype.card_eq_zero_iff.mpr) with e,
+            cases not_is_empty_iff.mp (h ∘ fintype.card_eq_zero_iff.mpr) with e, clear h,
 
             -- If G has no k disjoint AB paths
             by_contradiction h₆, push_neg at h₆,
@@ -180,19 +175,41 @@ namespace simple_graph
             let A₁ : finset G₁.vertices := finset.image (merge_edge e) A,
             let B₁ : finset G₁.vertices := finset.image (merge_edge e) B,
 
-            let Φ : AB_path G₁ A₁ B₁ → AB_path G A B := AB_lift _ merge_edge_adapted A B,
-            have Φ_inj : injective Φ := AB_lift_inj,
-            have Φ_nip : ∀ {P}, pairwise_disjoint P → pairwise_disjoint (image Φ P) := AB_lift_dis,
-
             have h₇ : ∀ (P₁ : finset (AB_path G₁ A₁ B₁)), pairwise_disjoint P₁ → P₁.card < min_cut G A B :=
-                by { intros P₁ h₈, rw ← finset.card_image_of_injective P₁ Φ_inj, exact h₆ (Φ_nip h₈) },
+                by { intros P₁ h₈,
+                    let Φ : AB_path G₁ A₁ B₁ → AB_path G A B := AB_lift _ merge_edge_adapted A B,
+                    have Φ_nip : ∀ {P}, pairwise_disjoint P → pairwise_disjoint (image Φ P) := AB_lift_dis,
+                    rw ← finset.card_image_of_injective P₁ AB_lift_inj,
+                    exact h₆ (Φ_nip h₈) },
 
             -- By the induction hypothesis, G/e contains an AB separator Y
             -- of fewer than k vertices.
             have h₁₂ : min_cut G₁ A₁ B₁ < min_cut G A B := by {
-                have h₈ : fintype.card G₁.step < fintype.card G.step := by sorry,
+                have h₈ : fintype.card G₁.step < fintype.card G.step := by {
+                    let Φ_aux : Π e' : G₁.step,
+                        { f : G.step // merge_edge e f.x = e'.x ∧ merge_edge e f.y = e'.y } :=
+                        λ e', by { choose x y h₁ h₂ h₃ using e'.h.2, exact ⟨⟨h₃⟩,h₁,h₂⟩ },
+                    let Φ : G₁.step → G.step := λ f, (Φ_aux f).val,
+                    have Φ_inj : injective Φ := by { -- TODO that should be a general def+lemma + use left_inverse
+                        rintros f₁ f₂ h, set e₁ := Φ_aux f₁, set e₂ := Φ_aux f₂,
+                        have h₁ : merge_edge e (Φ f₁).x = f₁.x := e₁.2.1,
+                        have h₂ : merge_edge e (Φ f₁).y = f₁.y := e₁.2.2,
+                        have h₃ : merge_edge e (Φ f₂).x = f₂.x := e₂.2.1,
+                        have h₄ : merge_edge e (Φ f₂).y = f₂.y := e₂.2.2,
+                        rw ←h at h₃ h₄, ext, exact h₁.symm.trans h₃, exact h₂.symm.trans h₄
+                    },
+                    have : e ∉ set.range Φ := by { -- TODO too pedestrian, should be general
+                        intro h, choose f h using h,
+                        have h₁ : merge_edge e (Φ f).x = f.x := (Φ_aux f).2.1,
+                        have h₂ : merge_edge e (Φ f).y = f.y := (Φ_aux f).2.2,
+                        rw congr_arg step.x h at h₁, rw congr_arg step.y h at h₂,
+                        simp [merge_edge] at h₁ h₂, rw h₁ at h₂,
+                        exact G₁.ne_of_adj f.h h₂ },
+                    exact fintype.card_lt_of_injective_of_not_mem Φ Φ_inj this
+                },
                 specialize ih (fintype.card G₁.step) h₈ G₁ rfl A₁ B₁, rcases ih with ⟨P₁,h₉,h₁₀⟩,
                 rw ← h₁₀, exact h₇ P₁ h₉ },
+
             obtain ⟨Y,h₁₄,h₁₅⟩ := min_cut_set G₁ A₁ B₁,
             have h₁₆ : Y.card < min_cut G A B := by { rw h₁₄, exact h₁₂ },
 
@@ -213,11 +230,14 @@ namespace simple_graph
                 loopless := λ x h, by { cases h; { cases h_1, subst x, apply G.ne_of_adj e.h, rw h_1_right } }
             },
             let G₂ : simple_graph V := G \ Gₑ,
+
             -- Since x,y ∈ X, every AX separator in G−e is also an AB
             -- separator in G
             have h₂₀ : ∀ Z : finset V, separates G₂ A X Z → separates G A B Z := sorry,
+
             -- and hence contains at least k vertices
             have h₂₁ : ∀ Z : finset V, separates G₂ A X Z → min_cut G A B ≤ Z.card := sorry,
+
             -- So by induction there are k disjoint AX paths in G−e
             have h₂₂ : min_cut G₂ A X = min_cut G A B := sorry,
             have h₂₃ : ∃ P₂ : finset (AB_path G₂ A X), pairwise_disjoint P₂ ∧ P₂.card = min_cut G A B := by {
