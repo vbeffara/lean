@@ -51,6 +51,20 @@ end
 
 lemma cons_p : (cons e p hep).p = by { let h' := e.h, rw hep at h', exact p.p.cons h' } := rfl
 
+def range : G.Walk → finset V :=
+rec₀ _ (λ v, {v}) (λ e p h q, {e.x} ∪ q)
+
+@[simp] lemma range_a : (nil a : G.Walk).range = {a} := rfl
+
+@[simp] lemma range_cons : (cons e p hep).range = {e.x} ∪ p.range := rec_cons
+
+lemma range_eq_support : p.range = p.p.support.to_finset :=
+begin
+  refine rec₀ _ _ _ p,
+  { intro u, refl },
+  { intros e p h q, rw [range_cons,q], ext, simpa }
+end
+
 def append_aux (p q : G.Walk) (hpq : p.b = q.a) : {w : G.Walk // w.a = p.a ∧ w.b = q.b} :=
 begin
   rcases p with ⟨a,b,p⟩, rcases q with ⟨c,d,q⟩, simp only at hpq, subst c,
@@ -177,6 +191,8 @@ begin
       rw ← this, apply walk.start_mem_support },
     { specialize ih z_1, rw Walk.push_cons, rw mem_append, right, exact ih } }
 end
+
+lemma push_range : (push_Walk f p).range = finset.image f p.range := sorry
 
 variables {hf : adapted' f G} {p' : (push f G).Walk} {hx : f x = p'.a} {hy : f y = p'.b}
 

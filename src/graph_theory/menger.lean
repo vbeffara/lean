@@ -7,7 +7,7 @@ variables {V V' : Type} {a : V} {G : simple_graph V}
 
 namespace simple_graph
     namespace menger
-        variables  [fintype V] [fintype V'] {A B X : finset V}
+        variables [fintype V] [fintype V'] {A B X : finset V}
 
         @[ext] structure AB_path (G : simple_graph V) (A B : finset V) :=
             (p : Walk G) (ha : p.a ∈ A) (hb : p.b ∈ B)
@@ -33,16 +33,22 @@ namespace simple_graph
         noncomputable def min_cut (G : simple_graph V) (A B : finset V) : ℕ :=
         (min_cut' G A B).val
 
-        noncomputable lemma min_cut_set (G : simple_graph V) (A B : finset V) :
+        noncomputable def min_cut_set (G : simple_graph V) (A B : finset V) :
             {X : finset V // X.card = min_cut G A B ∧ separates G A B X} :=
         ⟨_,some_spec (min_cut' G A B).prop.1⟩
+
+        lemma min_cut_spec : separates G A B X → min_cut G A B ≤ X.card :=
+        begin
+            have := mt ((min_cut' G A B).prop.2 X.card), simp at this,
+            intro h, apply this, exact ⟨X,rfl,h⟩
+        end
 
         variables {P : finset (AB_path G A B)}
 
         def pairwise_disjoint : finset (AB_path G A B) → Prop :=
         λ P, ∀ ⦃γ₁ γ₂ : P⦄ {z : V}, z ∈ γ₁.val.p.p.support → z ∈ γ₂.val.p.p.support → γ₁ = γ₂
 
-        lemma path_le_cut {dis : pairwise_disjoint P} {sep : separates G A B X} : P.card ≤ X.card :=
+        lemma path_le_cut (dis : pairwise_disjoint P) (sep : separates G A B X) : P.card ≤ X.card :=
         begin
             let φ : Π γ : P, {z : V // z ∈ X ∧ z ∈ γ.val.p.p.support} :=
                 λ γ, subtype_of_exists (sep γ),
@@ -56,7 +62,7 @@ namespace simple_graph
         lemma upper_bound (dis : pairwise_disjoint P) : P.card ≤ min_cut G A B :=
         begin
             rw [min_cut], obtain ⟨n,h₁,h₂⟩ := min_cut' G A B, obtain ⟨X,rfl,h₄⟩ := h₁,
-            refine path_le_cut, exact dis, exact h₄
+            exact path_le_cut dis h₄
         end
 
         lemma bot_iff_no_edge : fintype.card G.step = 0 ↔ G = ⊥ :=
@@ -164,9 +170,9 @@ namespace simple_graph
             cases not_is_empty_iff.mp (h ∘ fintype.card_eq_zero_iff.mpr) with e, clear h,
 
             -- If G has no k disjoint AB paths
-            by_contradiction h₆, push_neg at h₆,
-            replace h₆ : ∀ {P : finset (AB_path G A B)}, pairwise_disjoint P → P.card < min_cut G A B :=
-                by { intros P h, exact lt_of_le_of_ne (upper_bound h) (h₆ P h) },
+            by_contradiction too_small, push_neg at too_small,
+            replace too_small : ∀ {P : finset (AB_path G A B)}, pairwise_disjoint P → P.card < min_cut G A B :=
+                by { intros P h, exact lt_of_le_of_ne (upper_bound h) (too_small P h) },
 
             -- then neither does G/e; here, we count the contracted vertex
             -- ve as an element of A (resp.B) in G/e if in G at least one of
@@ -175,12 +181,12 @@ namespace simple_graph
             let A₁ : finset G₁.vertices := finset.image (merge_edge e) A,
             let B₁ : finset G₁.vertices := finset.image (merge_edge e) B,
 
-            have h₇ : ∀ (P₁ : finset (AB_path G₁ A₁ B₁)), pairwise_disjoint P₁ → P₁.card < min_cut G A B :=
+            have h₇ : ∀ P₁ : finset (AB_path G₁ A₁ B₁), pairwise_disjoint P₁ → P₁.card < min_cut G A B :=
                 by { intros P₁ h₈,
                     let Φ : AB_path G₁ A₁ B₁ → AB_path G A B := AB_lift _ merge_edge_adapted A B,
                     have Φ_nip : ∀ {P}, pairwise_disjoint P → pairwise_disjoint (image Φ P) := AB_lift_dis,
                     rw ← finset.card_image_of_injective P₁ AB_lift_inj,
-                    exact h₆ (Φ_nip h₈) },
+                    exact too_small (Φ_nip h₈) },
 
             -- By the induction hypothesis, G/e contains an AB separator Y
             -- of fewer than k vertices.
@@ -197,7 +203,14 @@ namespace simple_graph
 
             -- Among these must be the vertex ve, since otherwise Y ⊆ V
             -- would be an AB separator in G.
-            have h₁₇ : e.x ∈ Y := by { by_contradiction, sorry },
+            have h₁₇ : e.x ∈ Y := by { by_contradiction,
+                suffices : separates G A B Y, by { exact not_lt_of_le (min_cut_spec this) h₁₆ },
+                intro p,
+                let q : AB_path G₁ A₁ B₁ := AB_push (merge_edge e) A B p,
+                choose z h₁ h₂ using h₁₅ q, refine ⟨z,h₁,_⟩,
+                -- have := Walk.range_eq_support,
+                sorry
+            },
 
             -- Then X := (Y-ve)∪{x,y} is an AB separator in G of exactly k
             -- vertices.
