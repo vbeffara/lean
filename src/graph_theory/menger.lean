@@ -13,10 +13,10 @@ namespace simple_graph
             (p : Walk G) (ha : p.a ∈ A) (hb : p.b ∈ B)
 
         def separates (G : simple_graph V) (A B : finset V) (X : finset V) : Prop :=
-        ∀ γ : AB_path G A B, ∃ z : V, z ∈ X ∧ z ∈ γ.p.p.support
+        ∀ γ : AB_path G A B, (γ.p.range ∩ X).nonempty
 
         lemma separates_self : separates G A B A :=
-        λ γ, ⟨γ.p.a, ⟨γ.ha, γ.p.p.start_mem_support⟩⟩
+        λ γ, ⟨γ.p.a, mem_inter.mpr ⟨Walk.start_mem_range,γ.ha⟩⟩
 
         def is_cut_set_size (G : simple_graph V) (A B : finset V) (n : ℕ) : Prop :=
         ∃ X : finset V, X.card = n ∧ separates G A B X
@@ -45,18 +45,16 @@ namespace simple_graph
 
         variables {P : finset (AB_path G A B)}
 
-        def pairwise_disjoint : finset (AB_path G A B) → Prop :=
-        λ P, ∀ ⦃γ₁ γ₂ : P⦄ {z : V}, z ∈ γ₁.val.p.p.support → z ∈ γ₂.val.p.p.support → γ₁ = γ₂
+        def pairwise_disjoint (P : finset (AB_path G A B)) : Prop :=
+        ∀ ⦃γ₁ γ₂ : P⦄, (γ₁.val.p.range ∩ γ₂.val.p.range).nonempty → γ₁ = γ₂
 
         lemma path_le_cut (dis : pairwise_disjoint P) (sep : separates G A B X) : P.card ≤ X.card :=
         begin
-            let φ : Π γ : P, {z : V // z ∈ X ∧ z ∈ γ.val.p.p.support} :=
-                λ γ, subtype_of_exists (sep γ),
-            let ψ : P → X := λ γ, ⟨φ γ, (φ γ).prop.1⟩,
-            have h₁ : ∀ γ, (ψ γ).val ∈ γ.val.p.p.support := λ γ, (φ γ).prop.2,
-            have ψ_inj : injective ψ := λ i j h, dis (h₁ i) (by { rw h, exact h₁ j }),
-            have := fintype.card_le_of_injective ψ ψ_inj,
-            simp_rw [←fintype.card_coe], convert this,
+            let φ : Π γ : P, γ.val.p.range ∩ X := λ γ, by { choose z hz using sep γ, exact ⟨z,hz⟩ },
+            let ψ : P → X := λ γ, ⟨_, finset.mem_of_mem_inter_right (φ γ).prop⟩,
+            have h₁ : ∀ γ, (ψ γ).val ∈ γ.val.p.range := λ γ, let z := φ γ in (mem_inter.mp z.2).1,
+            have ψ_inj : injective ψ := λ γ γ' h, dis ⟨_, mem_inter_of_mem (h₁ γ) (by { rw h, exact (h₁ γ')})⟩,
+            simp_rw [←fintype.card_coe], convert fintype.card_le_of_injective ψ ψ_inj,
         end
 
         lemma upper_bound (dis : pairwise_disjoint P) : P.card ≤ min_cut G A B :=
@@ -75,11 +73,13 @@ namespace simple_graph
         lemma bot_separates_iff : separates ⊥ A B X ↔ (A ∩ B) ⊆ X :=
         begin
             split; intro h,
-            { rintros z hz, simp at hz,
-                let γ : AB_path ⊥ A B := ⟨⟨walk.nil⟩, hz.1, hz.2⟩,
-                rcases (h γ) with ⟨x,h₁,h₂⟩, simp at h₂, subst x, exact h₁ },
-            { rintro ⟨⟨a,b,γ⟩,ha,hb⟩, cases γ, swap, change false at γ_h, contradiction,
-                simp, apply mem_of_subset h, simp, exact ⟨ha,hb⟩ }
+            { rintros z hz, simp at hz, let γ : AB_path ⊥ A B := ⟨Walk.nil _, hz.1, hz.2⟩,
+                have := h γ, simp at this, choose z h₁ using this, simp at h₁, rw ←h₁.1, exact h₁.2
+            },
+            { rintro ⟨⟨a,b,γ⟩,ha,hb⟩, cases γ, swap, exfalso, exact γ_h,
+                simp at ha hb ⊢, use a, simp, split, exact Walk.start_mem_range,
+                apply finset.mem_of_subset h, simp, exact ⟨ha,hb⟩
+            }
         end
 
         lemma bot_min_cut : min_cut ⊥ A B = (A ∩ B).card :=
@@ -99,10 +99,10 @@ namespace simple_graph
 
             refine ⟨image φ univ, _, _⟩,
             {
-                rintro ⟨⟨⟨a₁,b₁,γ₁⟩,h₁,h₂⟩,h₃⟩, cases γ₁, swap, change false at γ₁_h, contradiction,
-                rintro ⟨⟨⟨a₂,b₂,γ₂⟩,h₄,h₅⟩,h₆⟩, cases γ₂, swap, change false at γ₂_h, contradiction,
-                simp only [walk.support_nil, list.mem_singleton, subtype.mk_eq_mk, and_self_left, forall_eq],
-                intro a₁a₂, subst a₁a₂, simp only [eq_self_iff_true, heq_iff_eq, and_self]
+                rintro ⟨⟨γ₁,h₁,h₂⟩,h₃⟩ ⟨⟨γ₂,h₄,h₅⟩,h₆⟩ h₇,
+                have nil₁ : γ₁ = Walk.nil γ₁.a := by { cases γ₁, cases γ₁_p, refl, exfalso, exact γ₁_p_h },
+                have nil₂ : γ₂ = Walk.nil γ₂.a := by { cases γ₂, cases γ₂_p, refl, exfalso, exact γ₂_p_h },
+                simp at h₇ ⊢, rw [nil₁,nil₂] at h₇ ⊢, cases h₇ with z h₇, simp at h₇, rw [←h₇.1,←h₇.2]
             },
             {
                 rw [card_image_of_injective univ φ_inj, finset.card_univ],
@@ -142,17 +142,15 @@ namespace simple_graph
         lemma AB_lift_dis (P' : finset (AB_path (push f G) (A.image f) (B.image f))) :
             pairwise_disjoint P' → pairwise_disjoint (P'.image (AB_lift f hf A B)) :=
         begin
-            contrapose, rw pairwise_disjoint, rw pairwise_disjoint, simp,
-            rintros ⟨p₁,hp₁⟩ ⟨p₂,hp₂⟩ x hx₁ hx₂,
-            contrapose, simp, intro dis,
-            have h₁ := finset.mem_image.mp hp₁, have h₂ := finset.mem_image.mp hp₂,
-            choose p'₁ hp'₁ hp''₁ using h₁, choose p'₂ hp'₂ hp''₂ using h₂,
-            have h₃ := congr_arg (AB_push f A B) hp''₁, rw AB_push_lift at h₃,
-            have h₄ := congr_arg (AB_push f A B) hp''₂, rw AB_push_lift at h₄,
-            have h₅ : f x ∈ p'₁.p.p.support := by { rw [h₃,AB_push], exact Walk.push_support hx₁ },
-            have h₆ : f x ∈ p'₂.p.p.support := by { rw [h₄,AB_push], exact Walk.push_support hx₂ },
-            specialize dis ⟨p'₁,hp'₁⟩ ⟨p'₂,hp'₂⟩ (f x) h₅ h₆, simp at dis,
-            rw [←hp''₁, ←hp''₂, dis]
+            rintro hP' ⟨γ₁,h₁⟩ ⟨γ₂,h₂⟩ h, simp at h ⊢, choose z h using h,
+            choose γ'₁ h'₁ h''₁ using finset.mem_image.mp h₁,
+            choose γ'₂ h'₂ h''₂ using finset.mem_image.mp h₂,
+            have h₃ := congr_arg (AB_push f A B) h''₁, rw AB_push_lift at h₃,
+            have h₄ := congr_arg (AB_push f A B) h''₂, rw AB_push_lift at h₄,
+            suffices : γ'₁ = γ'₂, { rw [←h''₁,←h''₂,this] },
+            have := @hP' ⟨_,h'₁⟩ ⟨_,h'₂⟩, simp at this, apply this,
+            simp [h₃,h₄,AB_push,Walk.push_range], use f z, rw mem_inter at h ⊢, split,
+            exact mem_image_of_mem f h.1, exact mem_image_of_mem f h.2
         end
 
         lemma lower_bound_aux (n : ℕ) : ∀ (G : simple_graph V), fintype.card G.step = n →
@@ -207,7 +205,7 @@ namespace simple_graph
                 suffices : separates G A B Y, by { exact not_lt_of_le (min_cut_spec this) h₁₆ },
                 intro p,
                 let q : AB_path G₁ A₁ B₁ := AB_push (merge_edge e) A B p,
-                choose z h₁ h₂ using h₁₅ q, refine ⟨z,h₁,_⟩,
+                have h₁ := h₁₅ q,
                 -- have := Walk.range_eq_support,
                 sorry
             },

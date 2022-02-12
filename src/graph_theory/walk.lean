@@ -25,6 +25,7 @@ by { let h' := e.h, rw h at h', exact ⟨p.p.cons h'⟩ }
 
 def step (e : G.step) : G.Walk := cons e (nil e.y) rfl
 
+-- TODO: motive should be implicit
 def rec₀ (motive : G.Walk → Sort*) :
   (Π u, motive (Walk.nil u)) →
   (Π e p h, motive p → motive (cons e p h)) →
@@ -58,6 +59,9 @@ rec₀ _ (λ v, {v}) (λ e p h q, {e.x} ∪ q)
 
 @[simp] lemma range_cons : (cons e p hep).range = {e.x} ∪ p.range := rec_cons
 
+@[simp] lemma start_mem_range : p.a ∈ p.range :=
+by { refine rec₀ _ _ _ p; simp }
+
 lemma range_eq_support : p.range = p.p.support.to_finset :=
 begin
   refine rec₀ _ _ _ p,
@@ -88,6 +92,12 @@ by { subst haq, rcases q with ⟨a,b,q⟩, refl }
 begin
   rcases e with ⟨u,v,e⟩, rcases p with ⟨a,b,p⟩, rcases q with ⟨c,d,q⟩,
   simp at hep hpq, substs a b, refl
+end
+
+@[simp] lemma range_append : (append p q hpq).range = p.range ∪ q.range :=
+begin
+  revert p, refine rec₀ _ _ _, simp,
+  intros e p h q hpq, simp at hpq, specialize @q hpq, simp, rw ←q, refl
 end
 
 lemma mem_append : z ∈ (append p q hpq).p.support ↔ z ∈ p.p.support ∨ z ∈ q.p.support :=
@@ -181,18 +191,20 @@ begin
     apply ih, intros z hz, apply hp, right, exact hz }
 end
 
-lemma push_support : z ∈ p.p.support → f z ∈ (push_Walk f p).p.support :=
-begin
-  refine rec₀ _ _ _ p,
-  { intros z hz, rw nil at hz, simp at hz, simp [nil,hz] },
-  { intros e p h ih z, cases e, cases p, rw cons at z, simp at z, cases z,
-    { subst z,
-      have : (push_Walk f (cons ⟨e_h⟩ ⟨p_p⟩ h)).a = f e_x := by simp [push_Walk_a],
-      rw ← this, apply walk.start_mem_support },
-    { specialize ih z_1, rw Walk.push_cons, rw mem_append, right, exact ih } }
-end
+@[simp] lemma push_step_range : (push_step f e).range = {f e.x, f e.y} :=
+by { by_cases f e.x = f e.y; simp [push_step, push_step_aux, h], refl }
 
-lemma push_range : (push_Walk f p).range = finset.image f p.range := sorry
+lemma push_range : (push_Walk f p).range = finset.image f p.range :=
+begin
+  refine rec₀ _ _ _ p, simp, rintro e p h q,
+  rw [push_cons,range_cons,range_append,q,finset.image_union,push_step_range],
+  ext, split; intro h',
+  { rw finset.mem_union at h' ⊢, cases h', simp at h', cases h', left, subst a, simp,
+    right, subst a, rw h, apply finset.mem_image_of_mem, exact start_mem_range,
+    right, exact h' },
+  { rw finset.mem_union at h' ⊢, cases h', simp at h', subst a, left, simp, right,
+    exact h' }
+end
 
 variables {hf : adapted' f G} {p' : (push f G).Walk} {hx : f x = p'.a} {hy : f y = p'.b}
 

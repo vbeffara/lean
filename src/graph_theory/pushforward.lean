@@ -159,15 +159,6 @@ namespace simple_graph
         begin
             contrapose, push_neg, exact lift_step_ne_of_mem
         end
-
-        by { -- TODO too pedestrian, should be general
-                        intro h, choose f h using h,
-                        have h₁ : merge_edge e (Φ f).x = f.x := push.lift_step_x,
-                        have h₂ : merge_edge e (Φ f).y = f.y := push.lift_step_y,
-                        rw congr_arg step.x h at h₁,
-                        rw congr_arg step.y h at h₂,
-                        simp [merge_edge] at h₁ h₂, rw h₁ at h₂,
-                        exact G₁.ne_of_adj f.h h₂ },
     end push
 
     def merge [decidable_eq V] (P : V → Prop) [decidable_pred P] : V → {z // ¬ (P z)} ⊕ unit :=
