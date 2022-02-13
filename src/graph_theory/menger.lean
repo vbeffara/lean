@@ -195,26 +195,29 @@ namespace simple_graph
                 have : fintype.card G₁.step ≤ n := nat.le_of_lt_succ (nat.lt_of_lt_of_le h₈ hG),
                 choose P₁ h₉ h₁₀ using ih G₁ this A₁ B₁, rw ← h₁₀, exact h₇ P₁ h₉ },
 
-            obtain ⟨Y,h₁₄,h₁₅⟩ := min_cut_set G₁ A₁ B₁,
+            obtain ⟨Y,h₁₄,sep⟩ := min_cut_set G₁ A₁ B₁,
             have h₁₆ : Y.card < min_cut G A B := by { rw h₁₄, exact h₁₂ },
 
             -- Among these must be the vertex ve, since otherwise Y ⊆ V
             -- would be an AB separator in G.
             have h₁₇ : e.x ∈ Y := by { by_contradiction,
                 suffices : separates G A B Y, by { exact not_lt_of_le (min_cut_spec this) h₁₆ },
-                intro p, let q : AB_path G₁ A₁ B₁ := AB_push (merge_edge e) A B p,
-                have h₁ := h₁₅ q, choose z hz using h₁, use z, simp at hz ⊢, rcases hz with ⟨hz₁,hz₂⟩,
-                refine ⟨_,hz₂⟩,
-                have : q.p.range = image (merge_edge e) p.p.range := Walk.push_range,
-                rw [this, finset.mem_image] at hz₁, choose x hx₁ hx₂ using hz₁,
-                by_cases x = e.y, subst x, simp [merge_edge] at hx₂, rw [←hx₂] at hz₂, contradiction,
-                simp [merge_edge,h] at hx₂, rw [←hx₂], exact hx₁
-            },
+                intro p, choose z hz using sep (AB_push (merge_edge e) A B p), use z,
+                simp at hz ⊢, rcases hz with ⟨hz₁,hz₂⟩, refine ⟨_,hz₂⟩,
+                rw [AB_push,Walk.push_range,finset.mem_image] at hz₁, choose x hx₁ hx₂ using hz₁,
+                by_cases x = e.y; simp [merge_edge,h] at hx₂,
+                { rw [←hx₂] at hz₂, contradiction }, { rwa [←hx₂] } },
 
-            -- Then X := (Y-ve)∪{x,y} is an AB separator in G of exactly k
-            -- vertices.
+            -- Then X := (Y-ve)∪{x,y} is an AB separator in G
             let X := Y ∪ {e.y},
-            have h₁₈ : separates G A B X := sorry,
+            have h₁₈ : separates G A B X := by {
+                intro γ, have := sep (AB_push (merge_edge e) A B γ), choose z hz using this,
+                rw [mem_inter,AB_push,Walk.push_range,finset.mem_image] at hz,
+                choose x hx₁ hx₂ using hz.1, by_cases x = e.y; simp [merge_edge,h] at hx₂,
+                { use x, simp, split, exact hx₁, right, exact h },
+                { use x, simp, split, exact hx₁, left, rw hx₂, exact hz.2 } },
+
+            -- of exactly k vertices.
             have h₁₉ : X.card = min_cut G A B := sorry,
 
             -- We now consider the graph G−e.
