@@ -153,18 +153,18 @@ namespace simple_graph
             exact mem_image_of_mem f h.1, exact mem_image_of_mem f h.2
         end
 
-        lemma lower_bound_aux (n : ℕ) : ∀ (G : simple_graph V), fintype.card G.step = n →
+        lemma lower_bound_aux (n : ℕ) : ∀ (G : simple_graph V), fintype.card G.step ≤ n →
             ∀ A B : finset V, ∃ P : finset (AB_path G A B), pairwise_disjoint P ∧ P.card = min_cut G A B :=
         begin
             -- We apply induction on ∥G∥.
-            induction n using nat.strong_induction_on with n ih,
+            induction n with n ih,
 
             -- If G has no edge, then |A∩B| = k and we have k trivial AB paths.
-            by_cases (n=0), { subst n, intros G hG A B, rw [bot_iff_no_edge.mp hG,bot_min_cut],
+            { intros G hG A B, simp at hG, rw [bot_iff_no_edge.mp hG,bot_min_cut],
                 exact (bot_path_set A B).exists_of_subtype },
 
             -- So we assume that G has an edge e = xy.
-            rintros G rfl A B,
+            rintros G hG A B, by_cases (fintype.card G.step = 0), { apply ih, linarith },
             cases not_is_empty_iff.mp (h ∘ fintype.card_eq_zero_iff.mpr) with e, clear h,
 
             -- If G has no k disjoint AB paths
@@ -191,10 +191,9 @@ namespace simple_graph
             have h₁₂ : min_cut G₁ A₁ B₁ < min_cut G A B := by {
                 have h₈ : fintype.card G₁.step < fintype.card G.step := by {
                     refine fintype.card_lt_of_injective_of_not_mem _ push.lift_step_inj _,
-                    use e, exact push.lift_step_ne_mem (by {simp [merge_edge]})
-                },
-                specialize ih (fintype.card G₁.step) h₈ G₁ rfl A₁ B₁, rcases ih with ⟨P₁,h₉,h₁₀⟩,
-                rw ← h₁₀, exact h₇ P₁ h₉ },
+                    use e, exact push.lift_step_ne_mem (by {simp [merge_edge]}) },
+                have : fintype.card G₁.step ≤ n := nat.le_of_lt_succ (nat.lt_of_lt_of_le h₈ hG),
+                choose P₁ h₉ h₁₀ using ih G₁ this A₁ B₁, rw ← h₁₀, exact h₇ P₁ h₉ },
 
             obtain ⟨Y,h₁₄,h₁₅⟩ := min_cut_set G₁ A₁ B₁,
             have h₁₆ : Y.card < min_cut G A B := by { rw h₁₄, exact h₁₂ },
@@ -203,11 +202,13 @@ namespace simple_graph
             -- would be an AB separator in G.
             have h₁₇ : e.x ∈ Y := by { by_contradiction,
                 suffices : separates G A B Y, by { exact not_lt_of_le (min_cut_spec this) h₁₆ },
-                intro p,
-                let q : AB_path G₁ A₁ B₁ := AB_push (merge_edge e) A B p,
-                have h₁ := h₁₅ q,
-                -- have := Walk.range_eq_support,
-                sorry
+                intro p, let q : AB_path G₁ A₁ B₁ := AB_push (merge_edge e) A B p,
+                have h₁ := h₁₅ q, choose z hz using h₁, use z, simp at hz ⊢, rcases hz with ⟨hz₁,hz₂⟩,
+                refine ⟨_,hz₂⟩,
+                have : q.p.range = image (merge_edge e) p.p.range := Walk.push_range,
+                rw [this, finset.mem_image] at hz₁, choose x hx₁ hx₂ using hz₁,
+                by_cases x = e.y, subst x, simp [merge_edge] at hx₂, rw [←hx₂] at hz₂, contradiction,
+                simp [merge_edge,h] at hx₂, rw [←hx₂], exact hx₁
             },
 
             -- Then X := (Y-ve)∪{x,y} is an AB separator in G of exactly k
@@ -234,8 +235,7 @@ namespace simple_graph
             -- So by induction there are k disjoint AX paths in G−e
             have h₂₂ : min_cut G₂ A X = min_cut G A B := sorry,
             have h₂₃ : ∃ P₂ : finset (AB_path G₂ A X), pairwise_disjoint P₂ ∧ P₂.card = min_cut G A B := by {
-                have : fintype.card G₂.step < fintype.card G.step := sorry,
-                rw ← h₂₂, apply ih (fintype.card G₂.step) this, simp [number_of_edges] },
+                have : fintype.card G₂.step ≤ n := sorry, rw ← h₂₂, apply ih G₂ this },
 
             -- and similarly there are k disjoint XB paths in G−e
             have h₂₄ : ∃ P₂ : finset (AB_path G₂ A X), pairwise_disjoint P₂ ∧ P₂.card = min_cut G A B := sorry,
@@ -246,9 +246,7 @@ namespace simple_graph
         end
 
         lemma lower_bound : ∃ P : finset (AB_path G A B), pairwise_disjoint P ∧ P.card = min_cut G A B :=
-        begin
-            apply lower_bound_aux, exact rfl
-        end
+        lower_bound_aux (fintype.card G.step) G (le_of_eq rfl) A B
 
         -- theorem menger (h : separable G A B) : max_path_number G A B = min_cut h :=
         -- sorry
