@@ -25,8 +25,7 @@ by { let h' := e.h, rw h at h', exact ⟨p.p.cons h'⟩ }
 
 def step (e : G.step) : G.Walk := cons e (nil e.y) rfl
 
--- TODO: motive should be implicit
-def rec₀ (motive : G.Walk → Sort*) :
+def rec₀ {motive : G.Walk → Sort*} :
   (Π u, motive (Walk.nil u)) →
   (Π e p h, motive p → motive (cons e p h)) →
   Π p, motive p :=
@@ -41,7 +40,7 @@ end
 
 @[simp] lemma rec_cons {motive h_nil h_cons h} :
   @rec₀ V _ G motive h_nil h_cons (cons e p h) =
-  h_cons e p h (rec₀ motive h_nil h_cons p) :=
+  h_cons e p h (rec₀ h_nil h_cons p) :=
 begin
   rcases e with ⟨u,v,e⟩, rcases p with ⟨a,b,p⟩, simp at h, subst v, refl
 end
@@ -53,13 +52,13 @@ end
 lemma cons_p : (cons e p hep).p = by { let h' := e.h, rw hep at h', exact p.p.cons h' } := rfl
 
 def range : G.Walk → finset V :=
-rec₀ _ (λ v, {v}) (λ e p h q, {e.x} ∪ q)
+rec₀ (λ v, {v}) (λ e p h q, {e.x} ∪ q)
 
 def init : G.Walk → finset V :=
-rec₀ _ (λ v, ∅) (λ e p h q, {e.x} ∪ q)
+rec₀ (λ v, ∅) (λ e p h q, {e.x} ∪ q)
 
 noncomputable def edges : G.Walk → finset G.step :=
-rec₀ _ (λ v, ∅) (λ e p h q, {e} ∪ q)
+rec₀ (λ v, ∅) (λ e p h q, {e} ∪ q)
 
 lemma first_edge : e ∈ (cons e p hep).edges := sorry
 
@@ -68,11 +67,11 @@ lemma first_edge : e ∈ (cons e p hep).edges := sorry
 @[simp] lemma range_cons : (cons e p hep).range = {e.x} ∪ p.range := rec_cons
 
 @[simp] lemma start_mem_range : p.a ∈ p.range :=
-by { refine rec₀ _ _ _ p; simp }
+by { refine rec₀ _ _ p; simp }
 
 lemma range_eq_support : p.range = p.p.support.to_finset :=
 begin
-  refine rec₀ _ _ _ p,
+  refine rec₀ _ _ p,
   { intro u, refl },
   { intros e p h q, rw [range_cons,q], ext, simpa }
 end
@@ -104,7 +103,7 @@ end
 
 @[simp] lemma range_append : (append p q hpq).range = p.range ∪ q.range :=
 begin
-  revert p, refine rec₀ _ _ _, simp,
+  revert p, refine rec₀ _ _, simp,
   intros e p h q hpq, simp at hpq, specialize @q hpq, simp, rw ←q, refl
 end
 
@@ -134,7 +133,7 @@ def push_step (f : V → V') (e : G.step) : (push f G).Walk :=
 def push_Walk_aux (f : V → V') (p : G.Walk) :
   {w : (push f G).Walk // w.a = f p.a ∧ w.b = f p.b} :=
 begin
-  refine rec₀ _ _ _ p,
+  refine rec₀ _ _ p,
   { intro u, exact ⟨Walk.nil (f u), rfl, rfl⟩ },
   { intros e p h q, simp only [cons_a, cons_b],
     let ee := push_step f e,
@@ -177,7 +176,7 @@ lemma push_append (f : V → V') (p q : G.Walk) (hpq : p.b = q.a) :
   push_Walk f (Walk.append p q hpq) =
   Walk.append (push_Walk f p) (push_Walk f q) (by simp [hpq]) :=
 begin
-  revert p, refine Walk.rec₀ _ (by simp) _,
+  revert p, refine rec₀ (by simp) _,
   intros e p h ih hpq, by_cases h' : f e.x = f e.y,
   { have h₁ := push_cons_eq f e p h h',
     have h₂ := push_cons_eq f e (Walk.append p q hpq) (h.trans append_a.symm) h',
@@ -190,7 +189,7 @@ end
 lemma push_eq_nil (f : V → V') (w : V') (p : G.Walk) (hp : ∀ (z : V), z ∈ p.p.support → f z = w) :
   push_Walk f p = Walk.nil w :=
 begin
-  revert p, refine Walk.rec₀ _ _ _,
+  revert p, refine rec₀ _ _,
   { intros, specialize hp u (by simp [Walk.nil]), simp [hp] },
   { intros e p h ih hp,
     have h₁ : f e.x = w := by { apply hp, left, refl },
@@ -204,7 +203,7 @@ by { by_cases f e.x = f e.y; simp [push_step, push_step_aux, h], refl }
 
 lemma push_range : (push_Walk f p).range = finset.image f p.range :=
 begin
-  refine rec₀ _ _ _ p, simp, rintro e p h q,
+  refine rec₀ _ _ p, simp, rintro e p h q,
   rw [push_cons,range_cons,range_append,q,finset.image_union,push_step_range],
   ext, split; intro h',
   { rw finset.mem_union at h' ⊢, cases h', simp at h', cases h', left, subst a, simp,
@@ -220,7 +219,7 @@ noncomputable def pull_Walk_aux (f : V → V') (hf : adapted' f G) (p' : (push f
   (hx : f x = p'.a) (hy : f y = p'.b) :
   {w : G.Walk // w.a = x ∧ w.b = y ∧ push_Walk f w = p'} :=
 begin
-  revert p' x y, refine rec₀ _ _ _,
+  revert p' x y, refine rec₀ _ _,
   { rintros u x y hx hy, simp at hx hy, subst hy, choose p h₃ using hf x y hx,
     refine ⟨⟨p⟩,rfl,rfl,_⟩, apply push_eq_nil, exact h₃ },
   { rintros ⟨u,v,⟨huv,ee⟩⟩ p h ih x y hx hy,
@@ -255,7 +254,7 @@ def transportable_to (G' : simple_graph V) (p : G.Walk) : Prop :=
 def transport (p : G.Walk) (hp : transportable_to G' p) :
   {q : G'.Walk // q.a = p.a} :=
 begin
-  revert p, refine rec₀ _ _ _,
+  revert p, refine rec₀ _ _,
   { rintro a hp, exact ⟨nil a, rfl⟩ },
   { rintro e p h ih hp,
     have : ∀ (e : G.step), e ∈ p.edges → G'.adj e.x e.y :=
@@ -271,7 +270,7 @@ sorry
 
 noncomputable def within (p : G.Walk) (G' : simple_graph V) : {q : G'.Walk // q.a = p.a} :=
 begin
-  refine rec₀ _ _ _ p,
+  refine rec₀ _ _ p,
   { intro v, exact ⟨nil v, rfl⟩ },
   { rintro e p h q,
     by_cases h' : G'.adj e.x e.y,

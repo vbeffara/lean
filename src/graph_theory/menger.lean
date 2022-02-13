@@ -246,7 +246,7 @@ namespace simple_graph
                 rintro Z hZ, apply separates_trans h₁₈, rintro ⟨γ,h₁,h₂⟩,
                 by_cases (γ.range ∩ {e.x,e.y}).nonempty,
                 { let δ := γ.until _ h,
-                    have : δ.transportable_to G₂ := sorry,
+                    have : δ.val.transportable_to G₂ := sorry,
                     sorry },
                 { have : γ.transportable_to G₂ := sorry,
                     let δ := γ.transport this, sorry }
