@@ -269,6 +269,16 @@ def until (p : G.Walk) (X : finset V) (hX : (p.range ∩ X).nonempty) :
   {q : G.Walk // q.a = p.a ∧ q.b ∈ X ∧ q.range ⊆ p.range ∧ q.init ∩ X = ∅} :=
 sorry
 
+noncomputable def within (p : G.Walk) (G' : simple_graph V) : {q : G'.Walk // q.a = p.a} :=
+begin
+  refine rec₀ _ _ _ p,
+  { intro v, exact ⟨nil v, rfl⟩ },
+  { rintro e p h q,
+    by_cases h' : G'.adj e.x e.y,
+    { rw ← q.prop at h, refine ⟨cons ⟨h'⟩ q h, rfl⟩ },
+    { exact ⟨nil e.x, rfl⟩ } }
+end
+
 end Walk
 
 end simple_graph

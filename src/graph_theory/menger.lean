@@ -239,11 +239,15 @@ namespace simple_graph
 
             -- Since x,y ∈ X, every AX separator in G−e is also an AB
             -- separator in G
+            have tr : ∀ p : G.Walk, e ∉ p.edges → p.transportable_to G₂ := sorry,
+
             have h₂₀ : ∀ Z : finset V, separates G₂ A X Z → separates G A B Z :=
             by {
                 rintro Z hZ, apply separates_trans h₁₈, rintro ⟨γ,h₁,h₂⟩,
                 by_cases (γ.range ∩ {e.x,e.y}).nonempty,
-                { let δ := γ.until _ h, sorry },
+                { let δ := γ.until _ h,
+                    have : δ.transportable_to G₂ := sorry,
+                    sorry },
                 { have : γ.transportable_to G₂ := sorry,
                     let δ := γ.transport this, sorry }
             },
