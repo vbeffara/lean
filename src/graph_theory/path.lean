@@ -18,6 +18,12 @@ namespace simple_graph
             | _ _ nil        := []
             | _ _ (cons h p) := ⟨h⟩ :: myedges p
 
+        def transport (p : walk G₁ x y) (h : ∀ e : G₁.step, e ∈ p.myedges → G₂.adj e.x e.y) : walk G₂ x y :=
+        begin
+            induction p with u u v w h' p ih, refl,
+            refine cons (h ⟨h'⟩ (by simp)) (ih _), rintro e he, apply h, right, exact he
+        end
+
         lemma point_of_size_0 : p.length = 0 -> x = y := by { intro h, cases p, refl, contradiction }
 
         lemma mem_edges : e ∈ myedges p -> e.x ∈ p.support ∧ e.y ∈ p.support :=

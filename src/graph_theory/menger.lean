@@ -7,7 +7,7 @@ variables {V V' : Type} {a : V} {G : simple_graph V}
 
 namespace simple_graph
     namespace menger
-        variables [fintype V] [fintype V'] {A B X : finset V}
+        variables [fintype V] [fintype V'] {A B X Y Z : finset V}
 
         @[ext] structure AB_path (G : simple_graph V) (A B : finset V) :=
             (p : Walk G) (ha : p.a ∈ A) (hb : p.b ∈ B)
@@ -17,6 +17,15 @@ namespace simple_graph
 
         lemma separates_self : separates G A B A :=
         λ γ, ⟨γ.p.a, mem_inter.mpr ⟨Walk.start_mem_range,γ.ha⟩⟩
+
+        lemma separates_trans : separates G A B X → separates G A X Z → separates G A B Z :=
+        begin
+            rintro sep₁ sep₂ γ, choose x hx using sep₁ γ,
+            rcases γ.p.until X ⟨x,hx⟩ with ⟨δ',h₁,h₂,h₃,h₄⟩,
+            let δ : AB_path G A X := ⟨δ', (by { rw h₁, exact γ.ha }), h₂⟩,
+            choose z hz using sep₂ δ, use z, simp at hz ⊢,
+            exact ⟨finset.mem_of_subset h₃ hz.1, hz.2⟩
+        end
 
         def is_cut_set_size (G : simple_graph V) (A B : finset V) (n : ℕ) : Prop :=
         ∃ X : finset V, X.card = n ∧ separates G A B X
@@ -218,19 +227,26 @@ namespace simple_graph
                 { use x, simp, split, exact hx₁, left, rw hx₂, exact hz.2 } },
 
             -- of exactly k vertices.
-            have h₁₉ : X.card = min_cut G A B := sorry,
+            have h₁₉ : X.card = min_cut G A B := by {
+                refine le_antisymm _ (min_cut_spec h₁₈),
+                exact (finset.card_union_le _ _).trans (nat.succ_le_of_lt h₁₆) },
 
             -- We now consider the graph G−e.
-            let Gₑ : simple_graph V := {
-                adj := λ x y, ((x = e.x ∧ y = e.y) ∨ (x = e.y ∧ y = e.x)),
-                symm := λ x y h, by { cases h, right, exact h.symm, left, exact h.symm },
-                loopless := λ x h, by { cases h; { cases h, subst x, apply G.ne_of_adj e.h, rw h_right } }
-            },
-            let G₂ : simple_graph V := G \ Gₑ,
+            let G₂ : simple_graph V := {
+                adj := λ x y, G.adj x y ∧ ((x ≠ e.x ∧ x ≠ e.y) ∨ (y ≠ e.x ∧ y ≠ e.y)),
+                symm := λ x y ⟨h₁,h₂⟩, ⟨h₁.symm,h₂.symm⟩,
+                loopless := λ x h, G.loopless _ h.1 },
 
             -- Since x,y ∈ X, every AX separator in G−e is also an AB
             -- separator in G
-            have h₂₀ : ∀ Z : finset V, separates G₂ A X Z → separates G A B Z := sorry,
+            have h₂₀ : ∀ Z : finset V, separates G₂ A X Z → separates G A B Z :=
+            by {
+                rintro Z hZ, apply separates_trans h₁₈, rintro ⟨γ,h₁,h₂⟩,
+                by_cases (γ.range ∩ {e.x,e.y}).nonempty,
+                { let δ := γ.until _ h, sorry },
+                { have : γ.transportable_to G₂ := sorry,
+                    let δ := γ.transport this, sorry }
+            },
 
             -- and hence contains at least k vertices
             have h₂₁ : ∀ Z : finset V, separates G₂ A X Z → min_cut G A B ≤ Z.card := sorry,

@@ -6,7 +6,7 @@ open_locale classical
 namespace simple_graph
 
 variables {V V' : Type} [decidable_eq V] [decidable_eq V'] {f : V → V'}
-variables {G : simple_graph V} {x y z u v w a b c : V}
+variables {G G' : simple_graph V} {x y z u v w a b c : V}
 
 @[ext] structure Walk (G : simple_graph V) := {a b : V} (p : G.walk a b)
 
@@ -54,6 +54,14 @@ lemma cons_p : (cons e p hep).p = by { let h' := e.h, rw hep at h', exact p.p.co
 
 def range : G.Walk → finset V :=
 rec₀ _ (λ v, {v}) (λ e p h q, {e.x} ∪ q)
+
+def init : G.Walk → finset V :=
+rec₀ _ (λ v, ∅) (λ e p h q, {e.x} ∪ q)
+
+noncomputable def edges : G.Walk → finset G.step :=
+rec₀ _ (λ v, ∅) (λ e p h q, {e} ∪ q)
+
+lemma first_edge : e ∈ (cons e p hep).edges := sorry
 
 @[simp] lemma range_a : (nil a : G.Walk).range = {a} := rfl
 
@@ -240,6 +248,26 @@ lemma pull_Walk_b : (pull_Walk f hf p' x y hx hy).b = y :=
 
 lemma pull_Walk_push : push_Walk f (pull_Walk f hf p' x y hx hy) = p' :=
 (pull_Walk_aux f hf p' x y hx hy).prop.2.2
+
+def transportable_to (G' : simple_graph V) (p : G.Walk) : Prop :=
+  ∀ e : G.step, e ∈ p.edges → G'.adj e.x e.y
+
+def transport (p : G.Walk) (hp : transportable_to G' p) :
+  {q : G'.Walk // q.a = p.a} :=
+begin
+  revert p, refine rec₀ _ _ _,
+  { rintro a hp, exact ⟨nil a, rfl⟩ },
+  { rintro e p h ih hp,
+    have : ∀ (e : G.step), e ∈ p.edges → G'.adj e.x e.y :=
+      by { rintro e he, apply hp, simp [edges], right, exact he },
+    specialize ih this, rcases ih with ⟨q,hq⟩, rw ←hq at h,
+    exact ⟨cons ⟨hp e first_edge⟩ q h, rfl⟩ }
+end
+
+-- TODO for `(X : set V)`
+def until (p : G.Walk) (X : finset V) (hX : (p.range ∩ X).nonempty) :
+  {q : G.Walk // q.a = p.a ∧ q.b ∈ X ∧ q.range ⊆ p.range ∧ q.init ∩ X = ∅} :=
+sorry
 
 end Walk
 
