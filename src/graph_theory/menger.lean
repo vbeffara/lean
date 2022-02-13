@@ -164,67 +164,71 @@ begin
   rintros G hG A B, by_cases (fintype.card G.step = 0), { apply ih, linarith },
   cases not_is_empty_iff.mp (h ∘ fintype.card_eq_zero_iff.mpr) with e, clear h,
 
-  -- If G has no k disjoint AB paths
-  by_contradiction too_small, push_neg at too_small,
-  replace too_small : ∀ P : finset (AB_path G A B), pw_disjoint P → P.card < min_cut G A B :=
+  apply not_imp_self.mp, intro too_small, push_neg at too_small, replace too_small :
+    ∀ P : finset (AB_path G A B), pw_disjoint P → P.card < min_cut G A B :=
   by { intros P h, exact lt_of_le_of_ne (upper_bound h) (too_small P h) },
 
-  -- then neither does G/e; here, we count the contracted vertex ve as an element of A (resp.B) in
-  -- G/e if in G at least one of x,y lies in A (resp.B)
-  let G₁ := G/e,
-  let A₁ : finset G₁.vertices := finset.image (merge_edge e) A,
-  let B₁ : finset G₁.vertices := finset.image (merge_edge e) B,
+  -- If G has no k disjoint AB paths then neither does G/e; here, we count the contracted vertex ve
+  -- as an element of A (resp.B) in G/e if in G at least one of x,y lies in A (resp.B) By the
+  -- induction hypothesis, G/e contains an AB separator Y of fewer than k vertices. Among these must
+  -- be the vertex ve, since otherwise Y ⊆ V would be an AB separator in G. Then X := (Y-ve)∪{x,y}
+  -- is an AB separator in G, of exactly k vertices.
 
-  have P₁_lt_min : ∀ P₁ : finset (AB_path G₁ A₁ B₁),
-    pw_disjoint P₁ → P₁.card < min_cut G A B :=
-  by { intros P₁ h₈,
-    let Φ : AB_path G₁ A₁ B₁ → AB_path G A B := AB_lift _ merge_edge_adapted A B,
-    have Φ_nip : ∀ {P}, pw_disjoint P → pw_disjoint (image Φ P) := AB_lift_dis,
-    rw ← finset.card_image_of_injective P₁ AB_lift_inj,
-    exact too_small _ (Φ_nip h₈) },
+  have step₁ : ∃ X : finset V,
+    e.x ∈ X ∧ e.y ∈ X ∧ separates G A B X ∧ X.card = min_cut G A B :=
+  by {
+    let G₁ := G/e,
+    let A₁ : finset G₁.vertices := finset.image (merge_edge e) A,
+    let B₁ : finset G₁.vertices := finset.image (merge_edge e) B,
 
-  -- By the induction hypothesis, G/e contains an AB separator Y of fewer than k vertices.
-  have min₁_lt_min : min_cut G₁ A₁ B₁ < min_cut G A B :=
-  begin
-    have G₁_lt_G : fintype.card G₁.step < fintype.card G.step :=
-    by { refine fintype.card_lt_of_injective_of_not_mem _ push.lift_step_inj _,
-      use e, exact push.lift_step_ne_mem (by {simp [merge_edge]}) },
-    have G₁_le_n := nat.le_of_lt_succ (nat.lt_of_lt_of_le G₁_lt_G hG),
-    choose P₁ dis₁ P₁_eq_min₁ using ih G₁ G₁_le_n A₁ B₁, rw ←P₁_eq_min₁, exact P₁_lt_min P₁ dis₁
-  end,
+    have P₁_lt_min : ∀ P₁ : finset (AB_path G₁ A₁ B₁),
+      pw_disjoint P₁ → P₁.card < min_cut G A B :=
+    by { intros P₁ P₁_dis,
+      let Φ : AB_path G₁ A₁ B₁ → AB_path G A B := AB_lift _ merge_edge_adapted A B,
+      have Φ_nip : ∀ {P}, pw_disjoint P → pw_disjoint (image Φ P) := AB_lift_dis,
+      rw ← finset.card_image_of_injective P₁ AB_lift_inj,
+      exact too_small _ (Φ_nip P₁_dis) },
 
-  obtain ⟨Y, Y_eq_min₁, Y_sep⟩ := min_cut_set G₁ A₁ B₁,
-  have Y_lt_min : Y.card < min_cut G A B :=
-  by { rw Y_eq_min₁, exact min₁_lt_min },
+    have min₁_lt_min : min_cut G₁ A₁ B₁ < min_cut G A B :=
+    begin
+      have G₁_lt_G : fintype.card G₁.step < fintype.card G.step :=
+      by { refine fintype.card_lt_of_injective_of_not_mem _ push.lift_step_inj _,
+        use e, exact push.lift_step_ne_mem (by {simp [merge_edge]}) },
+      have G₁_le_n := nat.le_of_lt_succ (nat.lt_of_lt_of_le G₁_lt_G hG),
+      choose P₁ dis₁ P₁_eq_min₁ using ih G₁ G₁_le_n A₁ B₁, rw ←P₁_eq_min₁, exact P₁_lt_min P₁ dis₁
+    end,
 
-  -- Among these must be the vertex ve, since otherwise Y ⊆ V would be an AB separator in G.
-  -- TODO: the proof is below but this fact is not used later
-  -- have ex_in_Y : e.x ∈ Y :=
-  -- by { by_contradiction,
-  --   suffices : separates G A B Y, by { exact not_lt_of_le (min_cut_spec this) Y_lt_min },
-  --   intro p, choose z hz using sep (AB_push (merge_edge e) A B p), use z,
-  --   simp at hz ⊢, rcases hz with ⟨hz₁,hz₂⟩, refine ⟨_,hz₂⟩,
-  --   rw [AB_push,Walk.push_range,finset.mem_image] at hz₁, choose x hx₁ hx₂ using hz₁,
-  --   by_cases x = e.y; simp [merge_edge,h] at hx₂,
-  --   { rw [←hx₂] at hz₂, contradiction },
-  --   { rwa [←hx₂] } },
+    obtain ⟨Y, Y_eq_min₁, Y_sep⟩ := min_cut_set G₁ A₁ B₁,
+    have Y_lt_min : Y.card < min_cut G A B :=
+    by { rw Y_eq_min₁, exact min₁_lt_min },
 
-  -- Then X := (Y-ve)∪{x,y} is an AB separator in G,
-  let X := Y ∪ {e.y},
-  have X_sep_A_B : separates G A B X :=
-  by { intro γ, choose z hz using Y_sep (AB_push (merge_edge e) A B γ),
-    rw [mem_inter,AB_push,Walk.push_range,finset.mem_image] at hz,
-    choose x hx₁ hx₂ using hz.1, by_cases x = e.y; simp [merge_edge,h] at hx₂,
-    { use x, simp, split, exact hx₁, right, exact h },
-    { use x, simp, split, exact hx₁, left, rw hx₂, exact hz.2 } },
+    have ex_in_Y : e.x ∈ Y :=
+    by { by_contradiction,
+      suffices : separates G A B Y, by { exact not_lt_of_le (min_cut_spec this) Y_lt_min },
+      intro p, choose z hz using Y_sep (AB_push (merge_edge e) A B p), use z,
+      simp at hz ⊢, rcases hz with ⟨hz₁,hz₂⟩, refine ⟨_,hz₂⟩,
+      rw [AB_push,Walk.push_range,finset.mem_image] at hz₁, choose x hx₁ hx₂ using hz₁,
+      by_cases x = e.y; simp [merge_edge,h] at hx₂,
+      { rw [←hx₂] at hz₂, contradiction },
+      { rwa [←hx₂] } },
 
-  -- of exactly k vertices.
-  have X_eq_min : X.card = min_cut G A B := by {
-    refine le_antisymm _ (min_cut_spec X_sep_A_B),
-    exact (finset.card_union_le _ _).trans (nat.succ_le_of_lt Y_lt_min) },
+    let X := Y ∪ {e.y},
+    have X_sep_AB : separates G A B X :=
+    by { intro γ, choose z hz using Y_sep (AB_push (merge_edge e) A B γ),
+      rw [mem_inter,AB_push,Walk.push_range,finset.mem_image] at hz,
+      choose x hx₁ hx₂ using hz.1, by_cases x = e.y; simp [merge_edge,h] at hx₂,
+      { use x, simp, split, exact hx₁, right, exact h },
+      { use x, simp, split, exact hx₁, left, rw hx₂, exact hz.2 } },
 
-  -- TODO: encapsulate all these into a lemma, get rid of Y
-  clear Y_eq_min₁ Y_sep Y_lt_min min₁_lt_min P₁_lt_min B₁ A₁ G₁,
+    refine ⟨X, _, _, X_sep_AB, _⟩,
+
+    { rw [mem_union], left, exact ex_in_Y },
+    { rw [mem_union,mem_singleton], right, refl },
+    { refine le_antisymm _ (min_cut_spec X_sep_AB),
+      exact (finset.card_union_le _ _).trans (nat.succ_le_of_lt Y_lt_min) }
+  },
+
+  choose X ex_in_X ey_in_X X_sep_AB X_eq_min using step₁,
 
   -- We now consider the graph G−e.
   let G₂ : simple_graph V := {
