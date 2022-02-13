@@ -186,7 +186,7 @@ begin
       simpa only [h₁, h₂, ih, append_cons] }
 end
 
-lemma push_eq_nil (f : V → V') (w : V') (p : G.Walk) (hp : ∀ (z : V), z ∈ p.p.support → f z = w) :
+lemma push_eq_nil (f : V → V') (w : V') (p : G.Walk) (hp : ∀ z : V, z ∈ p.p.support → f z = w) :
   push_Walk f p = Walk.nil w :=
 begin
   revert p, refine rec₀ _ _,

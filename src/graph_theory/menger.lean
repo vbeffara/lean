@@ -162,6 +162,10 @@ namespace simple_graph
             exact mem_image_of_mem f h.1, exact mem_image_of_mem f h.2
         end
 
+        noncomputable def AB_shorten (p : AB_path G A B) (C : finset V) (hpc : (p.p.range ∩ C).nonempty) :
+            AB_path G A C :=
+        let q := p.p.until C hpc in ⟨q, by { rw q.prop.1, exact p.ha }, q.prop.2.1⟩
+
         lemma lower_bound_aux (n : ℕ) : ∀ (G : simple_graph V), fintype.card G.step ≤ n →
             ∀ A B : finset V, ∃ P : finset (AB_path G A B), pairwise_disjoint P ∧ P.card = min_cut G A B :=
         begin
@@ -237,28 +241,41 @@ namespace simple_graph
                 symm := λ x y ⟨h₁,h₂⟩, ⟨h₁.symm,h₂.symm⟩,
                 loopless := λ x h, G.loopless _ h.1 },
 
+            have G₂_lt_G : fintype.card G₂.step < fintype.card G.step :=
+            by { let φ : G₂.step → G.step := λ e, ⟨e.h.1⟩,
+                have φ_inj : injective φ := by { rintro e₁ e₂ h, simp [φ] at h, exact e₁.ext e₂ h.1 h.2 },
+                refine fintype.card_lt_of_injective_of_not_mem φ φ_inj _, exact e,
+                intro he, rw set.mem_range at he, choose e' he using he, rcases e' with ⟨x,y,he'⟩,
+                have : x = e.x := congr_arg step.x he, rw this at he',
+                have : y = e.y := congr_arg step.y he, rw this at he',
+                simp at he', exact he' },
+
+            have G₂_le_n := nat.le_of_lt_succ (nat.lt_of_lt_of_le G₂_lt_G hG),
+
             -- Since x,y ∈ X, every AX separator in G−e is also an AB
             -- separator in G
             have tr : ∀ p : G.Walk, e ∉ p.edges → p.transportable_to G₂ := sorry,
 
             have h₂₀ : ∀ Z : finset V, separates G₂ A X Z → separates G A B Z :=
             by {
-                rintro Z hZ, apply separates_trans h₁₈, rintro ⟨γ,h₁,h₂⟩,
-                by_cases (γ.range ∩ {e.x,e.y}).nonempty,
-                { let δ := γ.until _ h,
-                    have : δ.val.transportable_to G₂ := sorry,
-                    sorry },
-                { have : γ.transportable_to G₂ := sorry,
-                    let δ := γ.transport this, sorry }
+                rintro Z hZ, apply separates_trans h₁₈, rintro γ,
+                let δ := γ.p.within G₂, sorry
+                -- by_cases (γ.range ∩ {e.x,e.y}).nonempty,
+                -- { let δ := γ.until _ h,
+                --     have : δ.val.transportable_to G₂ := sorry,
+                --     sorry },
+                -- { have : γ.transportable_to G₂ := sorry,
+                --     let δ := γ.transport this, sorry }
             },
 
             -- and hence contains at least k vertices
-            have h₂₁ : ∀ Z : finset V, separates G₂ A X Z → min_cut G A B ≤ Z.card := sorry,
+            have h₂₁ : ∀ Z : finset V, separates G₂ A X Z → min_cut G A B ≤ Z.card :=
+            λ Z hZ, min_cut_spec (h₂₀ Z hZ),
 
             -- So by induction there are k disjoint AX paths in G−e
             have h₂₂ : min_cut G₂ A X = min_cut G A B := sorry,
-            have h₂₃ : ∃ P₂ : finset (AB_path G₂ A X), pairwise_disjoint P₂ ∧ P₂.card = min_cut G A B := by {
-                have : fintype.card G₂.step ≤ n := sorry, rw ← h₂₂, apply ih G₂ this },
+            have h₂₃ : ∃ P₂ : finset (AB_path G₂ A X), pairwise_disjoint P₂ ∧ P₂.card = min_cut G A B :=
+                by { rw ← h₂₂, apply ih G₂ G₂_le_n },
 
             -- and similarly there are k disjoint XB paths in G−e
             have h₂₄ : ∃ P₂ : finset (AB_path G₂ A X), pairwise_disjoint P₂ ∧ P₂.card = min_cut G A B := sorry,
