@@ -57,6 +57,9 @@ rec₀ (λ v, {v}) (λ e p h q, {e.x} ∪ q)
 def init : G.Walk → finset V :=
 rec₀ (λ v, ∅) (λ e p h q, {e.x} ∪ q)
 
+def tail : G.Walk → finset V :=
+rec₀ (λ v, ∅) (λ e p h q, {e.y} ∪ q)
+
 noncomputable def edges : G.Walk → finset G.step :=
 rec₀ (λ v, ∅) (λ e p h q, {e} ∪ q)
 
@@ -252,15 +255,15 @@ def transportable_to (G' : simple_graph V) (p : G.Walk) : Prop :=
   ∀ e : G.step, e ∈ p.edges → G'.adj e.x e.y
 
 def transport (p : G.Walk) (hp : transportable_to G' p) :
-  {q : G'.Walk // q.a = p.a} :=
+  {q : G'.Walk // q.a = p.a ∧ q.b = p.b ∧ q.range = p.range } :=
 begin
   revert p, refine rec₀ _ _,
-  { rintro a hp, exact ⟨nil a, rfl⟩ },
+  { rintro a hp, exact ⟨nil a, rfl, rfl, rfl⟩ },
   { rintro e p h ih hp,
     have : ∀ (e : G.step), e ∈ p.edges → G'.adj e.x e.y :=
       by { rintro e he, apply hp, simp [edges], right, exact he },
-    specialize ih this, rcases ih with ⟨q,hq⟩, rw ←hq at h,
-    exact ⟨cons ⟨hp e first_edge⟩ q h, rfl⟩ }
+    specialize ih this, rcases ih with ⟨q,hq⟩, rw ←hq.1 at h,
+    exact ⟨cons ⟨hp e first_edge⟩ q h, by simp [hq]⟩ }
 end
 
 -- TODO for `(X : set V)`
