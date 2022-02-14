@@ -233,37 +233,38 @@ begin
 
   -- Since x,y ∈ X, every AX-separator in G−e is also an AB-separator in G and hence contains at
   -- least k vertices, so by induction there are k disjoint AX paths in G−e
-  have : ∃ P₂ : finset (AB_walk G₂ A X), pw_disjoint P₂ ∧ min_cut G A B ≤ P₂.card :=
-  by { have sep_AB_of_sep₂_AX : separates G₂ A X ≤ separates G A B := by {
-      rintro Z Z_sep₂_AX γ,
-      rcases γ.p.until X (X_sep_AB γ) with ⟨δ,δ_a,δ_b,δ_range,δ_init⟩,
-      have : δ.transportable_to G₂ := by {
-        revert δ_init, refine Walk.rec₀ _ _ δ,
-        { simp [Walk.transportable_to,Walk.edges] },
-        { rintro e' p h ih h₁ e'' h₂,
-          have h₃ : ¬ (p.init ∩ X).nonempty := by {
-            revert h₁, apply mt, push_neg, intro h, rcases h with ⟨z,hz⟩, use z,
-            simp at hz ⊢, split, right, exact hz.1, exact hz.2 },
-          specialize ih h₃,
-          simp at h₂, cases h₂,
-          { subst e'', simp at h₁, simp [G₂,e'.h],
-            have : e'.x ∉ X := by {
-              intro h,
-              have : e'.x ∈ {e'.x} ∪ p.init := by { simp },
-              have := finset.mem_inter.mpr ⟨this,h⟩,
-              have : (({e'.x} ∪ p.init) ∩ X).nonempty := by { use e'.x, exact this },
-              rw h₁ at this, simp at this, contradiction
-            },
+  have sep_AB_of_sep₂_AX : separates G₂ A X ≤ separates G A B := by {
+    rintro Z Z_sep₂_AX γ,
+    rcases γ.p.until X (X_sep_AB γ) with ⟨δ,δ_a,δ_b,δ_range,δ_init⟩,
+    have : δ.transportable_to G₂ := by {
+      revert δ_init, refine Walk.rec₀ _ _ δ,
+      { simp [Walk.transportable_to,Walk.edges] },
+      { rintro e' p h ih h₁ e'' h₂,
+        have h₃ : ¬ (p.init ∩ X).nonempty :=
+        by { revert h₁, apply mt, push_neg, intro h, rcases h with ⟨z,hz⟩, use z,
+          simp at hz ⊢, split, right, exact hz.1, exact hz.2 },
+        specialize ih h₃,
+        simp at h₂, cases h₂,
+        { subst e'', simp at h₁, simp [G₂,e'.h],
+          have : e'.x ∉ X :=
+          by { intro h,
+            have : e'.x ∈ {e'.x} ∪ p.init := by { simp },
+            have := finset.mem_inter.mpr ⟨this,h⟩,
+            have : (({e'.x} ∪ p.init) ∩ X).nonempty := by { use e'.x, exact this },
+            rw h₁ at this, simp at this, contradiction },
             left, split; { intro h, rw h at this, contradiction } },
-          { exact ih e'' h₂ }
-        }
-      },
-      rcases δ.transport this with ⟨ζ,ζ_a,ζ_b,ζ_range⟩,
-      rw ←ζ_range at δ_range,
-      let ζ' : AB_walk G₂ A X := ⟨ζ, by { rw [ζ_a,δ_a], exact γ.ha }, by { rw [ζ_b], exact δ_b }⟩,
-      rcases Z_sep₂_AX ζ' with ⟨z,hz⟩, use z, rw mem_inter at hz ⊢,
-      exact ⟨finset.mem_of_subset δ_range hz.1, hz.2⟩,
+        { exact ih e'' h₂ }
+      }
     },
+    rcases δ.transport this with ⟨ζ,ζ_a,ζ_b,ζ_range⟩,
+    let ζ' : AB_walk G₂ A X := ⟨ζ, by { rw [ζ_a,δ_a], exact γ.ha }, by { rw [ζ_b], exact δ_b }⟩,
+    rcases Z_sep₂_AX ζ' with ⟨z,hz⟩, use z,
+    rw ←ζ_range at δ_range, rw mem_inter at hz ⊢,
+    exact ⟨finset.mem_of_subset δ_range hz.1, hz.2⟩,
+  },
+
+  have : ∃ P₂ : finset (AB_walk G₂ A X), pw_disjoint P₂ ∧ min_cut G A B ≤ P₂.card :=
+  by { have sep_AB_of_sep₂_AX : separates G₂ A X ≤ separates G A B := sep_AB_of_sep₂_AX,
     choose P₂ h₁ h₂ using ih G₂ G₂_le_n A X, refine ⟨P₂,h₁, _⟩, rw h₂,
     rcases min_cut_set G₂ A X with ⟨Z,Z_eq_min,Z_sep₂_AB⟩, rw ←Z_eq_min,
     exact min_cut_spec (sep_AB_of_sep₂_AX Z Z_sep₂_AB) },
