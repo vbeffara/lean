@@ -233,8 +233,10 @@ begin
 
   -- Since x,y ∈ X, every AX-separator in G−e is also an AB-separator in G and hence contains at
   -- least k vertices, so by induction there are k disjoint AX paths in G−e
-  have sep_AB_of_sep₂_AX : separates G₂ A X ≤ separates G A B := by {
-    rintro Z Z_sep₂_AX γ,
+  have sep_AB_of_sep₂_AX : ∀ (A B X : finset V) (X_sep_AB : separates G A B X)
+    (ex_in_X : e.x ∈ X) (ey_in_X : e.y ∈ X), separates G₂ A X ≤ separates G A B :=
+  by {
+    rintro A B X X_sep_AB ex_in_X ey_in_X Z Z_sep₂_AX γ,
     rcases γ.p.until X (X_sep_AB γ) with ⟨δ,δ_a,δ_b,δ_range,δ_init⟩,
     have : δ.transportable_to G₂ := by {
       revert δ_init, refine Walk.rec₀ _ _ δ,
@@ -257,17 +259,15 @@ begin
       }
     },
     rcases δ.transport this with ⟨ζ,ζ_a,ζ_b,ζ_range⟩,
-    let ζ' : AB_walk G₂ A X := ⟨ζ, by { rw [ζ_a,δ_a], exact γ.ha }, by { rw [ζ_b], exact δ_b }⟩,
-    rcases Z_sep₂_AX ζ' with ⟨z,hz⟩, use z,
-    rw ←ζ_range at δ_range, rw mem_inter at hz ⊢,
-    exact ⟨finset.mem_of_subset δ_range hz.1, hz.2⟩,
+    rcases Z_sep₂_AX ⟨ζ, by { rw [ζ_a,δ_a], exact γ.ha }, by { rw [ζ_b], exact δ_b }⟩ with ⟨z,hz⟩,
+    rw ←ζ_range at δ_range, rw mem_inter at hz,
+    exact ⟨z, mem_inter.mpr ⟨finset.mem_of_subset δ_range hz.1, hz.2⟩⟩,
   },
 
   have : ∃ P₂ : finset (AB_walk G₂ A X), pw_disjoint P₂ ∧ min_cut G A B ≤ P₂.card :=
-  by { have sep_AB_of_sep₂_AX : separates G₂ A X ≤ separates G A B := sep_AB_of_sep₂_AX,
-    choose P₂ h₁ h₂ using ih G₂ G₂_le_n A X, refine ⟨P₂,h₁, _⟩, rw h₂,
+  by { choose P₂ h₁ h₂ using ih G₂ G₂_le_n A X, refine ⟨P₂,h₁, _⟩, rw h₂,
     rcases min_cut_set G₂ A X with ⟨Z,Z_eq_min,Z_sep₂_AB⟩, rw ←Z_eq_min,
-    exact min_cut_spec (sep_AB_of_sep₂_AX Z Z_sep₂_AB) },
+    exact min_cut_spec (sep_AB_of_sep₂_AX A B X X_sep_AB ex_in_X ey_in_X Z Z_sep₂_AB) },
   choose P₂ P₂_dis P₂_eq_min using this,
 
   -- and similarly there are k disjoint XB paths in G−e
