@@ -181,25 +181,17 @@ begin
     let A₁ : finset G₁.vertices := finset.image (merge_edge e) A,
     let B₁ : finset G₁.vertices := finset.image (merge_edge e) B,
 
-    obtain ⟨Y, Y_eq_min₁, Y_sep⟩ := min_cut_set G₁ A₁ B₁,
-
-    have min₁_lt_min : min_cut G₁ A₁ B₁ < min_cut G A B :=
-    begin
-      have G₁_lt_G : fintype.card G₁.step < fintype.card G.step :=
-      by { refine fintype.card_lt_of_injective_of_not_mem _ push.lift_step_inj _,
-        use e, exact push.lift_step_ne_mem (by {simp [merge_edge]}) },
-      have G₁_le_n := nat.le_of_lt_succ (nat.lt_of_lt_of_le G₁_lt_G hG),
-      choose P₁ dis₁ P₁_eq_min₁ using ih G₁ G₁_le_n A₁ B₁, rw ←P₁_eq_min₁,
-      let Φ := AB_lift _ merge_edge_adapted A B,
-      have Φ_nip : ∀ {P}, pw_disjoint P → pw_disjoint (image Φ P) := AB_lift_dis,
-      rw ← finset.card_image_of_injective P₁ AB_lift_inj,
-      exact too_small _ (Φ_nip dis₁)
-    end,
+    obtain ⟨Y, Y_eq_min₁, Y_sep⟩ := min_cut_set G₁ A₁ B₁, let X := Y ∪ {e.y},
 
     have Y_lt_min : Y.card < min_cut G A B :=
-    by { rw Y_eq_min₁, exact min₁_lt_min },
+    by { have G₁_le_n : fintype.card G₁.step ≤ n :=
+      by { refine nat.le_of_lt_succ (nat.lt_of_lt_of_le _ hG),
+        refine fintype.card_lt_of_injective_of_not_mem _ push.lift_step_inj _,
+        exact e, exact push.lift_step_ne_mem (by {simp [merge_edge]}) },
+      choose P₁ P₁_dis P₁_eq_min₁ using ih G₁ G₁_le_n A₁ B₁,
+      rw [Y_eq_min₁, ←P₁_eq_min₁, ←finset.card_image_of_injective P₁ AB_lift_inj],
+      apply too_small, { apply AB_lift_dis, exact P₁_dis }, { exact merge_edge_adapted } },
 
-    let X := Y ∪ {e.y},
     have X_sep_AB : separates G A B X :=
     by { intro γ, choose z hz using Y_sep (AB_push (merge_edge e) A B γ),
       rw [mem_inter,AB_push,Walk.push_range,finset.mem_image] at hz,
@@ -212,7 +204,7 @@ begin
     { rw [mem_union], left, by_contradiction,
       suffices : separates G A B Y, by { exact not_lt_of_le (min_cut_spec this) Y_lt_min },
       intro p, choose z hz using Y_sep (AB_push (merge_edge e) A B p), use z,
-      simp at hz ⊢, rcases hz with ⟨hz₁,hz₂⟩, refine ⟨_,hz₂⟩,
+      rw mem_inter at hz ⊢, rcases hz with ⟨hz₁,hz₂⟩, refine ⟨_,hz₂⟩,
       rw [AB_push,Walk.push_range,finset.mem_image] at hz₁, choose x hx₁ hx₂ using hz₁,
       by_cases x = e.y; simp [merge_edge,h] at hx₂,
       { rw [←hx₂] at hz₂, contradiction },
@@ -239,16 +231,13 @@ begin
     have : x = e.x := congr_arg step.x he, have : y = e.y := congr_arg step.y he,
     substs x y, simp at he', exact he' },
 
-  -- Since x,y ∈ X, every AX-separator in G−e is also an AB-separator in G
-  have sep_AB_of_sep₂_AX : separates G₂ A X ≤ separates G A B := sorry,
-
-  -- and hence contains at least k vertices
-  have min_le_of_sep₂_AX : ∀ Z : finset V, separates G₂ A X Z → min_cut G A B ≤ Z.card :=
-  λ Z hZ, min_cut_spec (sep_AB_of_sep₂_AX Z hZ),
-
-  -- So by induction there are k disjoint AX paths in G−e
-  have : ∃ P₂ : finset (AB_path G₂ A X), pw_disjoint P₂ ∧ P₂.card = min_cut G A B :=
-  by { suffices : min_cut G₂ A X = min_cut G A B, rw ←this, exact ih G₂ G₂_le_n A X, sorry },
+  -- Since x,y ∈ X, every AX-separator in G−e is also an AB-separator in G and hence contains at
+  -- least k vertices, so by induction there are k disjoint AX paths in G−e
+  have : ∃ P₂ : finset (AB_path G₂ A X), pw_disjoint P₂ ∧ min_cut G A B ≤ P₂.card :=
+  by { have sep_AB_of_sep₂_AX : separates G₂ A X ≤ separates G A B := sorry,
+    choose P₂ h₁ h₂ using ih G₂ G₂_le_n A X, refine ⟨P₂,h₁, _⟩, rw h₂,
+    rcases min_cut_set G₂ A X with ⟨Z,Z_eq_min,Z_sep₂_AB⟩, rw ←Z_eq_min,
+    exact min_cut_spec (sep_AB_of_sep₂_AX Z Z_sep₂_AB) },
   choose P₂ P₂_dis P₂_eq_min using this,
 
   -- and similarly there are k disjoint XB paths in G−e
