@@ -241,7 +241,9 @@ begin
         revert δ_init, refine Walk.rec₀ _ _ δ,
         { simp [Walk.transportable_to,Walk.edges] },
         { rintro e' p h ih h₁ e'' h₂,
-          have h₃ : ¬ (p.init ∩ X).nonempty := sorry,
+          have h₃ : ¬ (p.init ∩ X).nonempty := by {
+            revert h₁, apply mt, push_neg, intro h, rcases h with ⟨z,hz⟩, use z,
+            simp at hz ⊢, split, right, exact hz.1, exact hz.2 },
           specialize ih h₃,
           simp at h₂, cases h₂,
           { subst e'', simp at h₁, simp [G₂,e'.h],
