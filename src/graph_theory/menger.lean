@@ -181,13 +181,7 @@ begin
     let A₁ : finset G₁.vertices := finset.image (merge_edge e) A,
     let B₁ : finset G₁.vertices := finset.image (merge_edge e) B,
 
-    have P₁_lt_min : ∀ P₁ : finset (AB_path G₁ A₁ B₁),
-      pw_disjoint P₁ → P₁.card < min_cut G A B :=
-    by { intros P₁ P₁_dis,
-      let Φ : AB_path G₁ A₁ B₁ → AB_path G A B := AB_lift _ merge_edge_adapted A B,
-      have Φ_nip : ∀ {P}, pw_disjoint P → pw_disjoint (image Φ P) := AB_lift_dis,
-      rw ← finset.card_image_of_injective P₁ AB_lift_inj,
-      exact too_small _ (Φ_nip P₁_dis) },
+    obtain ⟨Y, Y_eq_min₁, Y_sep⟩ := min_cut_set G₁ A₁ B₁,
 
     have min₁_lt_min : min_cut G₁ A₁ B₁ < min_cut G A B :=
     begin
@@ -195,22 +189,15 @@ begin
       by { refine fintype.card_lt_of_injective_of_not_mem _ push.lift_step_inj _,
         use e, exact push.lift_step_ne_mem (by {simp [merge_edge]}) },
       have G₁_le_n := nat.le_of_lt_succ (nat.lt_of_lt_of_le G₁_lt_G hG),
-      choose P₁ dis₁ P₁_eq_min₁ using ih G₁ G₁_le_n A₁ B₁, rw ←P₁_eq_min₁, exact P₁_lt_min P₁ dis₁
+      choose P₁ dis₁ P₁_eq_min₁ using ih G₁ G₁_le_n A₁ B₁, rw ←P₁_eq_min₁,
+      let Φ := AB_lift _ merge_edge_adapted A B,
+      have Φ_nip : ∀ {P}, pw_disjoint P → pw_disjoint (image Φ P) := AB_lift_dis,
+      rw ← finset.card_image_of_injective P₁ AB_lift_inj,
+      exact too_small _ (Φ_nip dis₁)
     end,
 
-    obtain ⟨Y, Y_eq_min₁, Y_sep⟩ := min_cut_set G₁ A₁ B₁,
     have Y_lt_min : Y.card < min_cut G A B :=
     by { rw Y_eq_min₁, exact min₁_lt_min },
-
-    have ex_in_Y : e.x ∈ Y :=
-    by { by_contradiction,
-      suffices : separates G A B Y, by { exact not_lt_of_le (min_cut_spec this) Y_lt_min },
-      intro p, choose z hz using Y_sep (AB_push (merge_edge e) A B p), use z,
-      simp at hz ⊢, rcases hz with ⟨hz₁,hz₂⟩, refine ⟨_,hz₂⟩,
-      rw [AB_push,Walk.push_range,finset.mem_image] at hz₁, choose x hx₁ hx₂ using hz₁,
-      by_cases x = e.y; simp [merge_edge,h] at hx₂,
-      { rw [←hx₂] at hz₂, contradiction },
-      { rwa [←hx₂] } },
 
     let X := Y ∪ {e.y},
     have X_sep_AB : separates G A B X :=
@@ -222,7 +209,14 @@ begin
 
     refine ⟨X, _, _, X_sep_AB, _⟩,
 
-    { rw [mem_union], left, exact ex_in_Y },
+    { rw [mem_union], left, by_contradiction,
+      suffices : separates G A B Y, by { exact not_lt_of_le (min_cut_spec this) Y_lt_min },
+      intro p, choose z hz using Y_sep (AB_push (merge_edge e) A B p), use z,
+      simp at hz ⊢, rcases hz with ⟨hz₁,hz₂⟩, refine ⟨_,hz₂⟩,
+      rw [AB_push,Walk.push_range,finset.mem_image] at hz₁, choose x hx₁ hx₂ using hz₁,
+      by_cases x = e.y; simp [merge_edge,h] at hx₂,
+      { rw [←hx₂] at hz₂, contradiction },
+      { rwa [←hx₂] } },
     { rw [mem_union,mem_singleton], right, refl },
     { refine le_antisymm _ (min_cut_spec X_sep_AB),
       exact (finset.card_union_le _ _).trans (nat.succ_le_of_lt Y_lt_min) }
