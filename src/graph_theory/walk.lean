@@ -57,13 +57,17 @@ rec₀ (λ v, {v}) (λ e p h q, {e.x} ∪ q)
 def init : G.Walk → finset V :=
 rec₀ (λ v, ∅) (λ e p h q, {e.x} ∪ q)
 
+@[simp] lemma init_cons : (cons e p hep).init = {e.x} ∪ p.init := by simp [init]
+
 def tail : G.Walk → finset V :=
 rec₀ (λ v, ∅) (λ e p h q, {e.y} ∪ q)
 
 noncomputable def edges : G.Walk → finset G.step :=
 rec₀ (λ v, ∅) (λ e p h q, {e} ∪ q)
 
-lemma first_edge : e ∈ (cons e p hep).edges := sorry
+@[simp] lemma edges_cons : (cons e p hep).edges = {e} ∪ p.edges := by simp [edges]
+
+lemma first_edge : e ∈ (cons e p hep).edges := by simp
 
 @[simp] lemma range_a : (nil a : G.Walk).range = {a} := rfl
 
@@ -268,7 +272,7 @@ end
 
 -- TODO for `(X : set V)`
 def until (p : G.Walk) (X : finset V) (hX : (p.range ∩ X).nonempty) :
-  {q : G.Walk // q.a = p.a ∧ q.b ∈ X ∧ q.range ⊆ p.range ∧ q.init ∩ X = ∅} :=
+  {q : G.Walk // q.a = p.a ∧ q.b ∈ X ∧ q.range ⊆ p.range ∧ ¬ (q.init ∩ X).nonempty} :=
 sorry
 
 noncomputable def within (p : G.Walk) (G' : simple_graph V) : {q : G'.Walk // q.a = p.a} :=

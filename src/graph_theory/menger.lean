@@ -237,7 +237,25 @@ begin
   by { have sep_AB_of_sep₂_AX : separates G₂ A X ≤ separates G A B := by {
       rintro Z Z_sep₂_AX γ,
       rcases γ.p.until X (X_sep_AB γ) with ⟨δ,δ_a,δ_b,δ_range,δ_init⟩,
-      have : δ.transportable_to G₂ := sorry,
+      have : δ.transportable_to G₂ := by {
+        revert δ_init, refine Walk.rec₀ _ _ δ,
+        { simp [Walk.transportable_to,Walk.edges] },
+        { rintro e' p h ih h₁ e'' h₂,
+          have h₃ : ¬ (p.init ∩ X).nonempty := sorry,
+          specialize ih h₃,
+          simp at h₂, cases h₂,
+          { subst e'', simp at h₁, simp [G₂,e'.h],
+            have : e'.x ∉ X := by {
+              intro h,
+              have : e'.x ∈ {e'.x} ∪ p.init := by { simp },
+              have := finset.mem_inter.mpr ⟨this,h⟩,
+              have : (({e'.x} ∪ p.init) ∩ X).nonempty := by { use e'.x, exact this },
+              rw h₁ at this, simp at this, contradiction
+            },
+            left, split; { intro h, rw h at this, contradiction } },
+          { exact ih e'' h₂ }
+        }
+      },
       rcases δ.transport this with ⟨ζ,ζ_a,ζ_b,ζ_range⟩,
       rw ←ζ_range at δ_range,
       let ζ' : AB_walk G₂ A X := ⟨ζ, by { rw [ζ_a,δ_a], exact γ.ha }, by { rw [ζ_b], exact δ_b }⟩,
