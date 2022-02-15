@@ -242,16 +242,15 @@ begin
       revert δ_init, refine Walk.rec₀ _ _ δ,
       { simp [Walk.transportable_to,Walk.edges] },
       { rintro e' p h ih h₁ e'' h₂,
-        have h₃ : ¬ (p.init ∩ X).nonempty :=
-        by { revert h₁, apply mt, push_neg, intro h, rcases h with ⟨z,hz⟩, use z,
-          simp at hz ⊢, split, right, exact hz.1, exact hz.2 },
+        have h₃ : p.init ∩ X = ∅ :=
+        by { apply subset_empty.mp, rw [←h₁], apply inter_subset_inter_right,
+          rw [Walk.init_cons], apply finset.subset_union_right },
         specialize ih h₃,
         simp at h₂, cases h₂,
         { subst e'', simp at h₁, simp [G₂,e'.h],
           have : e'.x ∉ X :=
-          by { intro h,
-            have : e'.x ∈ {e'.x} ∪ p.init := by { simp },
-            have := finset.mem_inter.mpr ⟨this,h⟩,
+          by { have : e'.x ∈ {e'.x} ∪ p.init := by { rw mem_union, left, exact mem_singleton.mpr rfl },
+            intro h, have := finset.mem_inter.mpr ⟨this,h⟩,
             have : (({e'.x} ∪ p.init) ∩ X).nonempty := by { use e'.x, exact this },
             rw h₁ at this, simp at this, contradiction },
             left, split; { intro h, rw h at this, contradiction } },

@@ -271,9 +271,27 @@ begin
 end
 
 -- TODO for `(X : set V)`
-def until (p : G.Walk) (X : finset V) (hX : (p.range ∩ X).nonempty) :
-  {q : G.Walk // q.a = p.a ∧ q.b ∈ X ∧ q.range ⊆ p.range ∧ ¬ (q.init ∩ X).nonempty} :=
-sorry
+noncomputable def until (p : G.Walk) (X : finset V) (hX : (p.range ∩ X).nonempty) :
+  {q : G.Walk // q.a = p.a ∧ q.b ∈ X ∧ q.range ⊆ p.range ∧ q.init ∩ X = ∅} :=
+begin
+  revert p, refine rec₀ _ _,
+  { rintro u hu, choose z hz using hu,
+    simp only [range_a, finset.mem_inter, finset.mem_singleton] at hz, cases hz with hz₁ hz₂,
+    subst z, exact ⟨nil u, rfl, hz₂, by refl, rfl⟩ },
+  { rintro e p h₁ ih h₂, by_cases e.x ∈ X,
+    { exact ⟨nil e.x, rfl, h, by simp, rfl⟩ },
+    { simp at h₂, choose z hz using h₂, simp at hz, cases hz with hz₁ hz₂,
+      have : z ≠ e.x := by { intro h, rw h at hz₂, contradiction },
+      simp [this] at hz₁,
+      have : z ∈ p.range ∩ X := finset.mem_inter.mpr ⟨hz₁,hz₂⟩,
+      specialize ih ⟨z,this⟩, rcases ih with ⟨q,hq₁,hq₂,hq₃,hq₄⟩,
+      rw ←hq₁ at h₁,
+      refine ⟨cons e q h₁, rfl, hq₂, _, _⟩,
+      { simp, apply finset.union_subset_union, refl, exact hq₃ },
+      { simp [finset.inter_distrib_right,hq₄,h] }
+    }
+  }
+end
 
 noncomputable def within (p : G.Walk) (G' : simple_graph V) : {q : G'.Walk // q.a = p.a} :=
 begin
