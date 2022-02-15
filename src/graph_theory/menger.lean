@@ -18,15 +18,6 @@ def separates (G : simple_graph V) (A B : finset V) (X : finset V) : Prop :=
 lemma separates_self : separates G A B A :=
   λ γ, ⟨γ.p.a, mem_inter.mpr ⟨Walk.start_mem_range,γ.ha⟩⟩
 
-lemma separates_trans : separates G A B X → separates G A X Z → separates G A B Z :=
-begin
-  rintro sep₁ sep₂ γ, choose x hx using sep₁ γ,
-  rcases γ.p.until X ⟨x,hx⟩ with ⟨δ',h₁,h₂,h₃,h₄⟩,
-  let δ : AB_walk G A X := ⟨δ', (by { rw h₁, exact γ.ha }), h₂⟩,
-  choose z hz using sep₂ δ, use z, simp at hz ⊢,
-  exact ⟨finset.mem_of_subset h₃ hz.1, hz.2⟩
-end
-
 def is_cut_set_size (G : simple_graph V) (A B : finset V) (n : ℕ) : Prop :=
   ∃ X : finset V, X.card = n ∧ separates G A B X
 
@@ -146,9 +137,41 @@ begin
   exact mem_image_of_mem f h.1, exact mem_image_of_mem f h.2
 end
 
-noncomputable def AB_shorten (p : AB_walk G A B) (C : finset V) (hpc : (p.p.range ∩ C).nonempty) :
-  AB_walk G A C :=
-let q := p.p.until C hpc in ⟨q, by { rw q.prop.1, exact p.ha }, q.prop.2.1⟩
+def minus (G : simple_graph V) (e : G.step) : simple_graph V :=
+{
+  adj := λ x y, G.adj x y ∧ ((x ≠ e.x ∧ x ≠ e.y) ∨ (y ≠ e.x ∧ y ≠ e.y)),
+  symm := λ x y ⟨h₁,h₂⟩, ⟨h₁.symm,h₂.symm⟩,
+  loopless := λ x h, G.loopless _ h.1
+}
+
+infix `-` := minus
+
+lemma sep_AB_of_sep₂_AX {e : G.step} (ex_in_X : e.x ∈ X) (ey_in_X : e.y ∈ X) :
+  separates G A B X → separates (G-e) A X Z → separates G A B Z :=
+by {
+  rintro X_sep_AB Z_sep₂_AX γ,
+  rcases γ.p.until X (X_sep_AB γ) with ⟨δ,δ_a,δ_b,δ_range,δ_init⟩,
+  have : δ.transportable_to (G-e) := by {
+    revert δ_init, refine Walk.rec₀ _ _ δ,
+    { simp [Walk.transportable_to,Walk.edges] },
+    { rintro e' p h ih h₁ e'' h₂,
+      have h₃ : p.init ∩ X = ∅ :=
+      by { apply subset_empty.mp, rw [←h₁], apply inter_subset_inter_right,
+        rw [Walk.init_cons], apply finset.subset_union_right },
+      simp at h₂, cases h₂,
+      { subst e'', simp at h₁, simp [minus,e'.h],
+        have : e'.x ∉ X :=
+        by { rw [finset.inter_distrib_right, finset.union_eq_empty_iff] at h₁, intro h,
+          have : ({e'.x} ∩ X).nonempty := ⟨e'.x, by simp [h]⟩, simp [h₁.1] at this, exact this },
+        refine ⟨e'.h,_⟩, left, split; { intro h, rw h at this, contradiction } },
+      { exact ih h₃ e'' h₂ }
+    }
+  },
+  rcases δ.transport this with ⟨ζ,ζ_a,ζ_b,ζ_range⟩,
+  rcases Z_sep₂_AX ⟨ζ, by { rw [ζ_a,δ_a], exact γ.ha }, by { rw [ζ_b], exact δ_b }⟩ with ⟨z,hz⟩,
+  rw ←ζ_range at δ_range, rw mem_inter at hz,
+  exact ⟨z, mem_inter.mpr ⟨finset.mem_of_subset δ_range hz.1, hz.2⟩⟩,
+}
 
 lemma lower_bound_aux (n : ℕ) : ∀ (G : simple_graph V), fintype.card G.step ≤ n →
   ∀ A B : finset V, ∃ P : finset (AB_walk G A B), pw_disjoint P ∧ P.card = min_cut G A B :=
@@ -217,10 +240,7 @@ begin
   choose X ex_in_X ey_in_X X_sep_AB X_eq_min using step₁,
 
   -- We now consider the graph G−e.
-  let G₂ : simple_graph V := {
-    adj := λ x y, G.adj x y ∧ ((x ≠ e.x ∧ x ≠ e.y) ∨ (y ≠ e.x ∧ y ≠ e.y)),
-    symm := λ x y ⟨h₁,h₂⟩, ⟨h₁.symm,h₂.symm⟩,
-    loopless := λ x h, G.loopless _ h.1 },
+  let G₂ : simple_graph V := G-e,
 
   have G₂_le_n : fintype.card G₂.step ≤ n :=
   by { refine nat.le_of_lt_succ (nat.lt_of_lt_of_le _ hG),
@@ -229,44 +249,14 @@ begin
     suffices : e ∉ set.range φ, refine fintype.card_lt_of_injective_of_not_mem φ φ_inj this,
     intro he, rw set.mem_range at he, choose e' he using he, rcases e' with ⟨x,y,he'⟩,
     have : x = e.x := congr_arg step.x he, have : y = e.y := congr_arg step.y he,
-    substs x y, simp at he', exact he' },
+    substs x y, simp [G₂,minus] at he', simp at he', exact he' },
 
   -- Since x,y ∈ X, every AX-separator in G−e is also an AB-separator in G and hence contains at
   -- least k vertices, so by induction there are k disjoint AX paths in G−e
-  have sep_AB_of_sep₂_AX : ∀ (A B X : finset V) (X_sep_AB : separates G A B X)
-    (ex_in_X : e.x ∈ X) (ey_in_X : e.y ∈ X), separates G₂ A X ≤ separates G A B :=
-  by {
-    rintro A B X X_sep_AB ex_in_X ey_in_X Z Z_sep₂_AX γ,
-    rcases γ.p.until X (X_sep_AB γ) with ⟨δ,δ_a,δ_b,δ_range,δ_init⟩,
-    have : δ.transportable_to G₂ := by {
-      revert δ_init, refine Walk.rec₀ _ _ δ,
-      { simp [Walk.transportable_to,Walk.edges] },
-      { rintro e' p h ih h₁ e'' h₂,
-        have h₃ : p.init ∩ X = ∅ :=
-        by { apply subset_empty.mp, rw [←h₁], apply inter_subset_inter_right,
-          rw [Walk.init_cons], apply finset.subset_union_right },
-        specialize ih h₃,
-        simp at h₂, cases h₂,
-        { subst e'', simp at h₁, simp [G₂,e'.h],
-          have : e'.x ∉ X :=
-          by { have : e'.x ∈ {e'.x} ∪ p.init := by { rw mem_union, left, exact mem_singleton.mpr rfl },
-            intro h, have := finset.mem_inter.mpr ⟨this,h⟩,
-            have : (({e'.x} ∪ p.init) ∩ X).nonempty := by { use e'.x, exact this },
-            rw h₁ at this, simp at this, contradiction },
-            left, split; { intro h, rw h at this, contradiction } },
-        { exact ih e'' h₂ }
-      }
-    },
-    rcases δ.transport this with ⟨ζ,ζ_a,ζ_b,ζ_range⟩,
-    rcases Z_sep₂_AX ⟨ζ, by { rw [ζ_a,δ_a], exact γ.ha }, by { rw [ζ_b], exact δ_b }⟩ with ⟨z,hz⟩,
-    rw ←ζ_range at δ_range, rw mem_inter at hz,
-    exact ⟨z, mem_inter.mpr ⟨finset.mem_of_subset δ_range hz.1, hz.2⟩⟩,
-  },
-
   have : ∃ P₂ : finset (AB_walk G₂ A X), pw_disjoint P₂ ∧ min_cut G A B ≤ P₂.card :=
   by { choose P₂ h₁ h₂ using ih G₂ G₂_le_n A X, refine ⟨P₂,h₁, _⟩, rw h₂,
     rcases min_cut_set G₂ A X with ⟨Z,Z_eq_min,Z_sep₂_AB⟩, rw ←Z_eq_min,
-    exact min_cut_spec (sep_AB_of_sep₂_AX A B X X_sep_AB ex_in_X ey_in_X Z Z_sep₂_AB) },
+    apply min_cut_spec, exact sep_AB_of_sep₂_AX ex_in_X ey_in_X X_sep_AB Z_sep₂_AB },
   choose P₂ P₂_dis P₂_eq_min using this,
 
   -- and similarly there are k disjoint XB paths in G−e
