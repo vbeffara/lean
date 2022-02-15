@@ -62,7 +62,9 @@ rec₀ (λ v, ∅) (λ e p h q, {e.x} ∪ q)
 @[simp] lemma init_cons : (cons e p hep).init = {e.x} ∪ p.init := by simp [init]
 
 def tail : G.Walk → finset V :=
-rec₀ (λ v, ∅) (λ e p h q, {e.y} ∪ q)
+rec₀ (λ v, ∅) (λ e p h q, p.range)
+
+@[simp] lemma tail_cons : (cons e p hep).tail = p.range := by simp [tail]
 
 noncomputable def edges : G.Walk → finset G.step :=
 rec₀ (λ v, ∅) (λ e p h q, {e} ∪ q)
@@ -277,9 +279,8 @@ noncomputable def until (p : G.Walk) (X : finset V) (hX : (p.range ∩ X).nonemp
   {q : G.Walk // q.a = p.a ∧ q.b ∈ X ∧ q.range ⊆ p.range ∧ q.init ∩ X = ∅} :=
 begin
   revert p, refine rec₀ _ _,
-  { rintro u hu, choose z hz using hu,
-    simp only [range_a, finset.mem_inter, finset.mem_singleton] at hz, cases hz with hz₁ hz₂,
-    subst z, exact ⟨nil u, rfl, hz₂, by refl, rfl⟩ },
+  { rintro u hu, choose z hz using hu, simp at hz, cases hz with hz₁ hz₂, subst z,
+    exact ⟨nil u, rfl, hz₂, by refl, rfl⟩ },
   { rintro e p h₁ ih h₂, by_cases e.x ∈ X,
     { exact ⟨nil e.x, rfl, h, by simp, rfl⟩ },
     { simp at h₂, choose z hz using h₂, simp at hz, cases hz with hz₁ hz₂,
@@ -293,6 +294,21 @@ begin
       { simp [finset.inter_distrib_right,hq₄,h] }
     }
   }
+end
+
+noncomputable def after (p : G.Walk) (X : finset V) (hX : (p.range ∩ X).nonempty) :
+  {q : G.Walk // q.a ∈ X ∧ q.b = p.b ∧ q.range ⊆ p.range ∧ q.tail ∩ X = ∅} :=
+begin
+  revert p, refine rec₀ _ _,
+  { rintro u hu, choose z hz using hu, simp at hz, cases hz with hz₁ hz₂, subst z,
+    refine ⟨nil u, hz₂, rfl, by refl, rfl⟩ },
+  { rintro e p h₁ ih h₂, by_cases (p.range ∩ X).nonempty,
+    { rcases ih h with ⟨q,hq₁,hq₂,hq₃,hq₄⟩, refine ⟨q, hq₁, hq₂, _, hq₄⟩,
+      simp, apply hq₃.trans, apply finset.subset_union_right },
+    { refine ⟨cons e p h₁, _, rfl, by refl, _⟩,
+      { simp at h₂ ⊢, rcases h₂ with ⟨z,hz⟩, simp at hz, cases hz with hz₁ hz₂,
+        cases hz₁, subst z, exact hz₂, exfalso, apply h, use z, simp, exact ⟨hz₁,hz₂⟩ },
+      { simp at h ⊢, exact h } } }
 end
 
 noncomputable def within (p : G.Walk) (G' : simple_graph V) : {q : G'.Walk // q.a = p.a} :=
