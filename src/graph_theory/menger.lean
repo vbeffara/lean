@@ -187,16 +187,41 @@ noncomputable def trim (p : AB_walk G A B) : {q : AB_walk' G A B // q.p.range �
 begin
   rcases p with ⟨p₁, p₁a, p₁b⟩,
   have h₁ : (p₁.range ∩ A).nonempty := ⟨p₁.a, by simp [p₁a]⟩,
-  rcases p₁.after A h₁ with ⟨p₂, p₂a, p₂b, p₂r, p₂i, p₂t⟩,
+  rcases p₁.after A h₁ with ⟨p₂, p₂a, p₂b, p₂r, p₂i, -, p₂t⟩,
   have h₂ : (p₂.range ∩ B).nonempty := by { refine ⟨p₂.b, _⟩, simp, rwa p₂b },
-  rcases p₂.until B h₂ with ⟨p₃, p₃a, p₃b, p₃r, p₃i, p₃t⟩,
+  rcases p₂.until B h₂ with ⟨p₃, p₃a, p₃b, p₃r, p₃i, -, p₃t⟩,
   refine ⟨⟨⟨p₃, p₃a.symm ▸ p₂a, p₃b⟩, by simp [p₃i], _⟩, p₃r.trans p₂r⟩,
   have : p₃.tail ∩ A ⊆ p₂.tail ∩ A := finset.inter_subset_inter_right p₃t,
   simp, rw ←finset.subset_empty, apply this.trans, rw p₂t, refl
 end
 
 lemma meet_sub_X {X_sep_AB : separates G A B X} (p : AB_walk' G A X) (q : AB_walk' G X B) :
-  p.p.range ∩ q.p.range ⊆ X := sorry
+  p.p.range ∩ q.p.range ⊆ X :=
+begin
+  rcases p with ⟨⟨p,pa,pb⟩,pa',pb'⟩, rcases q with ⟨⟨q,qa,qb⟩,qa',qb'⟩, dsimp at pa' pb' qa' qb' ⊢,
+  rintro x hx, rw mem_inter at hx, cases hx with hx₁ hx₂, by_contra,
+
+  rcases p.until {x} ⟨x, by simp [hx₁]⟩ with ⟨p', p'a, p'b, p'r, p'i, p'i2, p't⟩, simp at p'b,
+  have h₁ : p'.range ∩ X = ∅ :=
+  by { rw Walk.range_eq_init_union_last, by_contra', have := finset.nonempty_of_ne_empty this,
+    choose z hz using this, simp at hz, cases hz with hz₁ hz₂, cases hz₁,
+    { have : p.init ∩ X ≠ ∅ := by { apply finset.nonempty.ne_empty,
+      use z, rw mem_inter, exact ⟨p'i2 hz₁, hz₂⟩ }, contradiction },
+    { subst z, subst x, exact h hz₂ } },
+
+  rcases q.after {x} ⟨x, by simp [hx₂]⟩ with ⟨q', q'a, q'b, q'r, q'i, q't, q't2⟩, simp at q'a,
+  have h₂ : q'.range ∩ X = ∅ :=
+  by { rw Walk.range_eq_start_union_tail, apply finset.subset_empty.mp, rintro z hz, simp at hz ⊢,
+    cases hz with hz₁ hz₂, cases hz₁,
+    { substs hz₁ q'a, contradiction },
+    { have : q.tail ∩ X ≠ ∅ := by { apply finset.nonempty.ne_empty,
+      use z, rw mem_inter, exact ⟨q't hz₁, hz₂⟩ }, contradiction } },
+
+  subst q'a,
+  let γ : AB_walk G A B := ⟨Walk.append p' q' p'b, by simp [p'a,pa], by simp [q'b,qb]⟩,
+  choose z hz using X_sep_AB γ, rw [Walk.range_append,finset.inter_distrib_right] at hz,
+  rw finset.mem_union at hz, cases hz; { have := finset.ne_empty_of_mem hz, contradiction }
+end
 
 lemma lower_bound_aux (n : ℕ) : ∀ (G : simple_graph V), fintype.card G.step ≤ n →
   ∀ A B : finset V, ∃ P : finset (AB_walk G A B), pw_disjoint P ∧ P.card = min_cut G A B :=
