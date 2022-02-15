@@ -9,8 +9,11 @@ namespace simple_graph
 namespace menger
 variables [fintype V] [fintype V'] {A B X Y Z : finset V}
 
-@[ext] structure AB_walk (G : simple_graph V) (A B : finset V) :=
+structure AB_walk (G : simple_graph V) (A B : finset V) :=
   (p : Walk G) (ha : p.a ∈ A) (hb : p.b ∈ B)
+
+structure AB_walk' (G : simple_graph V) (A B : finset V) extends AB_walk G A B :=
+  (h'a : p.init ∩ B = ∅) (h'b : p.tail ∩ A = ∅)
 
 def separates (G : simple_graph V) (A B : finset V) (X : finset V) : Prop :=
   ∀ γ : AB_walk G A B, (γ.p.range ∩ X).nonempty
@@ -180,6 +183,26 @@ by {
   exact ⟨z, mem_inter.mpr ⟨finset.mem_of_subset δ_range hz.1, hz.2⟩⟩,
 }
 
+noncomputable def trim (p : AB_walk G A B) : {q : AB_walk' G A B // q.p.range ⊆ p.p.range} :=
+begin
+  rcases p with ⟨p₁,p₁a,p₁b⟩,
+  have h₁ : (p₁.range ∩ B).nonempty := sorry,
+  rcases p₁.until B h₁ with ⟨p₂,p₂a,p₂b,p₂r,p₂i⟩,
+  rcases p₂.reverse_aux with ⟨p₃,p₃a,p₃b,p₃r⟩,
+  have h₂ : (p₃.range ∩ A).nonempty := sorry,
+  rcases p₃.until A h₂ with ⟨p₄,p₄a,p₄b,p₄r,p₄i⟩,
+  rcases p₄.reverse_aux with ⟨q,qa,qb,qr⟩,
+  refine ⟨⟨⟨q, _, _⟩, _, _⟩, _⟩,
+  { simp [qa,p₄b] },
+  { simp [qb,p₄a,p₃a,p₂b] },
+  { simp, sorry },
+  { simp, sorry },
+  { simp [qr], refine p₄r.trans _, rw p₃r, exact p₂r }
+end
+
+lemma meet_sub_X {X_sep_AB : separates G A B X} (p : AB_walk' G A X) (q : AB_walk' G X B) :
+  p.p.range ∩ q.p.range ⊆ X := sorry
+
 lemma lower_bound_aux (n : ℕ) : ∀ (G : simple_graph V), fintype.card G.step ≤ n →
   ∀ A B : finset V, ∃ P : finset (AB_walk G A B), pw_disjoint P ∧ P.card = min_cut G A B :=
 begin
@@ -273,10 +296,9 @@ begin
     exact (sep_AB_of_sep₂_AX ex_in_X ey_in_X X_sep_AB.symm Z_sep₂_AB.symm).symm },
   choose P'₂ P'₂_dis P'₂_eq_min using this,
 
-  -- As X separates A from B, these two path systems do not meet outside X
-  have meet_sub_X : ∀ (p : AB_walk G₂ A X) (q : AB_walk G₂ X B), p.p.range ∩ q.p.range ⊆ X := sorry,
-
   -- and can thus be combined to k disjoint AB paths.
+
+  -- have := meet_sub_X,
   sorry
 end
 
