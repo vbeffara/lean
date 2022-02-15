@@ -54,6 +54,8 @@ lemma cons_p : (cons e p hep).p = by { let h' := e.h, rw hep at h', exact p.p.co
 def range : G.Walk → finset V :=
 rec₀ (λ v, {v}) (λ e p h q, {e.x} ∪ q)
 
+@[simp] lemma range_step : (step e).range = {e.x, e.y} := rfl
+
 def init : G.Walk → finset V :=
 rec₀ (λ v, ∅) (λ e p h q, {e.x} ∪ q)
 
@@ -206,7 +208,7 @@ begin
 end
 
 @[simp] lemma push_step_range : (push_step f e).range = {f e.x, f e.y} :=
-by { by_cases f e.x = f e.y; simp [push_step, push_step_aux, h], refl }
+by { by_cases f e.x = f e.y; simp [push_step, push_step_aux, h] }
 
 lemma push_range : (push_Walk f p).range = finset.image f p.range :=
 begin
@@ -301,6 +303,18 @@ begin
     by_cases h' : G'.adj e.x e.y,
     { rw ← q.prop at h, refine ⟨cons ⟨h'⟩ q h, rfl⟩ },
     { exact ⟨nil e.x, rfl⟩ } }
+end
+
+def reverse_aux (p : G.Walk) : {q : G.Walk // q.a = p.b ∧ q.b = p.a ∧ q.range = p.range} :=
+begin
+  refine rec₀ _ _ p,
+  { rintro u, refine ⟨nil u, rfl, rfl, rfl⟩ },
+  { rintro e p h ⟨q,qa,qb,qr⟩, refine ⟨q.append (step e.flip) _, _, _, _⟩,
+    { rw [qb,←h], refl },
+    { simp [qa] },
+    { simp, refl },
+    { simp [qr], rw finset.union_comm, simp [h] }
+  }
 end
 
 end Walk

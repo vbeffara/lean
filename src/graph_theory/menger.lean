@@ -18,6 +18,13 @@ def separates (G : simple_graph V) (A B : finset V) (X : finset V) : Prop :=
 lemma separates_self : separates G A B A :=
   λ γ, ⟨γ.p.a, mem_inter.mpr ⟨Walk.start_mem_range,γ.ha⟩⟩
 
+lemma separates.symm : separates G A B X → separates G B A X :=
+begin
+  rintro h ⟨p,pa,pb⟩, rcases p.reverse_aux with ⟨q,qa,qb,qr⟩,
+  let q' : AB_walk G A B := ⟨q, qa.symm ▸ pb, qb.symm ▸ pa⟩,
+  dsimp, rw ←qr, exact h q'
+end
+
 def is_cut_set_size (G : simple_graph V) (A B : finset V) (n : ℕ) : Prop :=
   ∃ X : finset V, X.card = n ∧ separates G A B X
 
@@ -146,7 +153,7 @@ def minus (G : simple_graph V) (e : G.step) : simple_graph V :=
 
 infix `-` := minus
 
-lemma sep_AB_of_sep₂_AX {e : G.step} (ex_in_X : e.x ∈ X) (ey_in_X : e.y ∈ X) :
+lemma sep_AB_of_sep₂_AX ⦃e : G.step⦄ (ex_in_X : e.x ∈ X) (ey_in_X : e.y ∈ X) :
   separates G A B X → separates (G-e) A X Z → separates G A B Z :=
 by {
   rintro X_sep_AB Z_sep₂_AX γ,
@@ -254,13 +261,16 @@ begin
   -- Since x,y ∈ X, every AX-separator in G−e is also an AB-separator in G and hence contains at
   -- least k vertices, so by induction there are k disjoint AX paths in G−e
   have : ∃ P₂ : finset (AB_walk G₂ A X), pw_disjoint P₂ ∧ min_cut G A B ≤ P₂.card :=
-  by { choose P₂ h₁ h₂ using ih G₂ G₂_le_n A X, refine ⟨P₂,h₁, _⟩, rw h₂,
+  by { choose P₂ h₁ h₂ using ih G₂ G₂_le_n A X, refine ⟨P₂, h₁, _⟩, rw h₂,
     rcases min_cut_set G₂ A X with ⟨Z,Z_eq_min,Z_sep₂_AB⟩, rw ←Z_eq_min,
     apply min_cut_spec, exact sep_AB_of_sep₂_AX ex_in_X ey_in_X X_sep_AB Z_sep₂_AB },
   choose P₂ P₂_dis P₂_eq_min using this,
 
   -- and similarly there are k disjoint XB paths in G−e
-  have : ∃ P'₂ : finset (AB_walk G₂ X B), pw_disjoint P'₂ ∧ P'₂.card = min_cut G A B := sorry,
+  have : ∃ P'₂ : finset (AB_walk G₂ X B), pw_disjoint P'₂ ∧ min_cut G A B ≤ P'₂.card :=
+  by { choose P'₂ h₁ h₂ using ih G₂ G₂_le_n X B, refine ⟨P'₂, h₁, _⟩, rw h₂,
+    rcases min_cut_set G₂ X B with ⟨Z,Z_eq_min,Z_sep₂_AB⟩, rw ←Z_eq_min, apply min_cut_spec,
+    exact (sep_AB_of_sep₂_AX ex_in_X ey_in_X X_sep_AB.symm Z_sep₂_AB.symm).symm },
   choose P'₂ P'₂_dis P'₂_eq_min using this,
 
   -- As X separates A from B, these two path systems do not meet outside X
