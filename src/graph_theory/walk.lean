@@ -54,32 +54,34 @@ lemma cons_p : (cons e p hep).p = by { let h' := e.h, rw hep at h', exact p.p.co
 def range : G.Walk → finset V :=
 rec₀ (λ v, {v}) (λ e p h q, {e.x} ∪ q)
 
+@[simp] lemma range_cons : (cons e p hep).range = {e.x} ∪ p.range := rec_cons
+
 @[simp] lemma range_step : (step e).range = {e.x, e.y} := rfl
 
 def init : G.Walk → finset V :=
 rec₀ (λ v, ∅) (λ e p h q, {e.x} ∪ q)
 
-@[simp] lemma init_cons : (cons e p hep).init = {e.x} ∪ p.init := by simp [init]
+@[simp] lemma init_cons : (cons e p hep).init = {e.x} ∪ p.init := rec_cons
 
-lemma range_eq_init_union_last : p.range = p.init ∪ {p.b} := sorry
+lemma range_eq_init_union_last : p.range = p.init ∪ {p.b} :=
+by { refine rec₀ _ _ p, { intro u, refl }, { rintro e p h q, simp [q] } }
 
 def tail : G.Walk → finset V :=
 rec₀ (λ v, ∅) (λ e p h q, p.range)
 
-@[simp] lemma tail_cons : (cons e p hep).tail = p.range := by simp [tail]
+@[simp] lemma tail_cons : (cons e p hep).tail = p.range := rec_cons
 
-lemma range_eq_start_union_tail : p.range = {p.a} ∪ p.tail := sorry
+lemma range_eq_start_union_tail : p.range = {p.a} ∪ p.tail :=
+by { refine rec₀ _ _ p, { intro, refl }, { intros, simp [*] } }
 
 noncomputable def edges : G.Walk → finset G.step :=
 rec₀ (λ v, ∅) (λ e p h q, {e} ∪ q)
 
-@[simp] lemma edges_cons : (cons e p hep).edges = {e} ∪ p.edges := by simp [edges]
+@[simp] lemma edges_cons : (cons e p hep).edges = {e} ∪ p.edges := rec_cons
 
 lemma first_edge : e ∈ (cons e p hep).edges := by simp
 
 @[simp] lemma range_a : (nil a : G.Walk).range = {a} := rfl
-
-@[simp] lemma range_cons : (cons e p hep).range = {e.x} ∪ p.range := rec_cons
 
 @[simp] lemma start_mem_range : p.a ∈ p.range :=
 by { refine rec₀ _ _ p; simp }

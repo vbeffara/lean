@@ -58,7 +58,7 @@ def pw_disjoint (P : finset (AB_walk G A B)) : Prop :=
 lemma path_le_cut (dis : pw_disjoint P) (sep : separates G A B X) : P.card ≤ X.card :=
 begin
   let φ : Π γ : P, γ.val.p.range ∩ X := λ γ, by { choose z hz using sep γ, exact ⟨z,hz⟩ },
-  let ψ : P → X := λ γ, ⟨_, finset.mem_of_mem_inter_right (φ γ).prop⟩,
+  let ψ : P → X := λ γ, ⟨_, mem_of_mem_inter_right (φ γ).prop⟩,
   have h₁ : ∀ γ, (ψ γ).val ∈ γ.val.p.range := λ γ, let z := φ γ in (mem_inter.mp z.2).1,
   have h₂ : injective ψ := λ γ γ' h, dis ⟨_, mem_inter_of_mem (h₁ γ) (by { rw h, exact (h₁ γ') })⟩,
   simp_rw [←fintype.card_coe], convert fintype.card_le_of_injective ψ h₂
@@ -81,14 +81,14 @@ begin
     have := h γ, choose z h₁ using this, simp at h₁, rw ←h₁.1, exact h₁.2 },
   { rintro ⟨⟨a,b,γ⟩,ha,hb⟩, cases γ, swap, exfalso, exact γ_h,
     simp at ha hb ⊢, use a, simp, split, exact Walk.start_mem_range,
-    apply finset.mem_of_subset h, simp, exact ⟨ha,hb⟩ }
+    apply mem_of_subset h, simp, exact ⟨ha,hb⟩ }
 end
 
 lemma bot_min_cut : min_cut ⊥ A B = (A ∩ B).card :=
 begin
   apply (nat.find_eq_iff _).mpr, simp [bot_separates_iff], split,
   { use A ∩ B, exact ⟨rfl,subset.rfl⟩ },
-  { rintros n h₁ X rfl h₂, have := finset.card_le_of_subset h₂, linarith }
+  { rintros n h₁ X rfl h₂, have := card_le_of_subset h₂, linarith }
 end
 
 noncomputable def bot_path_set (A B : finset V) :
@@ -101,7 +101,7 @@ begin
     have nil₁ : γ₁ = Walk.nil γ₁.a := by { cases γ₁, cases γ₁_p, refl, exfalso, exact γ₁_p_h },
     have nil₂ : γ₂ = Walk.nil γ₂.a := by { cases γ₂, cases γ₂_p, refl, exfalso, exact γ₂_p_h },
     simp at h₇ ⊢, rw [nil₁,nil₂] at h₇ ⊢, cases h₇ with z h₇, simp at h₇, rw [←h₇.1,←h₇.2] },
-  { rw [card_image_of_injective univ φ_inj, finset.card_univ],
+  { rw [card_image_of_injective univ φ_inj, card_univ],
     convert fintype.card_of_finset (A ∩ B) _, intro z, simp, split,
     { rintros ⟨h₁,h₂⟩, exact set.mem_sep h₁ h₂ },
     { rintros h₁, exact h₁ } }
@@ -113,8 +113,8 @@ noncomputable def AB_lift (f : V → V') (hf : adapted' f G) (A B : finset V) :
   AB_walk (push f G) (A.image f) (B.image f) → AB_walk G A B :=
 begin
   rintro ⟨p,ha,hb⟩,
-  choose a h₂ h₃ using finset.mem_image.mp ha,
-  choose b h₅ h₆ using finset.mem_image.mp hb,
+  choose a h₂ h₃ using mem_image.mp ha,
+  choose b h₅ h₆ using mem_image.mp hb,
   let γ := Walk.pull_Walk_aux f hf p a b h₃ h₆,
   rw ←γ.2.1 at h₂, rw ←γ.2.2.1 at h₅, exact ⟨γ,h₂,h₅⟩
 end
@@ -137,8 +137,8 @@ lemma AB_lift_dis (P' : finset (AB_walk (push f G) (A.image f) (B.image f))) :
   pw_disjoint P' → pw_disjoint (P'.image (AB_lift f hf A B)) :=
 begin
   rintro hP' ⟨γ₁,h₁⟩ ⟨γ₂,h₂⟩ h, simp at h ⊢, choose z h using h,
-  choose γ'₁ h'₁ h''₁ using finset.mem_image.mp h₁,
-  choose γ'₂ h'₂ h''₂ using finset.mem_image.mp h₂,
+  choose γ'₁ h'₁ h''₁ using mem_image.mp h₁,
+  choose γ'₂ h'₂ h''₂ using mem_image.mp h₂,
   have h₃ := congr_arg (AB_push f A B) h''₁, rw AB_push_lift at h₃,
   have h₄ := congr_arg (AB_push f A B) h''₂, rw AB_push_lift at h₄,
   suffices : γ'₁ = γ'₂, { rw [←h''₁,←h''₂,this] },
@@ -167,11 +167,11 @@ by {
     { rintro e' p h ih h₁ e'' h₂,
       have h₃ : p.init ∩ X = ∅ :=
       by { apply subset_empty.mp, rw [←h₁], apply inter_subset_inter_right,
-        rw [Walk.init_cons], apply finset.subset_union_right },
+        rw [Walk.init_cons], apply subset_union_right },
       simp at h₂, cases h₂,
       { subst e'', simp at h₁, simp [minus,e'.h],
         have : e'.x ∉ X :=
-        by { rw [finset.inter_distrib_right, finset.union_eq_empty_iff] at h₁, intro h,
+        by { rw [inter_distrib_right, union_eq_empty_iff] at h₁, intro h,
           have : ({e'.x} ∩ X).nonempty := ⟨e'.x, by simp [h]⟩, simp [h₁.1] at this, exact this },
         refine ⟨e'.h,_⟩, left, split; { intro h, rw h at this, contradiction } },
       { exact ih h₃ e'' h₂ }
@@ -180,7 +180,7 @@ by {
   rcases δ.transport this with ⟨ζ,ζ_a,ζ_b,ζ_range⟩,
   rcases Z_sep₂_AX ⟨ζ, by { rw [ζ_a,δ_a], exact γ.ha }, by { rw [ζ_b], exact δ_b }⟩ with ⟨z,hz⟩,
   rw ←ζ_range at δ_range, rw mem_inter at hz,
-  exact ⟨z, mem_inter.mpr ⟨finset.mem_of_subset δ_range hz.1, hz.2⟩⟩,
+  exact ⟨z, mem_inter.mpr ⟨mem_of_subset δ_range hz.1, hz.2⟩⟩,
 }
 
 noncomputable def trim (p : AB_walk G A B) : {q : AB_walk' G A B // q.p.range ⊆ p.p.range} :=
@@ -191,8 +191,8 @@ begin
   have h₂ : (p₂.range ∩ B).nonempty := by { refine ⟨p₂.b, _⟩, simp, rwa p₂b },
   rcases p₂.until B h₂ with ⟨p₃, p₃a, p₃b, p₃r, p₃i, -, p₃t⟩,
   refine ⟨⟨⟨p₃, p₃a.symm ▸ p₂a, p₃b⟩, by simp [p₃i], _⟩, p₃r.trans p₂r⟩,
-  have : p₃.tail ∩ A ⊆ p₂.tail ∩ A := finset.inter_subset_inter_right p₃t,
-  simp, rw ←finset.subset_empty, apply this.trans, rw p₂t, refl
+  have : p₃.tail ∩ A ⊆ p₂.tail ∩ A := inter_subset_inter_right p₃t,
+  simp, rw ←subset_empty, apply this.trans, rw p₂t, refl
 end
 
 lemma meet_sub_X {X_sep_AB : separates G A B X} (p : AB_walk' G A X) (q : AB_walk' G X B) :
@@ -203,24 +203,24 @@ begin
 
   rcases p.until {x} ⟨x, by simp [hx₁]⟩ with ⟨p', p'a, p'b, p'r, p'i, p'i2, p't⟩, simp at p'b,
   have h₁ : p'.range ∩ X = ∅ :=
-  by { rw Walk.range_eq_init_union_last, by_contra', have := finset.nonempty_of_ne_empty this,
+  by { rw Walk.range_eq_init_union_last, by_contra', have := nonempty_of_ne_empty this,
     choose z hz using this, simp at hz, cases hz with hz₁ hz₂, cases hz₁,
-    { have : p.init ∩ X ≠ ∅ := by { apply finset.nonempty.ne_empty,
+    { have : p.init ∩ X ≠ ∅ := by { apply nonempty.ne_empty,
       use z, rw mem_inter, exact ⟨p'i2 hz₁, hz₂⟩ }, contradiction },
     { subst z, subst x, exact h hz₂ } },
 
   rcases q.after {x} ⟨x, by simp [hx₂]⟩ with ⟨q', q'a, q'b, q'r, q'i, q't, q't2⟩, simp at q'a,
   have h₂ : q'.range ∩ X = ∅ :=
-  by { rw Walk.range_eq_start_union_tail, apply finset.subset_empty.mp, rintro z hz, simp at hz ⊢,
+  by { rw Walk.range_eq_start_union_tail, apply subset_empty.mp, rintro z hz, simp at hz ⊢,
     cases hz with hz₁ hz₂, cases hz₁,
     { substs hz₁ q'a, contradiction },
-    { have : q.tail ∩ X ≠ ∅ := by { apply finset.nonempty.ne_empty,
+    { have : q.tail ∩ X ≠ ∅ := by { apply nonempty.ne_empty,
       use z, rw mem_inter, exact ⟨q't hz₁, hz₂⟩ }, contradiction } },
 
   subst q'a,
   let γ : AB_walk G A B := ⟨Walk.append p' q' p'b, by simp [p'a,pa], by simp [q'b,qb]⟩,
-  choose z hz using X_sep_AB γ, rw [Walk.range_append,finset.inter_distrib_right] at hz,
-  rw finset.mem_union at hz, cases hz; { have := finset.ne_empty_of_mem hz, contradiction }
+  choose z hz using X_sep_AB γ, rw [Walk.range_append,inter_distrib_right] at hz,
+  rw mem_union at hz, cases hz; { have := ne_empty_of_mem hz, contradiction }
 end
 
 lemma lower_bound_aux (n : ℕ) : ∀ (G : simple_graph V), fintype.card G.step ≤ n →
@@ -251,8 +251,8 @@ begin
     e.x ∈ X ∧ e.y ∈ X ∧ separates G A B X ∧ X.card = min_cut G A B :=
   by {
     let G₁ := G/e,
-    let A₁ : finset G₁.vertices := finset.image (merge_edge e) A,
-    let B₁ : finset G₁.vertices := finset.image (merge_edge e) B,
+    let A₁ : finset G₁.vertices := image (merge_edge e) A,
+    let B₁ : finset G₁.vertices := image (merge_edge e) B,
 
     obtain ⟨Y, Y_eq_min₁, Y_sep⟩ := min_cut_set G₁ A₁ B₁, let X := Y ∪ {e.y},
 
@@ -262,12 +262,12 @@ begin
         refine fintype.card_lt_of_injective_of_not_mem _ push.lift_step_inj _,
         exact e, exact push.lift_step_ne_mem (by {simp [merge_edge]}) },
       choose P₁ P₁_dis P₁_eq_min₁ using ih G₁ G₁_le_n A₁ B₁,
-      rw [Y_eq_min₁, ←P₁_eq_min₁, ←finset.card_image_of_injective P₁ AB_lift_inj],
+      rw [Y_eq_min₁, ←P₁_eq_min₁, ←card_image_of_injective P₁ AB_lift_inj],
       apply too_small, { apply AB_lift_dis, exact P₁_dis }, { exact merge_edge_adapted } },
 
     have X_sep_AB : separates G A B X :=
     by { intro γ, choose z hz using Y_sep (AB_push (merge_edge e) A B γ),
-      rw [mem_inter,AB_push,Walk.push_range,finset.mem_image] at hz,
+      rw [mem_inter,AB_push,Walk.push_range,mem_image] at hz,
       choose x hx₁ hx₂ using hz.1, by_cases x = e.y; simp [merge_edge,h] at hx₂,
       { use x, simp, split, exact hx₁, right, exact h },
       { use x, simp, split, exact hx₁, left, rw hx₂, exact hz.2 } },
@@ -278,13 +278,13 @@ begin
       suffices : separates G A B Y, by { exact not_lt_of_le (min_cut_spec this) Y_lt_min },
       intro p, choose z hz using Y_sep (AB_push (merge_edge e) A B p), use z,
       rw mem_inter at hz ⊢, rcases hz with ⟨hz₁,hz₂⟩, refine ⟨_,hz₂⟩,
-      rw [AB_push,Walk.push_range,finset.mem_image] at hz₁, choose x hx₁ hx₂ using hz₁,
+      rw [AB_push,Walk.push_range,mem_image] at hz₁, choose x hx₁ hx₂ using hz₁,
       by_cases x = e.y; simp [merge_edge,h] at hx₂,
       { rw [←hx₂] at hz₂, contradiction },
       { rwa [←hx₂] } },
     { rw [mem_union,mem_singleton], right, refl },
     { refine le_antisymm _ (min_cut_spec X_sep_AB),
-      exact (finset.card_union_le _ _).trans (nat.succ_le_of_lt Y_lt_min) }
+      exact (card_union_le _ _).trans (nat.succ_le_of_lt Y_lt_min) }
   },
 
   choose X ex_in_X ey_in_X X_sep_AB X_eq_min using step₁,
