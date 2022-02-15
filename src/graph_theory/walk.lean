@@ -66,6 +66,8 @@ rec₀ (λ v, ∅) (λ e p h q, p.range)
 
 @[simp] lemma tail_cons : (cons e p hep).tail = p.range := by simp [tail]
 
+lemma range_eq_head_union_tail : p.range = {p.a} ∪ p.tail := sorry
+
 noncomputable def edges : G.Walk → finset G.step :=
 rec₀ (λ v, ∅) (λ e p h q, {e} ∪ q)
 
@@ -79,6 +81,9 @@ lemma first_edge : e ∈ (cons e p hep).edges := by simp
 
 @[simp] lemma start_mem_range : p.a ∈ p.range :=
 by { refine rec₀ _ _ p; simp }
+
+@[simp] lemma end_mem_range : p.b ∈ p.range :=
+by { refine rec₀ _ _ p, simp, rintro e p h q, simp, right, exact q }
 
 lemma range_eq_support : p.range = p.p.support.to_finset :=
 begin
@@ -276,20 +281,20 @@ end
 
 -- TODO for `(X : set V)`
 noncomputable def until (p : G.Walk) (X : finset V) (hX : (p.range ∩ X).nonempty) :
-  {q : G.Walk // q.a = p.a ∧ q.b ∈ X ∧ q.range ⊆ p.range ∧ q.init ∩ X = ∅} :=
+  {q : G.Walk // q.a = p.a ∧ q.b ∈ X ∧ q.range ⊆ p.range ∧ q.init ∩ X = ∅ ∧ q.tail ⊆ p.tail} :=
 begin
   revert p, refine rec₀ _ _,
   { rintro u hu, choose z hz using hu, simp at hz, cases hz with hz₁ hz₂, subst z,
-    exact ⟨nil u, rfl, hz₂, by refl, rfl⟩ },
+    exact ⟨nil u, rfl, hz₂, by refl, rfl, by refl⟩ },
   { rintro e p h₁ ih h₂, by_cases e.x ∈ X,
-    { exact ⟨nil e.x, rfl, h, by simp, rfl⟩ },
+    { refine ⟨nil e.x, rfl, h, by simp, rfl, by simp [tail]⟩ },
     { simp at h₂, choose z hz using h₂, simp at hz, cases hz with hz₁ hz₂,
       have : z ≠ e.x := by { intro h, rw h at hz₂, contradiction },
       simp [this] at hz₁,
       have : z ∈ p.range ∩ X := finset.mem_inter.mpr ⟨hz₁,hz₂⟩,
-      specialize ih ⟨z,this⟩, rcases ih with ⟨q,hq₁,hq₂,hq₃,hq₄⟩,
+      specialize ih ⟨z,this⟩, rcases ih with ⟨q,hq₁,hq₂,hq₃,hq₄,hq₅⟩,
       rw ←hq₁ at h₁,
-      refine ⟨cons e q h₁, rfl, hq₂, _, _⟩,
+      refine ⟨cons e q h₁, rfl, hq₂, _, _, by simp [hq₃]⟩,
       { simp, apply finset.union_subset_union, refl, exact hq₃ },
       { simp [finset.inter_distrib_right,hq₄,h] }
     }
@@ -297,14 +302,17 @@ begin
 end
 
 noncomputable def after (p : G.Walk) (X : finset V) (hX : (p.range ∩ X).nonempty) :
-  {q : G.Walk // q.a ∈ X ∧ q.b = p.b ∧ q.range ⊆ p.range ∧ q.tail ∩ X = ∅} :=
+  {q : G.Walk // q.a ∈ X ∧ q.b = p.b ∧ q.range ⊆ p.range ∧ q.init ⊆ p.init ∧ q.tail ∩ X = ∅} :=
 begin
   revert p, refine rec₀ _ _,
   { rintro u hu, choose z hz using hu, simp at hz, cases hz with hz₁ hz₂, subst z,
-    refine ⟨nil u, hz₂, rfl, by refl, rfl⟩ },
+    refine ⟨nil u, hz₂, rfl, by refl, by refl, rfl⟩ },
   { rintro e p h₁ ih h₂, by_cases (p.range ∩ X).nonempty,
-    { rcases ih h with ⟨q,hq₁,hq₂,hq₃,hq₄⟩, refine ⟨q, hq₁, hq₂, _, hq₄⟩,
-      simp, apply hq₃.trans, apply finset.subset_union_right },
+    { rcases ih h with ⟨q, hq₁, hq₂, hq₃, hq₄, hq₅⟩,
+      refine ⟨q, hq₁, hq₂, _, _, hq₅⟩,
+      { simp, apply hq₃.trans, apply finset.subset_union_right },
+      { simp, apply hq₄.trans, apply finset.subset_union_right }
+    },
     { refine ⟨cons e p h₁, _, rfl, by refl, _⟩,
       { simp at h₂ ⊢, rcases h₂ with ⟨z,hz⟩, simp at hz, cases hz with hz₁ hz₂,
         cases hz₁, subst z, exact hz₂, exfalso, apply h, use z, simp, exact ⟨hz₁,hz₂⟩ },

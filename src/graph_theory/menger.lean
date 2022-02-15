@@ -160,7 +160,7 @@ lemma sep_AB_of_sep₂_AX ⦃e : G.step⦄ (ex_in_X : e.x ∈ X) (ey_in_X : e.y 
   separates G A B X → separates (G-e) A X Z → separates G A B Z :=
 by {
   rintro X_sep_AB Z_sep₂_AX γ,
-  rcases γ.p.until X (X_sep_AB γ) with ⟨δ,δ_a,δ_b,δ_range,δ_init⟩,
+  rcases γ.p.until X (X_sep_AB γ) with ⟨δ,δ_a,δ_b,δ_range,δ_init,-⟩,
   have : δ.transportable_to (G-e) := by {
     revert δ_init, refine Walk.rec₀ _ _ δ,
     { simp [Walk.transportable_to,Walk.edges] },
@@ -185,19 +185,14 @@ by {
 
 noncomputable def trim (p : AB_walk G A B) : {q : AB_walk' G A B // q.p.range ⊆ p.p.range} :=
 begin
-  rcases p with ⟨p₁,p₁a,p₁b⟩,
-  have h₁ : (p₁.range ∩ B).nonempty := sorry,
-  rcases p₁.until B h₁ with ⟨p₂,p₂a,p₂b,p₂r,p₂i⟩,
-  rcases p₂.reverse_aux with ⟨p₃,p₃a,p₃b,p₃r⟩,
-  have h₂ : (p₃.range ∩ A).nonempty := sorry,
-  rcases p₃.until A h₂ with ⟨p₄,p₄a,p₄b,p₄r,p₄i⟩,
-  rcases p₄.reverse_aux with ⟨q,qa,qb,qr⟩,
-  refine ⟨⟨⟨q, _, _⟩, _, _⟩, _⟩,
-  { simp [qa,p₄b] },
-  { simp [qb,p₄a,p₃a,p₂b] },
-  { simp, sorry },
-  { simp, sorry },
-  { simp [qr], refine p₄r.trans _, rw p₃r, exact p₂r }
+  rcases p with ⟨p₁, p₁a, p₁b⟩,
+  have h₁ : (p₁.range ∩ A).nonempty := ⟨p₁.a, by simp [p₁a]⟩,
+  rcases p₁.after A h₁ with ⟨p₂, p₂a, p₂b, p₂r, p₂i, p₂t⟩,
+  have h₂ : (p₂.range ∩ B).nonempty := by { refine ⟨p₂.b, _⟩, simp, rwa p₂b },
+  rcases p₂.until B h₂ with ⟨p₃, p₃a, p₃b, p₃r, p₃i, p₃t⟩,
+  refine ⟨⟨⟨p₃, p₃a.symm ▸ p₂a, p₃b⟩, by simp [p₃i], _⟩, p₃r.trans p₂r⟩,
+  have : p₃.tail ∩ A ⊆ p₂.tail ∩ A := finset.inter_subset_inter_right p₃t,
+  simp, rw ←finset.subset_empty, apply this.trans, rw p₂t, refl
 end
 
 lemma meet_sub_X {X_sep_AB : separates G A B X} (p : AB_walk' G A X) (q : AB_walk' G X B) :
