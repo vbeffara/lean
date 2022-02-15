@@ -55,6 +55,20 @@ variables {P : finset (AB_walk G A B)}
 def pw_disjoint (P : finset (AB_walk G A B)) : Prop :=
 ∀ ⦃γ₁ γ₂ : P⦄, (γ₁.val.p.range ∩ γ₂.val.p.range).nonempty → γ₁ = γ₂
 
+lemma path_le_A (dis : pw_disjoint P) : P.card ≤ A.card :=
+begin
+  let φ : P → A := λ p, ⟨p.1.1.a, p.1.ha⟩,
+  have : injective φ := by { rintro p₁ p₂ h, simp at h, apply dis, use p₁.1.1.a, simp, simp [h] },
+  simp_rw [←fintype.card_coe], convert fintype.card_le_of_injective φ this,
+end
+
+lemma path_le_B (dis : pw_disjoint P) : P.card ≤ B.card :=
+begin
+  let φ : P → B := λ p, ⟨p.1.1.b, p.1.hb⟩,
+  have : injective φ := by { rintro p₁ p₂ h, simp at h, apply dis, use p₁.1.1.b, simp, simp [h] },
+  simp_rw [←fintype.card_coe], convert fintype.card_le_of_injective φ this,
+end
+
 lemma path_le_cut (dis : pw_disjoint P) (sep : separates G A B X) : P.card ≤ X.card :=
 begin
   let φ : Π γ : P, γ.val.p.range ∩ X := λ γ, by { choose z hz using sep γ, exact ⟨z,hz⟩ },
@@ -155,6 +169,8 @@ def minus (G : simple_graph V) (e : G.step) : simple_graph V :=
 }
 
 infix `-` := minus
+
+lemma minus_le {e : G.step} : G-e ≤ G := λ x y h, h.1
 
 lemma sep_AB_of_sep₂_AX ⦃e : G.step⦄ (ex_in_X : e.x ∈ X) (ey_in_X : e.y ∈ X) :
   separates G A B X → separates (G-e) A X Z → separates G A B Z :=
@@ -303,18 +319,20 @@ begin
 
   -- Since x,y ∈ X, every AX-separator in G−e is also an AB-separator in G and hence contains at
   -- least k vertices, so by induction there are k disjoint AX paths in G−e
-  have : ∃ P₂ : finset (AB_walk G₂ A X), pw_disjoint P₂ ∧ min_cut G A B ≤ P₂.card :=
-  by { choose P₂ h₁ h₂ using ih G₂ G₂_le_n A X, refine ⟨P₂, h₁, _⟩, rw h₂,
-    rcases min_cut_set G₂ A X with ⟨Z,Z_eq_min,Z_sep₂_AB⟩, rw ←Z_eq_min,
-    apply min_cut_spec, exact sep_AB_of_sep₂_AX ex_in_X ey_in_X X_sep_AB Z_sep₂_AB },
-  choose P₂ P₂_dis P₂_eq_min using this,
+  have : ∃ P : finset (AB_walk G₂ A X), pw_disjoint P ∧ P.card = X.card :=
+  by { choose P h₁ h₂ using ih G₂ G₂_le_n A X, refine ⟨P, h₁, _⟩,
+    rcases min_cut_set G₂ A X with ⟨Z,Z_eq_min,Z_sep₂_AB⟩,
+    apply le_antisymm (path_le_B h₁), rw [X_eq_min, h₂, ←Z_eq_min], apply min_cut_spec,
+    exact sep_AB_of_sep₂_AX ex_in_X ey_in_X X_sep_AB Z_sep₂_AB },
+  choose P P_dis P_eq_min using this,
 
   -- and similarly there are k disjoint XB paths in G−e
-  have : ∃ P'₂ : finset (AB_walk G₂ X B), pw_disjoint P'₂ ∧ min_cut G A B ≤ P'₂.card :=
-  by { choose P'₂ h₁ h₂ using ih G₂ G₂_le_n X B, refine ⟨P'₂, h₁, _⟩, rw h₂,
-    rcases min_cut_set G₂ X B with ⟨Z,Z_eq_min,Z_sep₂_AB⟩, rw ←Z_eq_min, apply min_cut_spec,
-    exact (sep_AB_of_sep₂_AX ex_in_X ey_in_X X_sep_AB.symm Z_sep₂_AB.symm).symm },
-  choose P'₂ P'₂_dis P'₂_eq_min using this,
+  have : ∃ Q : finset (AB_walk G₂ X B), pw_disjoint Q ∧ Q.card = X.card :=
+  by { choose Q h₁ h₂ using ih G₂ G₂_le_n X B, refine ⟨Q, h₁, _⟩,
+    rcases min_cut_set G₂ X B with ⟨Z,Z_eq_min,Z_sep₂_AB⟩,
+    apply le_antisymm (path_le_A h₁), rw [X_eq_min, h₂, ←Z_eq_min], apply min_cut_spec,
+    exact (sep_AB_of_sep₂_AX ex_in_X ey_in_X X_sep_AB.symm Z_sep₂_AB.symm).symm, },
+  choose Q Q_dis Q_eq_min using this,
 
   -- and can thus be combined to k disjoint AB paths.
 

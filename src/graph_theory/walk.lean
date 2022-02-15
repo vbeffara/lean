@@ -271,6 +271,13 @@ lemma pull_Walk_push : push_Walk f (pull_Walk f hf p' x y hx hy) = p' :=
 def transportable_to (G' : simple_graph V) (p : G.Walk) : Prop :=
   ∀ e : G.step, e ∈ p.edges → G'.adj e.x e.y
 
+lemma transportable_to_of_le (G_le : G ≤ G') : p.transportable_to G' :=
+begin
+  refine rec₀ _ _ p,
+  { rintro u e h, simp [edges] at h, contradiction },
+  { rintro e p h q e' h', simp at h', cases h', rw h', exact G_le e.h, exact q e' h' }
+end
+
 def transport (p : G.Walk) (hp : transportable_to G' p) :
   {q : G'.Walk // q.a = p.a ∧ q.b = p.b ∧ q.range = p.range } :=
 begin
