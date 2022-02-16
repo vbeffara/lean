@@ -382,14 +382,24 @@ begin
       exact (sep_AB_of_sep₂_AX ex_in_X ey_in_X X_sep_AB.symm Z_sep₂_AB.symm).symm } },
   choose Q Q_dis Q_eq_min using this,
 
-  -- and can thus be combined to k disjoint AB paths.
+  let φ : P → X := λ p, let q := p.val.to_AB_walk in ⟨q.p.b,q.hb⟩,
+  have φ_inj : injective φ :=
+  by { rintro p₁ p₂ h, simp at h, apply P_dis, use p₁.val.to_AB_walk.p.b, simp, simp [h] },
+  have φ_bij : bijective φ :=
+  by { rw fintype.bijective_iff_injective_and_card, refine ⟨φ_inj,_⟩, simp, sorry },
+
+  let ψ : Q → X := λ p, let q := p.val.to_AB_walk in ⟨q.p.a,q.ha⟩,
+  have ψ_inj : injective ψ :=
+  by { rintro p₁ p₂ h, simp at h, apply Q_dis, use p₁.val.to_AB_walk.p.a, simp, simp [h] },
+  have ψ_bij : bijective ψ :=
+  by { rw fintype.bijective_iff_injective_and_card, refine ⟨ψ_inj,_⟩, sorry },
+
   sorry
 end
 
 lemma lower_bound : ∃ P : finset (AB_walk G A B), pw_disjoint P ∧ P.card = min_cut G A B :=
 lower_bound_aux (fintype.card G.step) G (le_of_eq rfl) A B
 
--- theorem menger (h : separable G A B) : max_path_number G A B = min_cut h :=
--- sorry
+-- theorem menger (h : separable G A B) : max_path_number G A B = min_cut h
 end menger
 end simple_graph
