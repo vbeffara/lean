@@ -8,7 +8,7 @@ namespace simple_graph
 variables {V V' : Type} [decidable_eq V] [decidable_eq V'] {f : V → V'}
 variables {G G' : simple_graph V} {x y z u v w a b c : V}
 
-@[ext] structure Walk (G : simple_graph V) := {a b : V} (p : G.walk a b)
+structure Walk (G : simple_graph V) := {a b : V} (p : G.walk a b)
 
 namespace Walk
 
@@ -57,6 +57,13 @@ rec₀ (λ v, {v}) (λ e p h q, {e.x} ∪ q)
 @[simp] lemma range_cons : (cons e p hep).range = {e.x} ∪ p.range := rec_cons
 
 @[simp] lemma range_step : (step e).range = {e.x, e.y} := rfl
+
+@[simp] lemma range_nonempty : p.range.nonempty :=
+begin
+  refine rec₀ _ _ p,
+  { intro u, use u, simp [range] },
+  { intros e p h q, use e.x, simp }
+end
 
 def init : G.Walk → finset V :=
 rec₀ (λ v, ∅) (λ e p h q, {e.x} ∪ q)
@@ -279,10 +286,10 @@ begin
 end
 
 def transport (p : G.Walk) (hp : transportable_to G' p) :
-  {q : G'.Walk // q.a = p.a ∧ q.b = p.b ∧ q.range = p.range } :=
+  {q : G'.Walk // q.a = p.a ∧ q.b = p.b ∧ q.range = p.range ∧ q.init = p.init ∧ q.tail = p.tail} :=
 begin
   revert p, refine rec₀ _ _,
-  { rintro a hp, exact ⟨nil a, rfl, rfl, rfl⟩ },
+  { rintro a hp, exact ⟨nil a, rfl, rfl, rfl, rfl, rfl⟩ },
   { rintro e p h ih hp,
     have : ∀ (e : G.step), e ∈ p.edges → G'.adj e.x e.y :=
       by { rintro e he, apply hp, simp [edges], right, exact he },

@@ -1,6 +1,6 @@
 import combinatorics.simple_graph.connectivity data.finset data.setoid.basic
 import graph_theory.contraction graph_theory.pushforward graph_theory.basic graph_theory.walk
-open finset classical function
+open finset classical function simple_graph.Walk
 open_locale classical
 
 variables {V V' : Type} {a : V} {G : simple_graph V}
@@ -9,10 +9,10 @@ namespace simple_graph
 namespace menger
 variables [fintype V] [fintype V'] {A B X Y Z : finset V}
 
-structure AB_walk (G : simple_graph V) (A B : finset V) :=
+@[ext] structure AB_walk (G : simple_graph V) (A B : finset V) :=
   (p : Walk G) (ha : p.a ∈ A) (hb : p.b ∈ B)
 
-structure AB_walk' (G : simple_graph V) (A B : finset V) extends AB_walk G A B :=
+@[ext] structure AB_walk' (G : simple_graph V) (A B : finset V) extends AB_walk G A B :=
   (h'a : p.init ∩ B = ∅) (h'b : p.tail ∩ A = ∅)
 
 def separates (G : simple_graph V) (A B : finset V) (X : finset V) : Prop :=
@@ -53,6 +53,9 @@ by { have h := mt ((min_cut' G A B).2.2 X.card), rw [not_not,not_lt] at h, exact
 variables {P : finset (AB_walk G A B)}
 
 def pw_disjoint (P : finset (AB_walk G A B)) : Prop :=
+∀ ⦃γ₁ γ₂ : P⦄, (γ₁.val.p.range ∩ γ₂.val.p.range).nonempty → γ₁ = γ₂
+
+def pw_disjoint' (P : finset (AB_walk' G A B)) : Prop :=
 ∀ ⦃γ₁ γ₂ : P⦄, (γ₁.val.p.range ∩ γ₂.val.p.range).nonempty → γ₁ = γ₂
 
 lemma path_le_A (dis : pw_disjoint P) : P.card ≤ A.card :=
@@ -172,6 +175,16 @@ infix `-` := minus
 
 lemma minus_le {e : G.step} : G-e ≤ G := λ x y h, h.1
 
+lemma minus_lt_edges {e : G.step} : fintype.card (G-e).step < fintype.card G.step :=
+begin
+  let φ : (G-e).step → G.step := λ e, ⟨e.h.1⟩,
+  have φ_inj : injective φ := by { rintro e₁ e₂ h, simp [φ] at h, exact e₁.ext e₂ h.1 h.2 },
+  suffices : e ∉ set.range φ, refine fintype.card_lt_of_injective_of_not_mem φ φ_inj this,
+  intro he, rw set.mem_range at he, choose e' he using he, rcases e' with ⟨x,y,he'⟩,
+  have : x = e.x := congr_arg step.x he, have : y = e.y := congr_arg step.y he,
+  substs x y, simp [minus] at he', simp at he', exact he'
+end
+
 lemma sep_AB_of_sep₂_AX ⦃e : G.step⦄ (ex_in_X : e.x ∈ X) (ey_in_X : e.y ∈ X) :
   separates G A B X → separates (G-e) A X Z → separates G A B Z :=
 by {
@@ -193,7 +206,7 @@ by {
       { exact ih h₃ e'' h₂ }
     }
   },
-  rcases δ.transport this with ⟨ζ,ζ_a,ζ_b,ζ_range⟩,
+  rcases δ.transport this with ⟨ζ,ζ_a,ζ_b,ζ_range,-,-⟩,
   rcases Z_sep₂_AX ⟨ζ, by { rw [ζ_a,δ_a], exact γ.ha }, by { rw [ζ_b], exact δ_b }⟩ with ⟨z,hz⟩,
   rw ←ζ_range at δ_range, rw mem_inter at hz,
   exact ⟨z, mem_inter.mpr ⟨mem_of_subset δ_range hz.1, hz.2⟩⟩,
@@ -209,6 +222,45 @@ begin
   refine ⟨⟨⟨p₃, p₃a.symm ▸ p₂a, p₃b⟩, by simp [p₃i], _⟩, p₃r.trans p₂r⟩,
   have : p₃.tail ∩ A ⊆ p₂.tail ∩ A := inter_subset_inter_right p₃t,
   simp, rw ←subset_empty, apply this.trans, rw p₂t, refl
+end
+
+noncomputable def massage_aux {G₁ G₂ : simple_graph V} (h : G₂ ≤ G₁)
+  (p : AB_walk G₂ A X) : {q : AB_walk' G₁ A X // q.p.range ⊆ p.p.range} :=
+begin
+  rcases trim p with ⟨⟨⟨p',p'a,p'b⟩,p'aa,p'bb⟩,hp'⟩,
+  rcases p'.transport (transportable_to_of_le h) with ⟨q,qa,qb,qr,qi,qt⟩,
+  use ⟨⟨q, qa.symm ▸ p'a, qb.symm ▸ p'b⟩, qi.symm ▸ p'aa, qt.symm ▸ p'bb⟩,
+  simp, simp at hp', rw qr, exact hp'
+end
+
+noncomputable def massage {G₁ G₂ : simple_graph V} (h : G₂ ≤ G₁) :
+  AB_walk G₂ A X → AB_walk' G₁ A X :=
+λ p, (massage_aux h p).val
+
+lemma massage_eq {G₁ G₂ : simple_graph V} {h : G₂ ≤ G₁} {P : finset (AB_walk G₂ A B)} {p₁ p₂ : P} :
+  pw_disjoint P → ((massage h p₁.val).p.range ∩ (massage h p₂.val).p.range).nonempty → p₁ = p₂ :=
+begin
+  rintro hP h, apply hP, rcases h with ⟨z,hz⟩, use z, simp at hz ⊢, split,
+  { apply (massage_aux h p₁.val).prop, exact hz.1 },
+  { apply (massage_aux h p₂.val).prop, exact hz.2 }
+end
+
+lemma massage_disjoint {G₁ G₂ : simple_graph V} {h : G₂ ≤ G₁} {P : finset (AB_walk G₂ A B)} :
+  pw_disjoint P → pw_disjoint' (image (massage h) P) :=
+begin
+  rintro h₁ ⟨p₁,hp₁⟩ ⟨p₂,hp₂⟩ h, apply subtype.ext, dsimp,
+  choose q₁ hq₁ hq₁' using mem_image.mp hp₁, choose q₂ hq₂ hq₂' using mem_image.mp hp₂,
+  rw [←hq₁',←hq₂'], apply congr_arg, let γ₁ : P := ⟨q₁,hq₁⟩, let γ₂ : P := ⟨q₂,hq₂⟩,
+  suffices : γ₁ = γ₂, { simp only [subtype.mk_eq_mk] at this, exact this }, apply massage_eq h₁,
+  rw [hq₁',hq₂'], exact h
+end
+
+lemma massage_card {G₁ G₂ : simple_graph V} {h : G₂ ≤ G₁} {P : finset (AB_walk G₂ A B)} :
+  pw_disjoint P → (image (massage h) P).card = P.card :=
+begin
+  rintro hP, apply card_image_of_inj_on, rintro p₁ hp₁ p₂ hp₂ he,
+  let q₁ : P := ⟨p₁,hp₁⟩, let q₂ : P := ⟨p₂,hp₂⟩, suffices : q₁ = q₂, simp at this, exact this,
+  apply massage_eq hP, rw he, simp
 end
 
 lemma meet_sub_X {X_sep_AB : separates G A B X} (p : AB_walk' G A X) (q : AB_walk' G X B) :
@@ -309,21 +361,16 @@ begin
   let G₂ : simple_graph V := G-e,
 
   have G₂_le_n : fintype.card G₂.step ≤ n :=
-  by { refine nat.le_of_lt_succ (nat.lt_of_lt_of_le _ hG),
-    let φ : G₂.step → G.step := λ e, ⟨e.h.1⟩,
-    have φ_inj : injective φ := by { rintro e₁ e₂ h, simp [φ] at h, exact e₁.ext e₂ h.1 h.2 },
-    suffices : e ∉ set.range φ, refine fintype.card_lt_of_injective_of_not_mem φ φ_inj this,
-    intro he, rw set.mem_range at he, choose e' he using he, rcases e' with ⟨x,y,he'⟩,
-    have : x = e.x := congr_arg step.x he, have : y = e.y := congr_arg step.y he,
-    substs x y, simp [G₂,minus] at he', simp at he', exact he' },
+  nat.le_of_lt_succ (nat.lt_of_lt_of_le minus_lt_edges hG),
 
   -- Since x,y ∈ X, every AX-separator in G−e is also an AB-separator in G and hence contains at
   -- least k vertices, so by induction there are k disjoint AX paths in G−e
-  have : ∃ P : finset (AB_walk G₂ A X), pw_disjoint P ∧ P.card = X.card :=
-  by { choose P h₁ h₂ using ih G₂ G₂_le_n A X, refine ⟨P, h₁, _⟩,
-    rcases min_cut_set G₂ A X with ⟨Z,Z_eq_min,Z_sep₂_AB⟩,
-    apply le_antisymm (path_le_B h₁), rw [X_eq_min, h₂, ←Z_eq_min], apply min_cut_spec,
-    exact sep_AB_of_sep₂_AX ex_in_X ey_in_X X_sep_AB Z_sep₂_AB },
+  have : ∃ P : finset (AB_walk' G A X), pw_disjoint' P ∧ P.card = X.card :=
+  by { choose P h₁ h₂ using ih G₂ G₂_le_n A X, use image (massage minus_le) P, split,
+    { exact massage_disjoint h₁ },
+    { apply (massage_card h₁).trans, rcases min_cut_set G₂ A X with ⟨Z,Z_eq_min,Z_sep₂_AB⟩,
+      apply le_antisymm (path_le_B h₁), rw [X_eq_min, h₂, ←Z_eq_min], apply min_cut_spec,
+      exact sep_AB_of_sep₂_AX ex_in_X ey_in_X X_sep_AB Z_sep₂_AB } },
   choose P P_dis P_eq_min using this,
 
   -- and similarly there are k disjoint XB paths in G−e
