@@ -2,6 +2,7 @@ import combinatorics.simple_graph.connectivity data.finset data.setoid.basic
 import graph_theory.contraction graph_theory.pushforward graph_theory.basic graph_theory.walk
 open finset classical function simple_graph.Walk
 open_locale classical
+noncomputable theory
 
 variables {V V' : Type} {a : V} {G : simple_graph V}
 
@@ -366,7 +367,7 @@ begin
   -- Since x,y ∈ X, every AX-separator in G−e is also an AB-separator in G and hence contains at
   -- least k vertices, so by induction there are k disjoint AX paths in G−e
   have : ∃ P : finset (AB_walk' G A X), pw_disjoint' P ∧ P.card = X.card :=
-  by { choose P h₁ h₂ using ih G₂ G₂_le_n A X, use image (massage minus_le) P, split,
+  by { specialize ih G₂ G₂_le_n A X, choose P h₁ h₂ using ih, use image (massage minus_le) P, split,
     { exact massage_disjoint h₁ },
     { apply (massage_card h₁).trans, rcases min_cut_set G₂ A X with ⟨Z,Z_eq_min,Z_sep₂_AB⟩,
       apply le_antisymm (path_le_B h₁), rw [X_eq_min, h₂, ←Z_eq_min], apply min_cut_spec,
@@ -386,13 +387,15 @@ begin
   have φ_inj : injective φ :=
   by { rintro p₁ p₂ h, simp at h, apply P_dis, use p₁.val.to_AB_walk.p.b, simp, simp [h] },
   have φ_bij : bijective φ :=
-  by { rw fintype.bijective_iff_injective_and_card, refine ⟨φ_inj,_⟩, simp, sorry },
+  by { rw fintype.bijective_iff_injective_and_card, refine ⟨φ_inj,_⟩, simp, apply P_eq_min.trans,
+    have := fintype.card_coe X, convert this.symm },
 
   let ψ : Q → X := λ p, let q := p.val.to_AB_walk in ⟨q.p.a,q.ha⟩,
   have ψ_inj : injective ψ :=
   by { rintro p₁ p₂ h, simp at h, apply Q_dis, use p₁.val.to_AB_walk.p.a, simp, simp [h] },
   have ψ_bij : bijective ψ :=
-  by { rw fintype.bijective_iff_injective_and_card, refine ⟨ψ_inj,_⟩, sorry },
+  by { rw fintype.bijective_iff_injective_and_card, refine ⟨ψ_inj,_⟩, simp, apply Q_eq_min.trans,
+    have := fintype.card_coe X, convert this.symm },
 
   sorry
 end
