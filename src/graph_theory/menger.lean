@@ -374,16 +374,15 @@ begin
   choose P P_dis P_eq_min using this,
 
   -- and similarly there are k disjoint XB paths in G−e
-  have : ∃ Q : finset (AB_walk G₂ X B), pw_disjoint Q ∧ Q.card = X.card :=
-  by { choose Q h₁ h₂ using ih G₂ G₂_le_n X B, refine ⟨Q, h₁, _⟩,
-    rcases min_cut_set G₂ X B with ⟨Z,Z_eq_min,Z_sep₂_AB⟩,
-    apply le_antisymm (path_le_A h₁), rw [X_eq_min, h₂, ←Z_eq_min], apply min_cut_spec,
-    exact (sep_AB_of_sep₂_AX ex_in_X ey_in_X X_sep_AB.symm Z_sep₂_AB.symm).symm, },
+  have : ∃ Q : finset (AB_walk' G X B), pw_disjoint' Q ∧ Q.card = X.card :=
+  by { choose Q h₁ h₂ using ih G₂ G₂_le_n X B, use image (massage minus_le) Q, split,
+    { exact massage_disjoint h₁ },
+    { apply (massage_card h₁).trans, rcases min_cut_set G₂ X B with ⟨Z,Z_eq_min,Z_sep₂_AB⟩,
+      apply le_antisymm (path_le_A h₁), rw [X_eq_min, h₂, ←Z_eq_min], apply min_cut_spec,
+      exact (sep_AB_of_sep₂_AX ex_in_X ey_in_X X_sep_AB.symm Z_sep₂_AB.symm).symm } },
   choose Q Q_dis Q_eq_min using this,
 
   -- and can thus be combined to k disjoint AB paths.
-
-  -- have := meet_sub_X,
   sorry
 end
 
