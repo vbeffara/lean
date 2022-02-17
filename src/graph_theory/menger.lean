@@ -405,14 +405,20 @@ begin
 
   let φ := endpoint P P_dis P_eq_X, let ψ := endpoint Q Q_dis Q_eq_X,
 
-  let Φ : P → AB_walk G A B := λ p, by {
-    let γ := p.val.to_AB_walk,
-    let δ := (ψ.symm (φ p)).val.to_AB_walk,
-    let δ' := δ.p.reverse_aux,
-    refine ⟨Walk.append γ.p δ'.val _, _, _⟩,
-    { sorry },{ sorry },{ sorry }
+  let Φ : P → AB_walk G A B := λ γ, by {
+    let δ := (ψ.inv_fun (φ γ)),
+    have φψ : ψ δ = φ γ := by simp only [δ, equiv.inv_fun_as_coe, equiv.apply_symm_apply],
+    have same_x : δ.val.to_AB_walk.p.b = γ.val.to_AB_walk.p.b :=
+    by { dsimp [φ,ψ,endpoint] at φψ, simp at φψ, simp [φψ] },
+    rcases γ with ⟨⟨⟨γ,γa',γb'⟩,γa'',γb''⟩,hγ⟩, dsimp at *,
+    rcases δ.val.to_AB_walk.p.reverse_aux with ⟨ζ,ζa,ζb,ζr⟩,
+    refine ⟨Walk.append γ ζ _, _, _⟩,
+    { simp [ζa,same_x] },
+    { simp, exact γa' },
+    { simp [ζb], exact δ.val.to_AB_walk.ha }
   },
 
+  use finset.image Φ univ,
   sorry
 end
 
