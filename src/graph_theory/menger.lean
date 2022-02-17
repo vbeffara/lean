@@ -310,7 +310,7 @@ end
 lemma sep_cleanup {e : G.step} (ex_in_X : e.x ∈ X) (ey_in_X : e.y ∈ X)
   (X_eq_min : X.card = min_cut G A B) (X_sep_AB : separates G A B X)
   (ih : ∃ (P : finset (AB_walk (G-e) A X)), pw_disjoint P ∧ P.card = min_cut (G-e) A X) :
-  ∃ P : finset (AB_walk' G A X), pw_disjoint' P ∧ P.card = X.card :=
+  {P : finset (AB_walk' G A X) // pw_disjoint' P ∧ P.card = X.card} :=
 begin
   choose P h₁ h₂ using ih, use image (massage minus_le) P, split,
   { exact massage_disjoint h₁ },
@@ -320,6 +320,26 @@ begin
     exact sep_AB_of_sep₂_AX ex_in_X ey_in_X X_sep_AB Z_sep₂_AB }
 end
 
+def stitch
+  (P : finset (AB_walk' G A X)) (P_dis: pw_disjoint' P) (P_eq_X: P.card = X.card)
+  (Q : finset (AB_walk' G B X)) (Q_dis: pw_disjoint' Q) (Q_eq_X: Q.card = X.card) :
+  {R : finset (AB_walk G A B) // pw_disjoint R ∧ R.card = X.card} :=
+begin
+  let φ : P ≃ X := endpoint P P_dis P_eq_X,
+  let ψ : Q ≃ X := endpoint Q Q_dis Q_eq_X,
+  let Ψ : X → AB_walk G A B := by {
+    intro x,
+    rcases hγ : φ.inv_fun x with ⟨⟨⟨γ,γa,γb⟩,γi,γt⟩,γp⟩,
+    have γbx : γ.b = x :=
+    by { have := φ.right_inv x, rw hγ at this, simp [φ,endpoint] at this, rw ←this, refl },
+    rcases hδ : ψ.inv_fun x with ⟨⟨⟨δ,δa,δb⟩,δi,δt⟩,δp⟩,
+    have δbx : δ.b = x :=
+    by { have := ψ.right_inv x, rw hδ at this, simp [φ,endpoint] at this, rw ←this, refl },
+    rcases δ.reverse_aux with ⟨ζ,ζa,ζb,ζp⟩,
+    refine ⟨Walk.append γ ζ (by rw [γbx,ζa,δbx]), by simp [γa], by simp [ζb,δa]⟩
+  },
+  sorry
+end
 
 lemma lower_bound_aux (n : ℕ) : ∀ (G : simple_graph V), fintype.card G.step ≤ n →
   ∀ A B : finset V, ∃ P : finset (AB_walk G A B), pw_disjoint P ∧ P.card = min_cut G A B :=
@@ -396,30 +416,13 @@ begin
   -- Since x,y ∈ X, every AX-separator in G−e is also an AB-separator in G and hence contains at
   -- least k vertices, so by induction there are k disjoint AX paths in G−e and similarly there are
   -- k disjoint XB paths in G−e
-  choose P P_dis P_eq_X using sep_cleanup ex_in_X ey_in_X X_eq_min X_sep_AB (ih G₂ G₂_le_n A X),
+  rcases sep_cleanup ex_in_X ey_in_X X_eq_min X_sep_AB (ih G₂ G₂_le_n A X) with ⟨P,P_dis,P_eq_X⟩,
 
-  have : ∃ Q : finset (AB_walk' G B X), pw_disjoint' Q ∧ Q.card = X.card :=
-  by { rw min_cut_symm at X_eq_min,
-    exact sep_cleanup ex_in_X ey_in_X X_eq_min X_sep_AB.symm (ih G₂ G₂_le_n B X) },
-  choose Q Q_dis Q_eq_X using this,
+  let X_eq_min' : X.card = min_cut G B A := X_eq_min.trans min_cut_symm,
+  rcases sep_cleanup ex_in_X ey_in_X X_eq_min' X_sep_AB.symm (ih G₂ G₂_le_n B X) with ⟨Q,Q_dis,Q_eq_X⟩,
 
-  let φ := endpoint P P_dis P_eq_X, let ψ := endpoint Q Q_dis Q_eq_X,
-
-  let Φ : P → AB_walk G A B := λ γ, by {
-    let δ := (ψ.inv_fun (φ γ)),
-    have φψ : ψ δ = φ γ := by simp only [δ, equiv.inv_fun_as_coe, equiv.apply_symm_apply],
-    have same_x : δ.val.to_AB_walk.p.b = γ.val.to_AB_walk.p.b :=
-    by { dsimp [φ,ψ,endpoint] at φψ, simp at φψ, simp [φψ] },
-    rcases γ with ⟨⟨⟨γ,γa',γb'⟩,γa'',γb''⟩,hγ⟩, dsimp at *,
-    rcases δ.val.to_AB_walk.p.reverse_aux with ⟨ζ,ζa,ζb,ζr⟩,
-    refine ⟨Walk.append γ ζ _, _, _⟩,
-    { simp [ζa,same_x] },
-    { simp, exact γa' },
-    { simp [ζb], exact δ.val.to_AB_walk.ha }
-  },
-
-  use finset.image Φ univ,
-  sorry
+  rw ←X_eq_min,
+  rcases stitch P P_dis P_eq_X Q Q_dis Q_eq_X with ⟨R,R_dis,R_eq_X⟩, exact ⟨R,R_dis,R_eq_X⟩
 end
 
 lemma lower_bound : ∃ P : finset (AB_walk G A B), pw_disjoint P ∧ P.card = min_cut G A B :=
