@@ -29,6 +29,9 @@ begin
   dsimp, rw ←qr, exact h q'
 end
 
+lemma separates.comm : separates G A B X ↔ separates G B A X :=
+⟨separates.symm,separates.symm⟩
+
 def is_cut_set_size (G : simple_graph V) (A B : finset V) (n : ℕ) : Prop :=
   ∃ X : finset V, X.card = n ∧ separates G A B X
 
@@ -43,6 +46,9 @@ end
 
 noncomputable def min_cut (G : simple_graph V) (A B : finset V) : ℕ :=
   (min_cut' G A B).val
+
+lemma min_cut_symm : min_cut G A B = min_cut G B A :=
+by { simp_rw [min_cut,min_cut'], congr' 1, ext n, simp_rw [is_cut_set_size,separates.comm] }
 
 noncomputable def min_cut_set (G : simple_graph V) (A B : finset V) :
   {X : finset V // X.card = min_cut G A B ∧ separates G A B X} :=
@@ -292,6 +298,29 @@ begin
   rw mem_union at hz, cases hz; { have := ne_empty_of_mem hz, contradiction }
 end
 
+def endpoint (P : finset (AB_walk' G A B)) (P_dis : pw_disjoint' P) (P_eq : P.card = B.card) :
+  P ≃ B :=
+begin
+  let φ : P → B := λ p, let q := p.val.to_AB_walk in ⟨q.p.b,q.hb⟩,
+  apply equiv.of_bijective φ, rw fintype.bijective_iff_injective_and_card, split,
+  { rintro p₁ p₂ h, apply P_dis, use p₁.val.to_AB_walk.p.b, simp at h ⊢, simp [h]  },
+  { simp, apply P_eq.trans, convert (fintype.card_coe B).symm },
+end
+
+lemma sep_cleanup {e : G.step} (ex_in_X : e.x ∈ X) (ey_in_X : e.y ∈ X)
+  (X_eq_min : X.card = min_cut G A B) (X_sep_AB : separates G A B X)
+  (ih : ∃ (P : finset (AB_walk (G-e) A X)), pw_disjoint P ∧ P.card = min_cut (G-e) A X) :
+  ∃ P : finset (AB_walk' G A X), pw_disjoint' P ∧ P.card = X.card :=
+begin
+  choose P h₁ h₂ using ih, use image (massage minus_le) P, split,
+  { exact massage_disjoint h₁ },
+  { apply (massage_card h₁).trans, apply le_antisymm (path_le_B h₁),
+    rcases min_cut_set (G-e) A X with ⟨Z,Z_eq_min,Z_sep₂_AB⟩,
+    rw [X_eq_min,h₂,←Z_eq_min], apply min_cut_spec,
+    exact sep_AB_of_sep₂_AX ex_in_X ey_in_X X_sep_AB Z_sep₂_AB }
+end
+
+
 lemma lower_bound_aux (n : ℕ) : ∀ (G : simple_graph V), fintype.card G.step ≤ n →
   ∀ A B : finset V, ∃ P : finset (AB_walk G A B), pw_disjoint P ∧ P.card = min_cut G A B :=
 begin
@@ -326,13 +355,13 @@ begin
     obtain ⟨Y, Y_eq_min₁, Y_sep⟩ := min_cut_set G₁ A₁ B₁, let X := Y ∪ {e.y},
 
     have Y_lt_min : Y.card < min_cut G A B :=
-    by { have G₁_le_n : fintype.card G₁.step ≤ n :=
-      by { refine nat.le_of_lt_succ (nat.lt_of_lt_of_le _ hG),
-        refine fintype.card_lt_of_injective_of_not_mem _ push.lift_step_inj _,
-        exact e, exact push.lift_step_ne_mem (by {simp [merge_edge]}) },
+    by {
+      have G₁_le_n : fintype.card G₁.step ≤ n :=
+        nat.le_of_lt_succ (nat.lt_of_lt_of_le contract_edge.fewer_edges hG),
       choose P₁ P₁_dis P₁_eq_min₁ using ih G₁ G₁_le_n A₁ B₁,
       rw [Y_eq_min₁, ←P₁_eq_min₁, ←card_image_of_injective P₁ AB_lift_inj],
-      apply too_small, { apply AB_lift_dis, exact P₁_dis }, { exact merge_edge_adapted } },
+      apply too_small, { apply AB_lift_dis, exact P₁_dis }, { exact merge_edge_adapted }
+    },
 
     have X_sep_AB : separates G A B X :=
     by { intro γ, choose z hz using Y_sep (AB_push (merge_edge e) A B γ),
@@ -365,37 +394,24 @@ begin
   nat.le_of_lt_succ (nat.lt_of_lt_of_le minus_lt_edges hG),
 
   -- Since x,y ∈ X, every AX-separator in G−e is also an AB-separator in G and hence contains at
-  -- least k vertices, so by induction there are k disjoint AX paths in G−e
-  have : ∃ P : finset (AB_walk' G A X), pw_disjoint' P ∧ P.card = X.card :=
-  by { specialize ih G₂ G₂_le_n A X, choose P h₁ h₂ using ih, use image (massage minus_le) P, split,
-    { exact massage_disjoint h₁ },
-    { apply (massage_card h₁).trans, rcases min_cut_set G₂ A X with ⟨Z,Z_eq_min,Z_sep₂_AB⟩,
-      apply le_antisymm (path_le_B h₁), rw [X_eq_min, h₂, ←Z_eq_min], apply min_cut_spec,
-      exact sep_AB_of_sep₂_AX ex_in_X ey_in_X X_sep_AB Z_sep₂_AB } },
-  choose P P_dis P_eq_min using this,
+  -- least k vertices, so by induction there are k disjoint AX paths in G−e and similarly there are
+  -- k disjoint XB paths in G−e
+  choose P P_dis P_eq_X using sep_cleanup ex_in_X ey_in_X X_eq_min X_sep_AB (ih G₂ G₂_le_n A X),
 
-  -- and similarly there are k disjoint XB paths in G−e
-  have : ∃ Q : finset (AB_walk' G X B), pw_disjoint' Q ∧ Q.card = X.card :=
-  by { choose Q h₁ h₂ using ih G₂ G₂_le_n X B, use image (massage minus_le) Q, split,
-    { exact massage_disjoint h₁ },
-    { apply (massage_card h₁).trans, rcases min_cut_set G₂ X B with ⟨Z,Z_eq_min,Z_sep₂_AB⟩,
-      apply le_antisymm (path_le_A h₁), rw [X_eq_min, h₂, ←Z_eq_min], apply min_cut_spec,
-      exact (sep_AB_of_sep₂_AX ex_in_X ey_in_X X_sep_AB.symm Z_sep₂_AB.symm).symm } },
-  choose Q Q_dis Q_eq_min using this,
+  have : ∃ Q : finset (AB_walk' G B X), pw_disjoint' Q ∧ Q.card = X.card :=
+  by { rw min_cut_symm at X_eq_min,
+    exact sep_cleanup ex_in_X ey_in_X X_eq_min X_sep_AB.symm (ih G₂ G₂_le_n B X) },
+  choose Q Q_dis Q_eq_X using this,
 
-  let φ : P → X := λ p, let q := p.val.to_AB_walk in ⟨q.p.b,q.hb⟩,
-  have φ_inj : injective φ :=
-  by { rintro p₁ p₂ h, simp at h, apply P_dis, use p₁.val.to_AB_walk.p.b, simp, simp [h] },
-  have φ_bij : bijective φ :=
-  by { rw fintype.bijective_iff_injective_and_card, refine ⟨φ_inj,_⟩, simp, apply P_eq_min.trans,
-    have := fintype.card_coe X, convert this.symm },
+  let φ := endpoint P P_dis P_eq_X, let ψ := endpoint Q Q_dis Q_eq_X,
 
-  let ψ : Q → X := λ p, let q := p.val.to_AB_walk in ⟨q.p.a,q.ha⟩,
-  have ψ_inj : injective ψ :=
-  by { rintro p₁ p₂ h, simp at h, apply Q_dis, use p₁.val.to_AB_walk.p.a, simp, simp [h] },
-  have ψ_bij : bijective ψ :=
-  by { rw fintype.bijective_iff_injective_and_card, refine ⟨ψ_inj,_⟩, simp, apply Q_eq_min.trans,
-    have := fintype.card_coe X, convert this.symm },
+  let Φ : P → AB_walk G A B := λ p, by {
+    let γ := p.val.to_AB_walk,
+    let δ := (ψ.symm (φ p)).val.to_AB_walk,
+    let δ' := δ.p.reverse_aux,
+    refine ⟨Walk.append γ.p δ'.val _, _, _⟩,
+    { sorry },{ sorry },{ sorry }
+  },
 
   sorry
 end

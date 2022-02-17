@@ -198,7 +198,7 @@ namespace simple_graph
                                 ...  < fintype.card (G.step) :
                                                     by { apply fintype.card_lt_of_injective_of_not_mem _ subtype.coe_injective,
                                                         swap, exact e, simp [merge,merge_edge] }
-        end contract_edge
+    end contract_edge
 
     def select (P : V → Prop) (G : simple_graph V) : simple_graph (subtype P) :=
     pull subtype.val G
