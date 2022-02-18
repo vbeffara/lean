@@ -352,7 +352,19 @@ begin
   have Ψ_inj : injective Ψ :=
   by { rintro x y h, ext, apply singleton_inj.mp, rw [←Ψ_i x, ←Ψ_i y, h] },
 
-  have R_dis : pw_disjoint R := sorry,
+  have R_dis : pw_disjoint R :=
+  by {
+    rintro ⟨γ₁, hγ₁⟩ ⟨γ₂, hγ₂⟩ h_dis,
+    choose x hx using mem_image.mp hγ₁, replace hx := hx.2, subst hx,
+    choose y hy using mem_image.mp hγ₂, replace hy := hy.2, subst hy,
+    suffices : x = y, subst this,
+    simp [inter_distrib_left,inter_distrib_right] at h_dis,
+    choose z hz using h_dis, simp at hz,
+    cases hz, { apply φ.left_inv.injective, apply P_dis, use z, rw mem_inter, exact hz },
+    cases hz, { sorry },
+    cases hz, { sorry },
+    { apply ψ.left_inv.injective, apply Q_dis, use z, rw mem_inter, exact hz }
+  },
 
   refine ⟨R, R_dis, _⟩, rw finset.card_image_of_injective _ Ψ_inj, convert fintype.card_coe X
 end
