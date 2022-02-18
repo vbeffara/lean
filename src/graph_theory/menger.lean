@@ -2,7 +2,6 @@ import combinatorics.simple_graph.connectivity data.finset data.setoid.basic
 import graph_theory.contraction graph_theory.pushforward graph_theory.basic graph_theory.walk
 open finset classical function simple_graph.Walk
 open_locale classical
-noncomputable theory
 
 variables {V V' : Type} {a : V} {G : simple_graph V}
 
@@ -300,8 +299,8 @@ begin
   rw mem_union at hz, cases hz; { have := ne_empty_of_mem hz, contradiction }
 end
 
-def endpoint (P : finset (AB_walk' G A B)) (P_dis : pw_disjoint' P) (P_eq : P.card = B.card) :
-  P ≃ B :=
+noncomputable def endpoint (P : finset (AB_walk' G A B))
+  (P_dis : pw_disjoint' P) (P_eq : P.card = B.card) : P ≃ B :=
 begin
   let φ : P → B := λ p, let q := p.val.to_AB_walk in ⟨q.b,q.hb⟩,
   apply equiv.of_bijective φ, rw fintype.bijective_iff_injective_and_card, split,
@@ -309,7 +308,7 @@ begin
   { simp, apply P_eq.trans, convert (fintype.card_coe B).symm },
 end
 
-lemma sep_cleanup {e : G.step} (ex_in_X : e.x ∈ X) (ey_in_X : e.y ∈ X)
+noncomputable def sep_cleanup {e : G.step} (ex_in_X : e.x ∈ X) (ey_in_X : e.y ∈ X)
   (X_eq_min : X.card = min_cut G A B) (X_sep_AB : separates G A B X)
   (ih : ∃ (P : finset (AB_walk (G-e) A X)), pw_disjoint P ∧ P.card = min_cut (G-e) A X) :
   {P : finset (AB_walk' G A X) // pw_disjoint' P ∧ P.card = X.card} :=
@@ -322,7 +321,7 @@ begin
     exact sep_AB_of_sep₂_AX ex_in_X ey_in_X X_sep_AB Z_sep₂_AB }
 end
 
-def stitch
+noncomputable def stitch
   (P : finset (AB_walk' G A X)) (P_dis: pw_disjoint' P) (P_eq_X: P.card = X.card)
   (Q : finset (AB_walk' G B X)) (Q_dis: pw_disjoint' Q) (Q_eq_X: Q.card = X.card) :
   {R : finset (AB_walk G A B) // pw_disjoint R ∧ R.card = X.card} :=
@@ -346,11 +345,12 @@ begin
   have Ψ_r : ∀ x : X, (Ψ x).to_Walk.range = (φ x).val.to_Walk.range ∪ (ψ x).val.to_Walk.range :=
   by { intro x, simp [Ψ] },
 
-  have Ψ_inter : ∀ x : X, (Ψ x).to_Walk.range ∩ X = {x.val} :=
+  have Ψ_i : ∀ x : X, (Ψ x).to_Walk.range ∩ X = {x} :=
   by { intro, rw Ψ_r, simp_rw range_eq_init_union_last, simp_rw inter_distrib_right,
-    rw (φ x).val.h'a, rw (ψ x).val.h'a, rw φxb, rw ψxb, simp },
+    rw [(φ x).val.h'a, (ψ x).val.h'a, φxb, ψxb], simp },
 
-  have Ψ_inj : injective Ψ := sorry,
+  have Ψ_inj : injective Ψ :=
+  by { rintro x y h, ext, apply singleton_inj.mp, rw [←Ψ_i x, ←Ψ_i y, h] },
 
   have R_dis : pw_disjoint R := sorry,
 
