@@ -329,22 +329,32 @@ def stitch
 begin
   let φ : X ≃ P := (endpoint P P_dis P_eq_X).symm,
   let ψ : X ≃ Q := (endpoint Q Q_dis Q_eq_X).symm,
+
+  have φxb : ∀ x : X, (φ x).val.b = x.val :=
+  by { intro x, set γ := φ x, have : x = φ.symm γ := by simp [γ], rw this, refl },
+  have ψxb : ∀ x : X, (ψ x).val.b = x.val :=
+  by { intro x, set γ := ψ x, have : x = ψ.symm γ := by simp [γ], rw this, refl },
+
   let Ψ : X → AB_walk G A B :=
   by { intro x, set γ := φ x with hγ, set δ := ψ x with hδ,
-    have γbx : γ.val.b = x := by { have : x = φ.symm γ := by simp [γ], rw this, refl },
-    have δbx : δ.val.b = x := by { have : x = ψ.symm δ := by simp [δ], rw this, refl },
-    set ζ := δ.val.to_Walk.reverse,
-    refine ⟨Walk.append γ.val.to_Walk ζ _, _, _⟩,
+    have γbx : γ.val.b = x := φxb x, have δbx : δ.val.b = x := ψxb x,
+    set ζ := δ.val.to_Walk.reverse, refine ⟨Walk.append γ.val.to_Walk ζ _, _, _⟩,
     { rw [γbx,←δbx], simp }, { simp, exact γ.val.ha }, { simp, exact δ.val.ha } },
+
   set R := image Ψ univ,
+
   have Ψ_r : ∀ x : X, (Ψ x).to_Walk.range = (φ x).val.to_Walk.range ∪ (ψ x).val.to_Walk.range :=
   by { intro x, simp [Ψ] },
-  have Ψ_inter : ∀ x : X, (Ψ x).to_Walk.range ∩ X = {x.val} := sorry,
+
+  have Ψ_inter : ∀ x : X, (Ψ x).to_Walk.range ∩ X = {x.val} :=
+  by { intro, rw Ψ_r, simp_rw range_eq_init_union_last, simp_rw inter_distrib_right,
+    rw (φ x).val.h'a, rw (ψ x).val.h'a, rw φxb, rw ψxb, simp },
+
   have Ψ_inj : injective Ψ := sorry,
+
   have R_dis : pw_disjoint R := sorry,
-  refine ⟨R, R_dis, _⟩,
-  rw finset.card_image_of_injective _ Ψ_inj,
-  convert fintype.card_coe X
+
+  refine ⟨R, R_dis, _⟩, rw finset.card_image_of_injective _ Ψ_inj, convert fintype.card_coe X
 end
 
 lemma lower_bound_aux (n : ℕ) : ∀ (G : simple_graph V), fintype.card G.step ≤ n →
