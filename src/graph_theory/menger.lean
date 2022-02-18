@@ -10,17 +10,17 @@ namespace simple_graph
 namespace menger
 variables [fintype V] [fintype V'] {A B X Y Z : finset V}
 
-@[ext] structure AB_walk (G : simple_graph V) (A B : finset V) :=
-  (p : Walk G) (ha : p.a ∈ A) (hb : p.b ∈ B)
+@[ext] structure AB_walk (G : simple_graph V) (A B : finset V) extends Walk G :=
+  (ha : a ∈ A) (hb : b ∈ B)
 
 @[ext] structure AB_walk' (G : simple_graph V) (A B : finset V) extends AB_walk G A B :=
-  (h'a : p.init ∩ B = ∅) (h'b : p.tail ∩ A = ∅)
+  (h'a : to_Walk.init ∩ B = ∅) (h'b : to_Walk.tail ∩ A = ∅)
 
 def separates (G : simple_graph V) (A B : finset V) (X : finset V) : Prop :=
-  ∀ γ : AB_walk G A B, (γ.p.range ∩ X).nonempty
+  ∀ γ : AB_walk G A B, (γ.to_Walk.range ∩ X).nonempty
 
 lemma separates_self : separates G A B A :=
-  λ γ, ⟨γ.p.a, mem_inter.mpr ⟨Walk.start_mem_range,γ.ha⟩⟩
+  λ γ, ⟨γ.a, mem_inter.mpr ⟨Walk.start_mem_range,γ.ha⟩⟩
 
 lemma separates.symm : separates G A B X → separates G B A X :=
 begin
@@ -60,10 +60,10 @@ by { have h := mt ((min_cut' G A B).2.2 X.card), rw [not_not,not_lt] at h, exact
 variables {P : finset (AB_walk G A B)}
 
 def pw_disjoint (P : finset (AB_walk G A B)) : Prop :=
-∀ ⦃γ₁ γ₂ : P⦄, (γ₁.val.p.range ∩ γ₂.val.p.range).nonempty → γ₁ = γ₂
+∀ ⦃γ₁ γ₂ : P⦄, (γ₁.val.to_Walk.range ∩ γ₂.val.to_Walk.range).nonempty → γ₁ = γ₂
 
 def pw_disjoint' (P : finset (AB_walk' G A B)) : Prop :=
-∀ ⦃γ₁ γ₂ : P⦄, (γ₁.val.p.range ∩ γ₂.val.p.range).nonempty → γ₁ = γ₂
+∀ ⦃γ₁ γ₂ : P⦄, (γ₁.val.to_Walk.range ∩ γ₂.val.to_Walk.range).nonempty → γ₁ = γ₂
 
 lemma path_le_A (dis : pw_disjoint P) : P.card ≤ A.card :=
 begin
@@ -81,9 +81,9 @@ end
 
 lemma path_le_cut (dis : pw_disjoint P) (sep : separates G A B X) : P.card ≤ X.card :=
 begin
-  let φ : Π γ : P, γ.val.p.range ∩ X := λ γ, by { choose z hz using sep γ, exact ⟨z,hz⟩ },
+  let φ : Π γ : P, γ.val.to_Walk.range ∩ X := λ γ, by { choose z hz using sep γ, exact ⟨z,hz⟩ },
   let ψ : P → X := λ γ, ⟨_, mem_of_mem_inter_right (φ γ).prop⟩,
-  have h₁ : ∀ γ, (ψ γ).val ∈ γ.val.p.range := λ γ, let z := φ γ in (mem_inter.mp z.2).1,
+  have h₁ : ∀ γ, (ψ γ).val ∈ γ.val.to_Walk.range := λ γ, let z := φ γ in (mem_inter.mp z.2).1,
   have h₂ : injective ψ := λ γ γ' h, dis ⟨_, mem_inter_of_mem (h₁ γ) (by { rw h, exact (h₁ γ') })⟩,
   simp_rw [←fintype.card_coe], convert fintype.card_le_of_injective ψ h₂
 end
@@ -146,7 +146,7 @@ end
 noncomputable def AB_push (f : V → V') (A B : finset V) :
   AB_walk G A B → AB_walk (push f G) (A.image f) (B.image f) :=
 begin
-  intro p, refine ⟨Walk.push_Walk f p.p, _, _⟩,
+  intro p, refine ⟨Walk.push_Walk f p.to_Walk, _, _⟩,
   rw Walk.push_Walk_a, exact mem_image_of_mem f p.ha,
   rw Walk.push_Walk_b, exact mem_image_of_mem f p.hb,
 end
@@ -196,7 +196,7 @@ lemma sep_AB_of_sep₂_AX ⦃e : G.step⦄ (ex_in_X : e.x ∈ X) (ey_in_X : e.y 
   separates G A B X → separates (G-e) A X Z → separates G A B Z :=
 by {
   rintro X_sep_AB Z_sep₂_AX γ,
-  rcases γ.p.until X (X_sep_AB γ) with ⟨δ,δ_a,δ_b,δ_range,δ_init,-⟩,
+  rcases γ.to_Walk.until X (X_sep_AB γ) with ⟨δ,δ_a,δ_b,δ_range,δ_init,-⟩,
   have : δ.transportable_to (G-e) := by {
     revert δ_init, refine Walk.rec₀ _ _ δ,
     { simp [Walk.transportable_to,Walk.edges] },
@@ -219,7 +219,8 @@ by {
   exact ⟨z, mem_inter.mpr ⟨mem_of_subset δ_range hz.1, hz.2⟩⟩,
 }
 
-noncomputable def trim (p : AB_walk G A B) : {q : AB_walk' G A B // q.p.range ⊆ p.p.range} :=
+noncomputable def trim (p : AB_walk G A B) :
+  {q : AB_walk' G A B // q.to_Walk.range ⊆ p.to_Walk.range} :=
 begin
   rcases p with ⟨p₁, p₁a, p₁b⟩,
   have h₁ : (p₁.range ∩ A).nonempty := ⟨p₁.a, by simp [p₁a]⟩,
@@ -232,7 +233,7 @@ begin
 end
 
 noncomputable def massage_aux {G₁ G₂ : simple_graph V} (h : G₂ ≤ G₁)
-  (p : AB_walk G₂ A X) : {q : AB_walk' G₁ A X // q.p.range ⊆ p.p.range} :=
+  (p : AB_walk G₂ A X) : {q : AB_walk' G₁ A X // q.to_Walk.range ⊆ p.to_Walk.range} :=
 begin
   rcases trim p with ⟨⟨⟨p',p'a,p'b⟩,p'aa,p'bb⟩,hp'⟩,
   rcases p'.transport (transportable_to_of_le h) with ⟨q,qa,qb,qr,qi,qt⟩,
@@ -245,7 +246,8 @@ noncomputable def massage {G₁ G₂ : simple_graph V} (h : G₂ ≤ G₁) :
 λ p, (massage_aux h p).val
 
 lemma massage_eq {G₁ G₂ : simple_graph V} {h : G₂ ≤ G₁} {P : finset (AB_walk G₂ A B)} {p₁ p₂ : P} :
-  pw_disjoint P → ((massage h p₁.val).p.range ∩ (massage h p₂.val).p.range).nonempty → p₁ = p₂ :=
+  pw_disjoint P → ((massage h p₁.val).to_Walk.range ∩ (massage h p₂.val).to_Walk.range).nonempty →
+  p₁ = p₂ :=
 begin
   rintro hP h, apply hP, rcases h with ⟨z,hz⟩, use z, simp at hz ⊢, split,
   { apply (massage_aux h p₁.val).prop, exact hz.1 },
@@ -271,7 +273,7 @@ begin
 end
 
 lemma meet_sub_X {X_sep_AB : separates G A B X} (p : AB_walk' G A X) (q : AB_walk' G X B) :
-  p.p.range ∩ q.p.range ⊆ X :=
+  p.to_Walk.range ∩ q.to_Walk.range ⊆ X :=
 begin
   rcases p with ⟨⟨p,pa,pb⟩,pa',pb'⟩, rcases q with ⟨⟨q,qa,qb⟩,qa',qb'⟩, dsimp at pa' pb' qa' qb' ⊢,
   rintro x hx, rw mem_inter at hx, cases hx with hx₁ hx₂, by_contra,
@@ -301,9 +303,9 @@ end
 def endpoint (P : finset (AB_walk' G A B)) (P_dis : pw_disjoint' P) (P_eq : P.card = B.card) :
   P ≃ B :=
 begin
-  let φ : P → B := λ p, let q := p.val.to_AB_walk in ⟨q.p.b,q.hb⟩,
+  let φ : P → B := λ p, let q := p.val.to_AB_walk in ⟨q.b,q.hb⟩,
   apply equiv.of_bijective φ, rw fintype.bijective_iff_injective_and_card, split,
-  { rintro p₁ p₂ h, apply P_dis, use p₁.val.to_AB_walk.p.b, simp at h ⊢, simp [h]  },
+  { rintro p₁ p₂ h, apply P_dis, use p₁.val.b, simp at h ⊢, simp [h]  },
   { simp, apply P_eq.trans, convert (fintype.card_coe B).symm },
 end
 
@@ -327,18 +329,23 @@ def stitch
 begin
   let φ : P ≃ X := endpoint P P_dis P_eq_X,
   let ψ : Q ≃ X := endpoint Q Q_dis Q_eq_X,
-  let Ψ : X → AB_walk G A B := by {
-    intro x,
-    rcases hγ : φ.inv_fun x with ⟨⟨⟨γ,γa,γb⟩,γi,γt⟩,γp⟩,
-    have γbx : γ.b = x :=
-    by { have := φ.right_inv x, rw hγ at this, simp [φ,endpoint] at this, rw ←this, refl },
-    rcases hδ : ψ.inv_fun x with ⟨⟨⟨δ,δa,δb⟩,δi,δt⟩,δp⟩,
-    have δbx : δ.b = x :=
-    by { have := ψ.right_inv x, rw hδ at this, simp [φ,endpoint] at this, rw ←this, refl },
-    rcases δ.reverse_aux with ⟨ζ,ζa,ζb,ζp⟩,
-    refine ⟨Walk.append γ ζ (by rw [γbx,ζa,δbx]), by simp [γa], by simp [ζb,δa]⟩
+  let Ψ : X → AB_walk G A B :=
+  by { intro x, set γ := φ.inv_fun x with hγ, set δ := ψ.inv_fun x with hδ,
+    have γbx : γ.val.b = x :=
+    by { have := congr_arg φ hγ, simp at this, simp [this.symm,φ,endpoint] },
+    have δbx : δ.val.b = x :=
+    by { have := congr_arg ψ hδ, simp at this, simp [this.symm,ψ,endpoint] },
+    set ζ := δ.val.to_Walk.reverse_aux,
+    refine ⟨Walk.append γ.val.to_Walk ζ (by rw [γbx,ζ.prop.1,δbx]), _, _⟩,
+    { simp, exact γ.val.ha },
+    { simp [ζ.prop.2.1], exact δ.val.ha }
   },
-  sorry
+  set R := image Ψ univ,
+  have Ψ_inj : injective Ψ := sorry,
+  have R_dis : pw_disjoint R := sorry,
+  refine ⟨R, R_dis, _⟩,
+  rw finset.card_image_of_injective _ Ψ_inj,
+  convert fintype.card_coe X
 end
 
 lemma lower_bound_aux (n : ℕ) : ∀ (G : simple_graph V), fintype.card G.step ≤ n →
