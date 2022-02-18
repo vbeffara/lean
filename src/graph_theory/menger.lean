@@ -341,6 +341,10 @@ begin
     { simp [ζ.prop.2.1], exact δ.val.ha }
   },
   set R := image Ψ univ,
+  have Ψ_range : ∀ x : X,
+    (Ψ x).to_Walk.range = (φ.inv_fun x).val.to_Walk.range ∪ (ψ.inv_fun x).val.to_Walk.range :=
+    sorry,
+  have Ψ_inter : ∀ x : X, (Ψ x).to_Walk.range ∩ X = {x.val} := sorry,
   have Ψ_inj : injective Ψ := sorry,
   have R_dis : pw_disjoint R := sorry,
   refine ⟨R, R_dis, _⟩,
