@@ -362,9 +362,18 @@ begin
     choose z hz using h_dis, simp at hz,
     cases hz, { apply φ.left_inv.injective, apply P_dis, use z, rw mem_inter, exact hz },
     cases hz, {
-      have := meet_sub_X X_sep_AB (φ x),
-      sorry },
-    cases hz, { sorry },
+      have z_in_X : z ∈ X := by { apply meet_sub_X X_sep_AB (φ x) (ψ y), rw mem_inter, exact hz },
+      have := mem_inter.mpr ⟨hz.1,z_in_X⟩, rw range_eq_init_union_last at this,
+        rw inter_distrib_right at this, have h := (φ x).val.h'a, simp at h φxb,
+        simp [h,φxb] at this,
+      ext, rw ←this,
+      have := mem_inter.mpr ⟨hz.2,z_in_X⟩, rw range_eq_init_union_last at this,
+        rw inter_distrib_right at this, have h := (ψ y).val.h'a, simp at h ψxb,
+        simp [h,ψxb] at this,
+      exact this },
+    cases hz, {
+      sorry
+    },
     { apply ψ.left_inv.injective, apply Q_dis, use z, rw mem_inter, exact hz }
   },
 
