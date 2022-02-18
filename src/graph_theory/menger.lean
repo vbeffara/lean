@@ -271,7 +271,7 @@ begin
   apply massage_eq hP, rw he, simp
 end
 
-lemma meet_sub_X {X_sep_AB : separates G A B X} (p : AB_walk' G A X) (q : AB_walk' G X B) :
+lemma meet_sub_X (X_sep_AB : separates G A B X) (p : AB_walk' G A X) (q : AB_walk' G B X) :
   p.to_Walk.range ∩ q.to_Walk.range ⊆ X :=
 begin
   rcases p with ⟨⟨p,pa,pb⟩,pa',pb'⟩, rcases q with ⟨⟨q,qa,qb⟩,qa',qb'⟩, dsimp at pa' pb' qa' qb' ⊢,
@@ -283,19 +283,19 @@ begin
     choose z hz using this, simp at hz, cases hz with hz₁ hz₂, cases hz₁,
     { have : p.init ∩ X ≠ ∅ := by { apply nonempty.ne_empty,
       use z, rw mem_inter, exact ⟨p'i2 hz₁, hz₂⟩ }, contradiction },
-    { subst z, subst x, exact h hz₂ } },
+    { subst z, subst p'b, exact h hz₂ } },
 
-  rcases q.after {x} ⟨x, by simp [hx₂]⟩ with ⟨q', q'a, q'b, q'r, q'i, q't, q't2⟩, simp at q'a,
-  have h₂ : q'.range ∩ X = ∅ :=
-  by { rw Walk.range_eq_start_union_tail, apply subset_empty.mp, rintro z hz, simp at hz ⊢,
-    cases hz with hz₁ hz₂, cases hz₁,
-    { substs hz₁ q'a, contradiction },
-    { have : q.tail ∩ X ≠ ∅ := by { apply nonempty.ne_empty,
-      use z, rw mem_inter, exact ⟨q't hz₁, hz₂⟩ }, contradiction } },
+  rcases q.until {x} ⟨x, by simp [hx₂]⟩ with ⟨q', q'a, q'b, q'r, q'i, q'i2, q't⟩, simp at q'b,
+  have h₁ : q'.range ∩ X = ∅ :=
+  by { rw Walk.range_eq_init_union_last, by_contra', have := nonempty_of_ne_empty this,
+    choose z hz using this, simp at hz, cases hz with hz₁ hz₂, cases hz₁,
+    { have : q.init ∩ X ≠ ∅ := by { apply nonempty.ne_empty,
+      use z, rw mem_inter, exact ⟨q'i2 hz₁, hz₂⟩ }, contradiction },
+    { subst z, subst q'b, exact h hz₂ } },
 
-  subst q'a,
-  let γ : AB_walk G A B := ⟨Walk.append p' q' p'b, by simp [p'a,pa], by simp [q'b,qb]⟩,
-  choose z hz using X_sep_AB γ, rw [Walk.range_append,inter_distrib_right] at hz,
+  let γ : AB_walk G A B :=
+  ⟨Walk.append p' q'.reverse (by simp [p'b,q'b]), by simp [p'a,pa], by simp [q'a,qa]⟩,
+  choose z hz using X_sep_AB γ, rw [range_append,reverse_range,inter_distrib_right] at hz,
   rw mem_union at hz, cases hz; { have := ne_empty_of_mem hz, contradiction }
 end
 
@@ -321,7 +321,7 @@ begin
     exact sep_AB_of_sep₂_AX ex_in_X ey_in_X X_sep_AB Z_sep₂_AB }
 end
 
-noncomputable def stitch
+noncomputable def stitch (X_sep_AB : separates G A B X)
   (P : finset (AB_walk' G A X)) (P_dis: pw_disjoint' P) (P_eq_X: P.card = X.card)
   (Q : finset (AB_walk' G B X)) (Q_dis: pw_disjoint' Q) (Q_eq_X: Q.card = X.card) :
   {R : finset (AB_walk G A B) // pw_disjoint R ∧ R.card = X.card} :=
@@ -361,7 +361,9 @@ begin
     simp [inter_distrib_left,inter_distrib_right] at h_dis,
     choose z hz using h_dis, simp at hz,
     cases hz, { apply φ.left_inv.injective, apply P_dis, use z, rw mem_inter, exact hz },
-    cases hz, { sorry },
+    cases hz, {
+      have := meet_sub_X X_sep_AB (φ x),
+      sorry },
     cases hz, { sorry },
     { apply ψ.left_inv.injective, apply Q_dis, use z, rw mem_inter, exact hz }
   },
@@ -450,7 +452,7 @@ begin
   rcases sep_cleanup ex_in_X ey_in_X X_eq_min' X_sep_AB.symm (ih G₂ G₂_le_n B X) with ⟨Q,Q_dis,Q_eq_X⟩,
 
   rw ←X_eq_min,
-  rcases stitch P P_dis P_eq_X Q Q_dis Q_eq_X with ⟨R,R_dis,R_eq_X⟩, exact ⟨R,R_dis,R_eq_X⟩
+  rcases stitch X_sep_AB P P_dis P_eq_X Q Q_dis Q_eq_X with ⟨R,R_dis,R_eq_X⟩, exact ⟨R,R_dis,R_eq_X⟩
 end
 
 lemma lower_bound : ∃ P : finset (AB_walk G A B), pw_disjoint P ∧ P.card = min_cut G A B :=
