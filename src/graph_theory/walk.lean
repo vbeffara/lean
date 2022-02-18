@@ -363,6 +363,12 @@ begin
   }
 end
 
+def reverse (p : G.Walk) : G.Walk := (reverse_aux p).val
+
+@[simp] lemma reverse_a : (reverse p).a = p.b := (reverse_aux p).prop.1
+@[simp] lemma reverse_b : (reverse p).b = p.a := (reverse_aux p).prop.2.1
+@[simp] lemma reverse_range : (reverse p).range = p.range := (reverse_aux p).prop.2.2
+
 end Walk
 
 end simple_graph

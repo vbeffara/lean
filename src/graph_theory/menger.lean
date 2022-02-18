@@ -327,23 +327,18 @@ def stitch
   (Q : finset (AB_walk' G B X)) (Q_dis: pw_disjoint' Q) (Q_eq_X: Q.card = X.card) :
   {R : finset (AB_walk G A B) // pw_disjoint R ∧ R.card = X.card} :=
 begin
-  let φ : P ≃ X := endpoint P P_dis P_eq_X,
-  let ψ : Q ≃ X := endpoint Q Q_dis Q_eq_X,
+  let φ : X ≃ P := (endpoint P P_dis P_eq_X).symm,
+  let ψ : X ≃ Q := (endpoint Q Q_dis Q_eq_X).symm,
   let Ψ : X → AB_walk G A B :=
-  by { intro x, set γ := φ.inv_fun x with hγ, set δ := ψ.inv_fun x with hδ,
-    have γbx : γ.val.b = x :=
-    by { have := congr_arg φ hγ, simp at this, simp [this.symm,φ,endpoint] },
-    have δbx : δ.val.b = x :=
-    by { have := congr_arg ψ hδ, simp at this, simp [this.symm,ψ,endpoint] },
-    set ζ := δ.val.to_Walk.reverse_aux,
-    refine ⟨Walk.append γ.val.to_Walk ζ (by rw [γbx,ζ.prop.1,δbx]), _, _⟩,
-    { simp, exact γ.val.ha },
-    { simp [ζ.prop.2.1], exact δ.val.ha }
-  },
+  by { intro x, set γ := φ x with hγ, set δ := ψ x with hδ,
+    have γbx : γ.val.b = x := by { have : x = φ.symm γ := by simp [γ], rw this, refl },
+    have δbx : δ.val.b = x := by { have : x = ψ.symm δ := by simp [δ], rw this, refl },
+    set ζ := δ.val.to_Walk.reverse,
+    refine ⟨Walk.append γ.val.to_Walk ζ _, _, _⟩,
+    { rw [γbx,←δbx], simp }, { simp, exact γ.val.ha }, { simp, exact δ.val.ha } },
   set R := image Ψ univ,
-  have Ψ_range : ∀ x : X,
-    (Ψ x).to_Walk.range = (φ.inv_fun x).val.to_Walk.range ∪ (ψ.inv_fun x).val.to_Walk.range :=
-    sorry,
+  have Ψ_r : ∀ x : X, (Ψ x).to_Walk.range = (φ x).val.to_Walk.range ∪ (ψ x).val.to_Walk.range :=
+  by { intro x, simp [Ψ] },
   have Ψ_inter : ∀ x : X, (Ψ x).to_Walk.range ∩ X = {x.val} := sorry,
   have Ψ_inj : injective Ψ := sorry,
   have R_dis : pw_disjoint R := sorry,
