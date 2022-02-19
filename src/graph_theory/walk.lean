@@ -45,30 +45,30 @@ begin
   rcases e with ⟨u,v,e⟩, rcases p with ⟨a,b,p⟩, simp at h, subst v, refl
 end
 
-@[simp] lemma cons_a : (cons e p hep).a = e.x := rfl
+@[simp] lemma cons_a : (cons e p hep).a = e.fst := rfl
 
 @[simp] lemma cons_b : (cons e p hep).b = p.b := rfl
 
 lemma cons_p : (cons e p hep).p = by { let h' := e.h, rw hep at h', exact p.p.cons h' } := rfl
 
 def range : G.Walk → finset V :=
-rec₀ (λ v, {v}) (λ e p h q, {e.x} ∪ q)
+rec₀ (λ v, {v}) (λ e p h q, {e.fst} ∪ q)
 
-@[simp] lemma range_cons : (cons e p hep).range = {e.x} ∪ p.range := rec_cons
+@[simp] lemma range_cons : (cons e p hep).range = {e.fst} ∪ p.range := rec_cons
 
-@[simp] lemma range_step : (step e).range = {e.x, e.y} := rfl
+@[simp] lemma range_step : (step e).range = {e.fst, e.y} := rfl
 
 @[simp] lemma range_nonempty : p.range.nonempty :=
 begin
   refine rec₀ _ _ p,
   { intro u, use u, simp [range] },
-  { intros e p h q, use e.x, simp }
+  { intros e p h q, use e.fst, simp }
 end
 
 def init : G.Walk → finset V :=
-rec₀ (λ v, ∅) (λ e p h q, {e.x} ∪ q)
+rec₀ (λ v, ∅) (λ e p h q, {e.fst} ∪ q)
 
-@[simp] lemma init_cons : (cons e p hep).init = {e.x} ∪ p.init := rec_cons
+@[simp] lemma init_cons : (cons e p hep).init = {e.fst} ∪ p.init := rec_cons
 
 lemma range_eq_init_union_last : p.range = p.init ∪ {p.b} :=
 by { refine rec₀ _ _ p, { intro u, refl }, { rintro e p h q, simp [q] } }
@@ -141,17 +141,17 @@ begin
 end
 
 def push_step_aux (f : V → V') (e : G.step) :
-  {w : (push f G).Walk // w.a = f e.x ∧ w.b = f e.y} :=
+  {w : (push f G).Walk // w.a = f e.fst ∧ w.b = f e.y} :=
 begin
-  by_cases f e.x = f e.y,
-  exact ⟨Walk.nil (f e.x), rfl, h⟩,
-  exact ⟨Walk.step ⟨_,_,⟨h,e.x,e.y,rfl,rfl,e.h⟩⟩, rfl, rfl⟩
+  by_cases f e.fst = f e.y,
+  exact ⟨Walk.nil (f e.fst), rfl, h⟩,
+  exact ⟨Walk.step ⟨_,_,⟨h,e.fst,e.y,rfl,rfl,e.h⟩⟩, rfl, rfl⟩
 end
 
 def push_step (f : V → V') (e : G.step) : (push f G).Walk :=
 (push_step_aux f e).val
 
-@[simp] lemma push_step_a : (push_step f e).a = f e.x :=
+@[simp] lemma push_step_a : (push_step f e).a = f e.fst :=
 (push_step_aux f e).prop.1
 
 @[simp] lemma push_step_b : (push_step f e).b = f e.y :=
@@ -184,17 +184,17 @@ lemma push_cons (f : V → V') (e : G.step) (p : G.Walk) (h : e.y = p.a) :
   push_Walk f (p.cons e h) = Walk.append (push_step f e) (push_Walk f p) (by simp [h]) :=
 by { rcases p with ⟨a,b,p⟩, rcases e with ⟨u,v,e⟩, simp at h, subst a, refl }
 
-lemma push_cons_eq (f : V → V') (e : G.step) (p : G.Walk) (h : e.y = p.a) (h' : f e.x = f e.y) :
+lemma push_cons_eq (f : V → V') (e : G.step) (p : G.Walk) (h : e.y = p.a) (h' : f e.fst = f e.y) :
   push_Walk f (p.cons e h) = push_Walk f p :=
 begin
-  have : push_step f e = Walk.nil (f e.x) := by simp [push_step,push_step_aux,h'],
+  have : push_step f e = Walk.nil (f e.fst) := by simp [push_step,push_step_aux,h'],
   rw [push_cons], simp only [this], exact append_nil_left
 end
 
-lemma push_cons_ne (f : V → V') (e : G.step) (p : G.Walk) (h : e.y = p.a) (h' : f e.x ≠ f e.y) :
-  push_Walk f (p.cons e h) = Walk.cons ⟨_,_,⟨h',e.x,e.y,rfl,rfl,e.h⟩⟩ (push_Walk f p) (by simp [h]) :=
+lemma push_cons_ne (f : V → V') (e : G.step) (p : G.Walk) (h : e.y = p.a) (h' : f e.fst ≠ f e.y) :
+  push_Walk f (p.cons e h) = Walk.cons ⟨_,_,⟨h',e.fst,e.y,rfl,rfl,e.h⟩⟩ (push_Walk f p) (by simp [h]) :=
 begin
-  have : push_step f e = Walk.step ⟨_,_,⟨h',e.x,e.y,rfl,rfl,e.h⟩⟩ :=
+  have : push_step f e = Walk.step ⟨_,_,⟨h',e.fst,e.y,rfl,rfl,e.h⟩⟩ :=
     by simp [push_step,push_step_aux,h'],
   rw [push_cons], simp [this,step]
 end
@@ -204,7 +204,7 @@ lemma push_append (f : V → V') (p q : G.Walk) (hpq : p.b = q.a) :
   Walk.append (push_Walk f p) (push_Walk f q) (by simp [hpq]) :=
 begin
   revert p, refine rec₀ (by simp) _,
-  intros e p h ih hpq, by_cases h' : f e.x = f e.y,
+  intros e p h ih hpq, by_cases h' : f e.fst = f e.y,
   { have h₁ := push_cons_eq f e p h h',
     have h₂ := push_cons_eq f e (Walk.append p q hpq) (h.trans append_a.symm) h',
       simp only [h₁, h₂, ih, append_cons] },
@@ -219,14 +219,14 @@ begin
   revert p, refine rec₀ _ _,
   { intros, specialize hp u (by simp [Walk.nil]), simp [hp] },
   { intros e p h ih hp,
-    have h₁ : f e.x = w := by { apply hp, left, refl },
+    have h₁ : f e.fst = w := by { apply hp, left, refl },
     have h₂ : f e.y = w := by { apply hp, right, rw h, exact p.p.start_mem_support },
     rw push_cons_eq f e p h (h₁.trans h₂.symm),
     apply ih, intros z hz, apply hp, right, exact hz }
 end
 
-@[simp] lemma push_step_range : (push_step f e).range = {f e.x, f e.y} :=
-by { by_cases f e.x = f e.y; simp [push_step, push_step_aux, h] }
+@[simp] lemma push_step_range : (push_step f e).range = {f e.fst, f e.y} :=
+by { by_cases f e.fst = f e.y; simp [push_step, push_step_aux, h] }
 
 lemma push_range : (push_Walk f p).range = finset.image f p.range :=
 begin
@@ -276,7 +276,7 @@ lemma pull_Walk_push : push_Walk f (pull_Walk f hf p' x y hx hy) = p' :=
 (pull_Walk_aux f hf p' x y hx hy).prop.2.2
 
 def transportable_to (G' : simple_graph V) (p : G.Walk) : Prop :=
-  ∀ e : G.step, e ∈ p.edges → G'.adj e.x e.y
+  ∀ e : G.step, e ∈ p.edges → G'.adj e.fst e.y
 
 lemma transportable_to_of_le (G_le : G ≤ G') : p.transportable_to G' :=
 begin
@@ -291,7 +291,7 @@ begin
   revert p, refine rec₀ _ _,
   { rintro a hp, exact ⟨nil a, rfl, rfl, rfl, rfl, rfl⟩ },
   { rintro e p h ih hp,
-    have : ∀ (e : G.step), e ∈ p.edges → G'.adj e.x e.y :=
+    have : ∀ (e : G.step), e ∈ p.edges → G'.adj e.fst e.y :=
       by { rintro e he, apply hp, simp [edges], right, exact he },
     specialize ih this, rcases ih with ⟨q,hq⟩, rw ←hq.1 at h,
     exact ⟨cons ⟨_,_,hp e first_edge⟩ q h, by simp [hq]⟩ }
@@ -305,10 +305,10 @@ begin
   revert p, refine rec₀ _ _,
   { rintro u hu, choose z hz using hu, simp at hz, cases hz with hz₁ hz₂, subst z,
     exact ⟨nil u, rfl, hz₂, by refl, rfl, by refl, by refl⟩ },
-  { rintro e p h₁ ih h₂, by_cases e.x ∈ X,
-    { exact ⟨nil e.x, rfl, h, by simp, rfl, by simp [init], by simp [tail]⟩ },
+  { rintro e p h₁ ih h₂, by_cases e.fst ∈ X,
+    { exact ⟨nil e.fst, rfl, h, by simp, rfl, by simp [init], by simp [tail]⟩ },
     { simp at h₂, choose z hz using h₂, simp at hz, cases hz with hz₁ hz₂,
-      have : z ≠ e.x := by { intro h, rw h at hz₂, contradiction },
+      have : z ≠ e.fst := by { intro h, rw h at hz₂, contradiction },
       simp [this] at hz₁,
       have : z ∈ p.range ∩ X := finset.mem_inter.mpr ⟨hz₁,hz₂⟩,
       specialize ih ⟨z,this⟩, rcases ih with ⟨q,hq₁,hq₂,hq₃,hq₄,hq₅,hq₆⟩,
@@ -346,9 +346,9 @@ begin
   refine rec₀ _ _ p,
   { intro v, exact ⟨nil v, rfl⟩ },
   { rintro e p h q,
-    by_cases h' : G'.adj e.x e.y,
+    by_cases h' : G'.adj e.fst e.y,
     { rw ← q.prop at h, refine ⟨cons ⟨_,_,h'⟩ q h, rfl⟩ },
-    { exact ⟨nil e.x, rfl⟩ } }
+    { exact ⟨nil e.fst, rfl⟩ } }
 end
 
 def reverse_aux (p : G.Walk) : {q : G.Walk // q.a = p.b ∧ q.b = p.a ∧ q.range = p.range} :=

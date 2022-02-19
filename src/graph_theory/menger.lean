@@ -175,7 +175,7 @@ end
 
 def minus (G : simple_graph V) (e : G.step) : simple_graph V :=
 {
-  adj := λ x y, G.adj x y ∧ ((x ≠ e.x ∧ x ≠ e.y) ∨ (y ≠ e.x ∧ y ≠ e.y)),
+  adj := λ x y, G.adj x y ∧ ((x ≠ e.fst ∧ x ≠ e.y) ∨ (y ≠ e.fst ∧ y ≠ e.y)),
   symm := λ x y ⟨h₁,h₂⟩, ⟨h₁.symm,h₂.symm⟩,
   loopless := λ x h, G.loopless _ h.1
 }
@@ -190,11 +190,11 @@ begin
   have φ_inj : injective φ := by { rintro e₁ e₂ h, simp [φ] at h, exact e₁.ext e₂ h.1 h.2 },
   suffices : e ∉ set.range φ, refine fintype.card_lt_of_injective_of_not_mem φ φ_inj this,
   intro he, rw set.mem_range at he, choose e' he using he, rcases e' with ⟨x,y,he'⟩,
-  have : x = e.x := congr_arg step.x he, have : y = e.y := congr_arg step.y he,
+  have : x = e.fst := congr_arg step.fst he, have : y = e.y := congr_arg step.y he,
   substs x y, simp [minus] at he', simp at he', exact he'
 end
 
-lemma sep_AB_of_sep₂_AX ⦃e : G.step⦄ (ex_in_X : e.x ∈ X) (ey_in_X : e.y ∈ X) :
+lemma sep_AB_of_sep₂_AX ⦃e : G.step⦄ (ex_in_X : e.fst ∈ X) (ey_in_X : e.y ∈ X) :
   separates G A B X → separates (G-e) A X Z → separates G A B Z :=
 by {
   rintro X_sep_AB Z_sep₂_AX γ,
@@ -208,9 +208,9 @@ by {
         rw [Walk.init_cons], apply subset_union_right },
       simp at h₂, cases h₂,
       { subst e'', simp at h₁, simp [minus,e'.h],
-        have : e'.x ∉ X :=
+        have : e'.fst ∉ X :=
         by { rw [inter_distrib_right, union_eq_empty_iff] at h₁, intro h,
-          have : ({e'.x} ∩ X).nonempty := ⟨e'.x, by simp [h]⟩, simp [h₁.1] at this, exact this },
+          have : ({e'.fst} ∩ X).nonempty := ⟨e'.fst, by simp [h]⟩, simp [h₁.1] at this, exact this },
         refine ⟨e'.h,_⟩, left, split; { intro h, rw h at this, contradiction } },
       { exact ih h₃ e'' h₂ }
     }
@@ -311,7 +311,7 @@ begin
   { simp, apply P_eq.trans, convert (fintype.card_coe B).symm },
 end
 
-noncomputable def sep_cleanup {e : G.step} (ex_in_X : e.x ∈ X) (ey_in_X : e.y ∈ X)
+noncomputable def sep_cleanup {e : G.step} (ex_in_X : e.fst ∈ X) (ey_in_X : e.y ∈ X)
   (X_eq_min : X.card = min_cut G A B) (X_sep_AB : separates G A B X)
   (ih : ∃ (P : finset (AB_walk (G-e) A X)), pw_disjoint P ∧ P.card = min_cut (G-e) A X) :
   {P : finset (AB_walk' G A X) // pw_disjoint' P ∧ P.card = X.card} :=
@@ -417,7 +417,7 @@ begin
   -- is an AB separator in G, of exactly k vertices.
 
   have step₁ : ∃ X : finset V,
-    e.x ∈ X ∧ e.y ∈ X ∧ separates G A B X ∧ X.card = min_cut G A B :=
+    e.fst ∈ X ∧ e.y ∈ X ∧ separates G A B X ∧ X.card = min_cut G A B :=
   by {
     let G₁ := G/e, let A₁ := image (merge_edge e) A, let B₁ := image (merge_edge e) B,
     obtain ⟨Y, Y_eq_min₁, Y_sep⟩ := min_cut_set G₁ A₁ B₁, let X := Y ∪ {e.y},

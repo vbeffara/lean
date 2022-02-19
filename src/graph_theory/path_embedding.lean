@@ -7,7 +7,7 @@ namespace simple_graph
 
     structure path_embedding (G : simple_graph V) (G' : simple_graph V') :=
         (f        : V ↪ V')
-        (df       : Π e : step G, walk G' (f e.x) (f e.y))
+        (df       : Π e : step G, walk G' (f e.fst) (f e.y))
         --
         (nodup    : ∀ e : step G, (df e).support.nodup)
         (sym      : ∀ e : step G, df e.flip = (df e).reverse)
@@ -109,7 +109,7 @@ namespace simple_graph
                     left, clear h4 h6,
                     replace h3 := walk.mem_edges h3,
                     replace h5 := walk.mem_edges h5,
-                    replace h5 : e1.x ∈ (F.df e').support ∧ e1.y ∈ (F.df e').support := by {
+                    replace h5 : e1.fst ∈ (F.df e').support ∧ e1.y ∈ (F.df e').support := by {
                         cases step.same_iff.mpr h7; subst e2,
                         exact h5, simp only [step.flip] at h5, exact h5.symm
                     }, clear h7,
@@ -158,7 +158,7 @@ namespace simple_graph
                 simp only [embedding.coe_fn_mk, support_cons, support_nil, rel_hom.coe_fn_to_fun, list.mem_cons_iff,
                             list.mem_singleton] at h,
                 simp only [step.ends, sym2.mem_iff], cases h, { left, exact inj h }, { right, exact inj h } },
-            disjoint := by { intros e e' z h₁ h₂, right, cases h₁, subst h₁, exact ⟨e.x,rfl⟩,
+            disjoint := by { intros e e' z h₁ h₂, right, cases h₁, subst h₁, exact ⟨e.fst,rfl⟩,
                                 cases h₁, subst h₁, exact ⟨e.y,rfl⟩, cases h₁ }
         }
     end path_embedding

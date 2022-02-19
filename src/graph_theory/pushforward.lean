@@ -135,27 +135,27 @@ namespace simple_graph
         lemma le {φ : G →g G'} : push φ G ≤ G' :=
         by { rintros x' y' ⟨-,x,y,rfl,rfl,h₂⟩, exact φ.map_rel h₂ }
 
-        noncomputable def lift_step_aux (e' : (push f G).step) : {e : G.step // f e.x = e'.x ∧ f e.y = e'.y} :=
+        noncomputable def lift_step_aux (e' : (push f G).step) : {e : G.step // f e.fst = e'.fst ∧ f e.y = e'.y} :=
         by { choose x y h₁ h₂ h₃ using e'.h.2, exact ⟨⟨_,_,h₃⟩,h₁,h₂⟩ }
 
         noncomputable def lift_step (e' : (push f G).step) : G.step :=
         (lift_step_aux e').val
 
-        @[simp] lemma lift_step_x {e' : (push f G).step} : f (lift_step e').x = e'.x := (lift_step_aux e').2.1
+        @[simp] lemma lift_step_x {e' : (push f G).step} : f (lift_step e').fst = e'.fst := (lift_step_aux e').2.1
 
         @[simp] lemma lift_step_y {e' : (push f G).step} : f (lift_step e').y = e'.y := (lift_step_aux e').2.2
 
         lemma lift_step_inj : injective (lift_step : (push f G).step → G.step) :=
         λ f₁ f₂ h, by { ext, rw [←lift_step_x, ←lift_step_x, h], rw [←lift_step_y, ←lift_step_y, h] }
 
-        lemma lift_step_ne_of_mem {e : G.step} : e ∈ set.range (lift_step : (push f G).step → G.step) → f e.x ≠ f e.y :=
+        lemma lift_step_ne_of_mem {e : G.step} : e ∈ set.range (lift_step : (push f G).step → G.step) → f e.fst ≠ f e.y :=
         begin
             rintro ⟨e',h₄⟩,
             rw [←h₄,@lift_step_x V V' f G e',@lift_step_y V V' f G e'],
             exact (push f G).ne_of_adj e'.h
         end
 
-        lemma lift_step_ne_mem {e : G.step} : f e.x = f e.y → e ∉ set.range (lift_step : (push f G).step → G.step) :=
+        lemma lift_step_ne_mem {e : G.step} : f e.fst = f e.y → e ∉ set.range (lift_step : (push f G).step → G.step) :=
         begin
             contrapose, push_neg, exact lift_step_ne_of_mem
         end
@@ -165,7 +165,7 @@ namespace simple_graph
     λ z, dite (P z) (λ _, sum.inr unit.star) (λ h, sum.inl ⟨z,h⟩)
 
     def merge_edge [decidable_eq V] {G : simple_graph V} (e : step G) : V → V :=
-    λ z, ite (z = e.y) e.x z
+    λ z, ite (z = e.y) e.fst z
 
     lemma merge_edge_idempotent [decidable_eq V] {G : simple_graph V} {e : step G} (z : V) :
         merge_edge e (merge_edge e z) = merge_edge e z :=
@@ -179,11 +179,11 @@ namespace simple_graph
     namespace contract_edge
         variables [fintype V] [decidable_eq V] [decidable_eq V'] [decidable_rel G.adj]
 
-        @[reducible] def preserved (f : V → V') (G : simple_graph V) : Type := {e : G.step // f e.x ≠ f e.y}
+        @[reducible] def preserved (f : V → V') (G : simple_graph V) : Type := {e : G.step // f e.fst ≠ f e.y}
 
         def proj_edge (e : G.step) : preserved (merge_edge e) G → (G/e).step :=
         begin
-            rintro ⟨e',h₁⟩, suffices : (G/e).adj (merge_edge e e'.x) (merge_edge e e'.y), by { exact ⟨_,_,this⟩ },
+            rintro ⟨e',h₁⟩, suffices : (G/e).adj (merge_edge e e'.fst) (merge_edge e e'.y), by { exact ⟨_,_,this⟩ },
             cases push.adj (merge_edge e) e'.h, contradiction, assumption
         end
 
