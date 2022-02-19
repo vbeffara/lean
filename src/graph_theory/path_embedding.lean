@@ -26,7 +26,7 @@ namespace simple_graph
 
         lemma nop {e : step G} : 0 < (F.df e).length
             := by { cases nat.eq_zero_or_pos (F.df e).length, swap, exact h, exfalso,
-                exact G.ne_of_adj e.h (F.f.injective (point_of_size_0 h)) }
+                exact G.ne_of_adj e.is_adj (F.f.injective (point_of_size_0 h)) }
 
         @[simp] def follow : Π {x y : V}, walk G x y -> walk G' (F.f x) (F.f y)
             | _ _ nil        := nil
@@ -121,7 +121,7 @@ namespace simple_graph
                     have h13 := F.endpoint h3.2,
                     have h14 := F.endpoint h5.1,
                     have h15 := F.endpoint h5.2,
-                    have h16 : x ≠ y := by { intro h, apply G'.ne_of_adj e1.h, convert congr_arg F.f h },
+                    have h16 : x ≠ y := by { intro h, apply G'.ne_of_adj e1.is_adj, convert congr_arg F.f h },
                     exact sym2.eq_of_ne_mem h16 h12 h13 h14 h15
                 },
                 {
@@ -147,11 +147,11 @@ namespace simple_graph
         def from_hom (f : G →g G') (inj : injective f) : path_embedding G G' :=
         {
             f := ⟨f, inj⟩,
-            df := λ e, cons (f.map_rel' e.h) nil,
+            df := λ e, cons (f.map_rel' e.is_adj) nil,
             nodup := λ e, by {
                 simp only [support_cons, embedding.coe_fn_mk, support_nil, rel_hom.coe_fn_to_fun, list.nodup_cons,
                             list.mem_singleton, list.not_mem_nil, not_false_iff, list.nodup_nil, and_true],
-                exact G'.ne_of_adj (f.map_rel' e.h) },
+                exact G'.ne_of_adj (f.map_rel' e.is_adj) },
             sym := λ e, by { simp only [step.flip, reverse_cons, reverse_nil, nil_append, rel_hom.coe_fn_to_fun,
                             embedding.coe_fn_mk, eq_self_iff_true, heq_iff_eq, and_self] },
             endpoint := λ e x h, by {

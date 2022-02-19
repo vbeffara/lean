@@ -136,7 +136,7 @@ namespace simple_graph
         by { rintros x' y' ⟨-,x,y,rfl,rfl,h₂⟩, exact φ.map_rel h₂ }
 
         noncomputable def lift_step_aux (e' : (push f G).step) : {e : G.step // f e.fst = e'.fst ∧ f e.snd = e'.snd} :=
-        by { choose x y h₁ h₂ h₃ using e'.h.2, exact ⟨⟨_,_,h₃⟩,h₁,h₂⟩ }
+        by { choose x y h₁ h₂ h₃ using e'.is_adj.2, exact ⟨⟨_,_,h₃⟩,h₁,h₂⟩ }
 
         noncomputable def lift_step (e' : (push f G).step) : G.step :=
         (lift_step_aux e').val
@@ -152,7 +152,7 @@ namespace simple_graph
         begin
             rintro ⟨e',h₄⟩,
             rw [←h₄,@lift_step_x V V' f G e',@lift_step_y V V' f G e'],
-            exact (push f G).ne_of_adj e'.h
+            exact (push f G).ne_of_adj e'.is_adj
         end
 
         lemma lift_step_ne_mem {e : G.step} : f e.fst = f e.snd → e ∉ set.range (lift_step : (push f G).step → G.step) :=
@@ -184,7 +184,7 @@ namespace simple_graph
         def proj_edge (e : G.step) : preserved (merge_edge e) G → (G/e).step :=
         begin
             rintro ⟨e',h₁⟩, suffices : (G/e).adj (merge_edge e e'.fst) (merge_edge e e'.snd), by { exact ⟨_,_,this⟩ },
-            cases push.adj (merge_edge e) e'.h, contradiction, assumption
+            cases push.adj (merge_edge e) e'.is_adj, contradiction, assumption
         end
 
         lemma proj_edge_surj {e : G.step} : surjective (proj_edge e) :=

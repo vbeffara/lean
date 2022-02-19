@@ -21,7 +21,7 @@ def nil (a : V) : G.Walk := ⟨(walk.nil : G.walk a a)⟩
 @[simp] lemma nil_b : (nil b : G.Walk).b = b := rfl
 
 def cons (e : G.step) (p : G.Walk) (h : e.snd = p.a) : G.Walk :=
-by { let h' := e.h, rw h at h', exact ⟨p.p.cons h'⟩ }
+by { let h' := e.is_adj, rw h at h', exact ⟨p.p.cons h'⟩ }
 
 def step (e : G.step) : G.Walk := cons e (nil e.snd) rfl
 
@@ -49,7 +49,7 @@ end
 
 @[simp] lemma cons_b : (cons e p hep).b = p.b := rfl
 
-lemma cons_p : (cons e p hep).p = by { let h' := e.h, rw hep at h', exact p.p.cons h' } := rfl
+lemma cons_p : (cons e p hep).p = by { let h' := e.is_adj, rw hep at h', exact p.p.cons h' } := rfl
 
 def range : G.Walk → finset V :=
 rec₀ (λ v, {v}) (λ e p h q, {e.fst} ∪ q)
@@ -145,7 +145,7 @@ def push_step_aux (f : V → V') (e : G.step) :
 begin
   by_cases f e.fst = f e.snd,
   exact ⟨Walk.nil (f e.fst), rfl, h⟩,
-  exact ⟨Walk.step ⟨_,_,⟨h,e.fst,e.snd,rfl,rfl,e.h⟩⟩, rfl, rfl⟩
+  exact ⟨Walk.step ⟨_,_,⟨h,e.fst,e.snd,rfl,rfl,e.is_adj⟩⟩, rfl, rfl⟩
 end
 
 def push_step (f : V → V') (e : G.step) : (push f G).Walk :=
@@ -192,9 +192,9 @@ begin
 end
 
 lemma push_cons_ne (f : V → V') (e : G.step) (p : G.Walk) (h : e.snd = p.a) (h' : f e.fst ≠ f e.snd) :
-  push_Walk f (p.cons e h) = Walk.cons ⟨_,_,⟨h',e.fst,e.snd,rfl,rfl,e.h⟩⟩ (push_Walk f p) (by simp [h]) :=
+  push_Walk f (p.cons e h) = Walk.cons ⟨_,_,⟨h',e.fst,e.snd,rfl,rfl,e.is_adj⟩⟩ (push_Walk f p) (by simp [h]) :=
 begin
-  have : push_step f e = Walk.step ⟨_,_,⟨h',e.fst,e.snd,rfl,rfl,e.h⟩⟩ :=
+  have : push_step f e = Walk.step ⟨_,_,⟨h',e.fst,e.snd,rfl,rfl,e.is_adj⟩⟩ :=
     by simp [push_step,push_step_aux,h'],
   rw [push_cons], simp [this,step]
 end
@@ -282,7 +282,7 @@ lemma transportable_to_of_le (G_le : G ≤ G') : p.transportable_to G' :=
 begin
   refine rec₀ _ _ p,
   { rintro u e h, simp [edges] at h, contradiction },
-  { rintro e p h q e' h', simp at h', cases h', rw h', exact G_le e.h, exact q e' h' }
+  { rintro e p h q e' h', simp at h', cases h', rw h', exact G_le e.is_adj, exact q e' h' }
 end
 
 def transport (p : G.Walk) (hp : transportable_to G' p) :

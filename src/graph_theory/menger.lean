@@ -97,7 +97,7 @@ lemma bot_iff_no_edge : fintype.card G.step = 0 ↔ G = ⊥ :=
 begin
   split; intro h,
   { ext x y, simp, intro h₁, exact is_empty_iff.mp (fintype.card_eq_zero_iff.mp h) ⟨_,_,h₁⟩ },
-  { rw h, exact fintype.card_eq_zero_iff.mpr (is_empty_iff.mpr step.h), }
+  { rw h, exact fintype.card_eq_zero_iff.mpr (is_empty_iff.mpr step.is_adj), }
 end
 
 lemma bot_separates_iff : separates ⊥ A B X ↔ (A ∩ B) ⊆ X :=
@@ -186,7 +186,7 @@ lemma minus_le {e : G.step} : G-e ≤ G := λ x y h, h.1
 
 lemma minus_lt_edges {e : G.step} : fintype.card (G-e).step < fintype.card G.step :=
 begin
-  let φ : (G-e).step → G.step := λ e, ⟨_,_,e.h.1⟩,
+  let φ : (G-e).step → G.step := λ e, ⟨_,_,e.is_adj.1⟩,
   have φ_inj : injective φ := by { rintro e₁ e₂ h, simp [φ] at h, exact e₁.ext e₂ h.1 h.2 },
   suffices : e ∉ set.range φ, refine fintype.card_lt_of_injective_of_not_mem φ φ_inj this,
   intro he, rw set.mem_range at he, choose e' he using he, rcases e' with ⟨x,y,he'⟩,
@@ -207,11 +207,11 @@ by {
       by { apply subset_empty.mp, rw [←h₁], apply inter_subset_inter_right,
         rw [Walk.init_cons], apply subset_union_right },
       simp at h₂, cases h₂,
-      { subst e'', simp at h₁, simp [minus,e'.h],
+      { subst e'', simp at h₁, simp [minus,e'.is_adj],
         have : e'.fst ∉ X :=
         by { rw [inter_distrib_right, union_eq_empty_iff] at h₁, intro h,
           have : ({e'.fst} ∩ X).nonempty := ⟨e'.fst, by simp [h]⟩, simp [h₁.1] at this, exact this },
-        refine ⟨e'.h,_⟩, left, split; { intro h, rw h at this, contradiction } },
+        refine ⟨e'.is_adj,_⟩, left, split; { intro h, rw h at this, contradiction } },
       { exact ih h₃ e'' h₂ }
     }
   },
