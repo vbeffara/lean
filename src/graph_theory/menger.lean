@@ -64,6 +64,9 @@ def pw_disjoint (P : finset (AB_walk G A B)) : Prop :=
 def pw_disjoint' (P : finset (AB_walk' G A B)) : Prop :=
 ∀ ⦃γ₁ γ₂ : P⦄, (γ₁.val.to_Walk.range ∩ γ₂.val.to_Walk.range).nonempty → γ₁ = γ₂
 
+def is_menger (G : simple_graph V) : Prop :=
+∀ A B : finset V, ∃ P : finset (AB_walk G A B), pw_disjoint P ∧ P.card = min_cut G A B
+
 lemma path_le_A (dis : pw_disjoint P) : P.card ≤ A.card :=
 begin
   let φ : P → A := λ p, ⟨p.1.1.a, p.1.ha⟩,
@@ -73,8 +76,8 @@ end
 
 lemma path_le_B (dis : pw_disjoint P) : P.card ≤ B.card :=
 begin
-  let φ : P → B := λ p, ⟨p.1.1.b, p.1.hb⟩,
-  have : injective φ := by { rintro p₁ p₂ h, simp at h, apply dis, use p₁.1.1.b, simp, simp [h] },
+  let φ : P → B := λ p, ⟨p.val.b, p.val.hb⟩,
+  have : injective φ := by { rintro p₁ p₂ h, apply dis, use p₁.val.b, simp at h, simp, simp [h] },
   simp_rw [←fintype.card_coe], convert fintype.card_le_of_injective φ this,
 end
 
@@ -93,7 +96,7 @@ by { obtain ⟨X,h₁,h₂⟩ := min_cut_set G A B, rw ←h₁, exact path_le_cu
 lemma bot_iff_no_edge : fintype.card G.step = 0 ↔ G = ⊥ :=
 begin
   split; intro h,
-  { ext x y, simp, intro h₁, exact is_empty_iff.mp (fintype.card_eq_zero_iff.mp h) ⟨h₁⟩ },
+  { ext x y, simp, intro h₁, exact is_empty_iff.mp (fintype.card_eq_zero_iff.mp h) ⟨_,_,h₁⟩ },
   { rw h, exact fintype.card_eq_zero_iff.mpr (is_empty_iff.mpr step.h), }
 end
 
@@ -183,7 +186,7 @@ lemma minus_le {e : G.step} : G-e ≤ G := λ x y h, h.1
 
 lemma minus_lt_edges {e : G.step} : fintype.card (G-e).step < fintype.card G.step :=
 begin
-  let φ : (G-e).step → G.step := λ e, ⟨e.h.1⟩,
+  let φ : (G-e).step → G.step := λ e, ⟨_,_,e.h.1⟩,
   have φ_inj : injective φ := by { rintro e₁ e₂ h, simp [φ] at h, exact e₁.ext e₂ h.1 h.2 },
   suffices : e ∉ set.range φ, refine fintype.card_lt_of_injective_of_not_mem φ φ_inj this,
   intro he, rw set.mem_range at he, choose e' he using he, rcases e' with ⟨x,y,he'⟩,
@@ -390,7 +393,7 @@ begin
 end
 
 lemma lower_bound_aux (n : ℕ) : ∀ (G : simple_graph V), fintype.card G.step ≤ n →
-  ∀ A B : finset V, ∃ P : finset (AB_walk G A B), pw_disjoint P ∧ P.card = min_cut G A B :=
+  is_menger G :=
 begin
   -- We apply induction on ∥G∥.
   induction n with n ih,
@@ -416,10 +419,7 @@ begin
   have step₁ : ∃ X : finset V,
     e.x ∈ X ∧ e.y ∈ X ∧ separates G A B X ∧ X.card = min_cut G A B :=
   by {
-    let G₁ := G/e,
-    let A₁ : finset G₁.vertices := image (merge_edge e) A,
-    let B₁ : finset G₁.vertices := image (merge_edge e) B,
-
+    let G₁ := G/e, let A₁ := image (merge_edge e) A, let B₁ := image (merge_edge e) B,
     obtain ⟨Y, Y_eq_min₁, Y_sep⟩ := min_cut_set G₁ A₁ B₁, let X := Y ∪ {e.y},
 
     have Y_lt_min : Y.card < min_cut G A B :=
@@ -473,8 +473,8 @@ begin
   rcases stitch X_sep_AB P P_dis P_eq_X Q Q_dis Q_eq_X with ⟨R,R_dis,R_eq_X⟩, exact ⟨R,R_dis,R_eq_X⟩
 end
 
-lemma lower_bound : ∃ P : finset (AB_walk G A B), pw_disjoint P ∧ P.card = min_cut G A B :=
-lower_bound_aux (fintype.card G.step) G (le_of_eq rfl) A B
+theorem menger : is_menger G :=
+lower_bound_aux (fintype.card G.step) G (le_of_eq rfl)
 
 -- theorem menger (h : separable G A B) : max_path_number G A B = min_cut h
 end menger

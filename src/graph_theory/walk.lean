@@ -32,7 +32,7 @@ def rec₀ {motive : G.Walk → Sort*} :
 begin
   rintros h_nil h_cons ⟨a,b,p⟩, induction p with a a b c adj p ih,
   { exact h_nil a },
-  { exact h_cons ⟨adj⟩ ⟨p⟩ rfl ih }
+  { exact h_cons ⟨_,_,adj⟩ ⟨p⟩ rfl ih }
 end
 
 @[simp] lemma rec_nil {motive h_nil h_cons} :
@@ -144,8 +144,8 @@ def push_step_aux (f : V → V') (e : G.step) :
   {w : (push f G).Walk // w.a = f e.x ∧ w.b = f e.y} :=
 begin
   by_cases f e.x = f e.y,
-  refine ⟨Walk.nil (f e.x), rfl, h⟩,
-  refine ⟨Walk.step ⟨⟨h,e.x,e.y,rfl,rfl,e.h⟩⟩, rfl, rfl⟩
+  exact ⟨Walk.nil (f e.x), rfl, h⟩,
+  exact ⟨Walk.step ⟨_,_,⟨h,e.x,e.y,rfl,rfl,e.h⟩⟩, rfl, rfl⟩
 end
 
 def push_step (f : V → V') (e : G.step) : (push f G).Walk :=
@@ -192,9 +192,9 @@ begin
 end
 
 lemma push_cons_ne (f : V → V') (e : G.step) (p : G.Walk) (h : e.y = p.a) (h' : f e.x ≠ f e.y) :
-  push_Walk f (p.cons e h) = Walk.cons ⟨⟨h',e.x,e.y,rfl,rfl,e.h⟩⟩ (push_Walk f p) (by simp [h]) :=
+  push_Walk f (p.cons e h) = Walk.cons ⟨_,_,⟨h',e.x,e.y,rfl,rfl,e.h⟩⟩ (push_Walk f p) (by simp [h]) :=
 begin
-  have : push_step f e = Walk.step ⟨⟨h',e.x,e.y,rfl,rfl,e.h⟩⟩ :=
+  have : push_step f e = Walk.step ⟨_,_,⟨h',e.x,e.y,rfl,rfl,e.h⟩⟩ :=
     by simp [push_step,push_step_aux,h'],
   rw [push_cons], simp [this,step]
 end
@@ -254,11 +254,11 @@ begin
     choose p₁ h₆ using hf x xx (hx.trans h₂.symm),
     simp_rw [h₂] at h₆,
     obtain p₂ := ih yy y (h₃.trans h) hy,
-    let pp := Walk.append ⟨p₁⟩ (p₂.val.cons ⟨h₄⟩ p₂.2.1.symm) rfl,
+    let pp := Walk.append ⟨p₁⟩ (p₂.val.cons ⟨_,_,h₄⟩ p₂.2.1.symm) rfl,
     refine ⟨pp, rfl, p₂.2.2.1, _⟩,
     have h₇ := push_eq_nil f u ⟨p₁⟩ h₆,
     simp [pp,push_append,h₇], rw [←h₂,←h₃] at huv,
-    have h₈ := push_cons_ne f ⟨h₄⟩ p₂.val p₂.2.1.symm huv, refine h₈.trans _,
+    have h₈ := push_cons_ne f ⟨_,_,h₄⟩ p₂.val p₂.2.1.symm huv, refine h₈.trans _,
     simp [h₂,h₃], congr, exact p₂.2.2.2 }
 end
 
@@ -294,7 +294,7 @@ begin
     have : ∀ (e : G.step), e ∈ p.edges → G'.adj e.x e.y :=
       by { rintro e he, apply hp, simp [edges], right, exact he },
     specialize ih this, rcases ih with ⟨q,hq⟩, rw ←hq.1 at h,
-    exact ⟨cons ⟨hp e first_edge⟩ q h, by simp [hq]⟩ }
+    exact ⟨cons ⟨_,_,hp e first_edge⟩ q h, by simp [hq]⟩ }
 end
 
 -- TODO for `(X : set V)`
@@ -347,7 +347,7 @@ begin
   { intro v, exact ⟨nil v, rfl⟩ },
   { rintro e p h q,
     by_cases h' : G'.adj e.x e.y,
-    { rw ← q.prop at h, refine ⟨cons ⟨h'⟩ q h, rfl⟩ },
+    { rw ← q.prop at h, refine ⟨cons ⟨_,_,h'⟩ q h, rfl⟩ },
     { exact ⟨nil e.x, rfl⟩ } }
 end
 

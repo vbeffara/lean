@@ -30,7 +30,7 @@ namespace simple_graph
 
         @[simp] def follow : Π {x y : V}, walk G x y -> walk G' (F.f x) (F.f y)
             | _ _ nil        := nil
-            | _ _ (cons h p) := F.df ⟨h⟩ ++ follow p
+            | _ _ (cons h p) := F.df ⟨_,_,h⟩ ++ follow p
 
         @[simp] lemma follow_append : follow F (p ++ p') = follow F p ++ follow F p'
             := by { induction p, refl, simp only [cons_append,append_assoc,p_ih,follow] }
@@ -41,9 +41,9 @@ namespace simple_graph
                 simp only [follow, myedges, length_cons, nat.succ_pos', mem_support_append_iff, list.mem_cons_iff, forall_true_left],
                 split; intro H,
                 { cases H,
-                    { exact ⟨⟨h⟩,or.inl rfl,H⟩ },
+                    { exact ⟨⟨_,_,h⟩,or.inl rfl,H⟩ },
                     { cases p,
-                        { refine ⟨⟨h⟩,or.inl rfl,_⟩, simp only [follow,support_nil,list.mem_singleton] at H,
+                        { refine ⟨⟨_,_,h⟩,or.inl rfl,_⟩, simp only [follow,support_nil,list.mem_singleton] at H,
                             rw H, apply end_mem_support },
                         { simp only [follow, length_cons, nat.succ_pos', mem_support_append_iff, forall_true_left] at ih,
                             simp only [follow, mem_support_append_iff] at H,
@@ -82,7 +82,7 @@ namespace simple_graph
         lemma follow_rev {p : walk G x y} : follow F p.reverse = (follow F p).reverse
             := by { induction p with u u v w h p ih, refl,
                 simp only [ih.symm, follow, reverse_cons, follow_append, append_nil, reverse_append],
-                congr, exact F.sym ⟨h⟩ }
+                congr, exact F.sym ⟨_,_,h⟩ }
     end path_embedding
 
     namespace path_embedding

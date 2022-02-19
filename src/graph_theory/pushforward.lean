@@ -136,7 +136,7 @@ namespace simple_graph
         by { rintros x' y' ⟨-,x,y,rfl,rfl,h₂⟩, exact φ.map_rel h₂ }
 
         noncomputable def lift_step_aux (e' : (push f G).step) : {e : G.step // f e.x = e'.x ∧ f e.y = e'.y} :=
-        by { choose x y h₁ h₂ h₃ using e'.h.2, exact ⟨⟨h₃⟩,h₁,h₂⟩ }
+        by { choose x y h₁ h₂ h₃ using e'.h.2, exact ⟨⟨_,_,h₃⟩,h₁,h₂⟩ }
 
         noncomputable def lift_step (e' : (push f G).step) : G.step :=
         (lift_step_aux e').val
@@ -183,13 +183,13 @@ namespace simple_graph
 
         def proj_edge (e : G.step) : preserved (merge_edge e) G → (G/e).step :=
         begin
-            rintro ⟨e',h₁⟩, suffices : (G/e).adj (merge_edge e e'.x) (merge_edge e e'.y), by { exact ⟨this⟩ },
+            rintro ⟨e',h₁⟩, suffices : (G/e).adj (merge_edge e e'.x) (merge_edge e e'.y), by { exact ⟨_,_,this⟩ },
             cases push.adj (merge_edge e) e'.h, contradiction, assumption
         end
 
         lemma proj_edge_surj {e : G.step} : surjective (proj_edge e) :=
         begin
-            rintro ⟨x,y,h₁,u,v,rfl,rfl,h₂⟩, use ⟨⟨h₂⟩,h₁⟩, simp only [proj_edge, eq_self_iff_true, and_self, merge_edge]
+            rintro ⟨x,y,h₁,u,v,rfl,rfl,h₂⟩, use ⟨⟨_,_,h₂⟩,h₁⟩, simp only [proj_edge, eq_self_iff_true, and_self, merge_edge]
         end
 
         lemma fewer_edges {e : G.step} [decidable_rel (G/e).adj] : fintype.card (G/e).step < fintype.card G.step :=

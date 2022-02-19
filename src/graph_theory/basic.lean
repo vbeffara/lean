@@ -10,13 +10,13 @@ namespace simple_graph
 
     @[reducible] def vertices (G : simple_graph V) : Type := V
 
-    @[ext] structure step (G : simple_graph V) := {x y : V} (h : G.adj x y)
+    @[ext] structure step (G : simple_graph V) := (x y : V) (h : G.adj x y)
 
     namespace step
         variables {e e' : step G}
 
         @[simp] def ends (e : step G) : sym2 V := ⟦( e.x, e.y )⟧
-        @[simp] def flip (e : step G) : step G := ⟨e.h.symm⟩
+        @[simp] def flip (e : step G) : step G := ⟨_,_,e.h.symm⟩
 
         @[simp] lemma ends_flip : e.flip.ends = e.ends := sym2.eq_swap
 
@@ -73,11 +73,11 @@ namespace simple_graph
                 have : e = (e.fst,e.snd) := prod.ext rfl rfl, rw this at *, rw ←h₁ at h,
                 have adj := G.mem_edge_set.mp h, have hxy := @sym2.eq_swap V e.fst e.snd,
                 cases ε,
-                { use ⟨adj.symm⟩, simp [φ], refine ⟨_,_⟩,
+                { use ⟨_,_,adj.symm⟩, simp [φ], refine ⟨_,_⟩,
                     { rw [←hxy,he,quotient.out_eq,←he], intro h, have := (prod.ext_iff.mp h).1,
                         exact G.ne_of_adj adj this },
                     { rw [←hxy], exact h₁ } },
-                { use ⟨adj⟩, simp [φ] }
+                { use ⟨_,_,adj⟩, simp [φ] }
             }
         end
     end finite

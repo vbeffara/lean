@@ -16,12 +16,12 @@ namespace simple_graph
     namespace walk
         @[simp] def myedges : Π {x y : V}, walk G x y -> list (step G)
             | _ _ nil        := []
-            | _ _ (cons h p) := ⟨h⟩ :: myedges p
+            | _ _ (cons h p) := ⟨_,_,h⟩ :: myedges p
 
         def transport (p : walk G₁ x y) (h : ∀ e : G₁.step, e ∈ p.myedges → G₂.adj e.x e.y) : walk G₂ x y :=
         begin
             induction p with u u v w h' p ih, refl,
-            refine cons (h ⟨h'⟩ (by simp)) (ih _), rintro e he, apply h, right, exact he
+            refine cons (h ⟨_,_,h'⟩ (by simp)) (ih _), rintro e he, apply h, right, exact he
         end
 
         lemma point_of_size_0 : p.length = 0 -> x = y := by { intro h, cases p, refl, contradiction }
@@ -47,7 +47,7 @@ namespace simple_graph
                 split,
                 { simp only [myedges, step.ends, support_cons, list.mem_cons_iff, sym2.mem_iff, exists_prop],
                     intro h1, cases h1,
-                    { subst h1, exact ⟨⟨h⟩, or.inl rfl, or.inl rfl⟩ },
+                    { subst h1, exact ⟨⟨_,_,h⟩, or.inl rfl, or.inl rfl⟩ },
                     { obtain ⟨e,h2,h3⟩ := ih.mp h1, exact ⟨e, or.inr h2, h3⟩ } },
                 { simp only [myedges, step.ends, list.mem_cons_iff, sym2.mem_iff, support_cons,
                         forall_exists_index, and_imp, forall_eq_or_imp],
