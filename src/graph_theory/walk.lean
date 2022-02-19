@@ -12,7 +12,7 @@ structure Walk (G : simple_graph V) := {a b : V} (p : G.walk a b)
 
 namespace Walk
 
-variables {e : G.step} {p q : G.Walk} {hep : e.y = p.a} {hpq : p.b = q.a}
+variables {e : G.step} {p q : G.Walk} {hep : e.snd = p.a} {hpq : p.b = q.a}
 
 def nil (a : V) : G.Walk := ⟨(walk.nil : G.walk a a)⟩
 
@@ -20,10 +20,10 @@ def nil (a : V) : G.Walk := ⟨(walk.nil : G.walk a a)⟩
 
 @[simp] lemma nil_b : (nil b : G.Walk).b = b := rfl
 
-def cons (e : G.step) (p : G.Walk) (h : e.y = p.a) : G.Walk :=
+def cons (e : G.step) (p : G.Walk) (h : e.snd = p.a) : G.Walk :=
 by { let h' := e.h, rw h at h', exact ⟨p.p.cons h'⟩ }
 
-def step (e : G.step) : G.Walk := cons e (nil e.y) rfl
+def step (e : G.step) : G.Walk := cons e (nil e.snd) rfl
 
 def rec₀ {motive : G.Walk → Sort*} :
   (Π u, motive (Walk.nil u)) →
@@ -56,7 +56,7 @@ rec₀ (λ v, {v}) (λ e p h q, {e.fst} ∪ q)
 
 @[simp] lemma range_cons : (cons e p hep).range = {e.fst} ∪ p.range := rec_cons
 
-@[simp] lemma range_step : (step e).range = {e.fst, e.y} := rfl
+@[simp] lemma range_step : (step e).range = {e.fst, e.snd} := rfl
 
 @[simp] lemma range_nonempty : p.range.nonempty :=
 begin
@@ -141,11 +141,11 @@ begin
 end
 
 def push_step_aux (f : V → V') (e : G.step) :
-  {w : (push f G).Walk // w.a = f e.fst ∧ w.b = f e.y} :=
+  {w : (push f G).Walk // w.a = f e.fst ∧ w.b = f e.snd} :=
 begin
-  by_cases f e.fst = f e.y,
+  by_cases f e.fst = f e.snd,
   exact ⟨Walk.nil (f e.fst), rfl, h⟩,
-  exact ⟨Walk.step ⟨_,_,⟨h,e.fst,e.y,rfl,rfl,e.h⟩⟩, rfl, rfl⟩
+  exact ⟨Walk.step ⟨_,_,⟨h,e.fst,e.snd,rfl,rfl,e.h⟩⟩, rfl, rfl⟩
 end
 
 def push_step (f : V → V') (e : G.step) : (push f G).Walk :=
@@ -154,7 +154,7 @@ def push_step (f : V → V') (e : G.step) : (push f G).Walk :=
 @[simp] lemma push_step_a : (push_step f e).a = f e.fst :=
 (push_step_aux f e).prop.1
 
-@[simp] lemma push_step_b : (push_step f e).b = f e.y :=
+@[simp] lemma push_step_b : (push_step f e).b = f e.snd :=
 (push_step_aux f e).prop.2
 
 def push_Walk_aux (f : V → V') (p : G.Walk) :
@@ -180,21 +180,21 @@ def push_Walk (f : V → V') (p : G.Walk) : (push f G).Walk :=
 
 @[simp] lemma push_nil : push_Walk f (@Walk.nil _ _ G a) = Walk.nil (f a) := rfl
 
-lemma push_cons (f : V → V') (e : G.step) (p : G.Walk) (h : e.y = p.a) :
+lemma push_cons (f : V → V') (e : G.step) (p : G.Walk) (h : e.snd = p.a) :
   push_Walk f (p.cons e h) = Walk.append (push_step f e) (push_Walk f p) (by simp [h]) :=
 by { rcases p with ⟨a,b,p⟩, rcases e with ⟨u,v,e⟩, simp at h, subst a, refl }
 
-lemma push_cons_eq (f : V → V') (e : G.step) (p : G.Walk) (h : e.y = p.a) (h' : f e.fst = f e.y) :
+lemma push_cons_eq (f : V → V') (e : G.step) (p : G.Walk) (h : e.snd = p.a) (h' : f e.fst = f e.snd) :
   push_Walk f (p.cons e h) = push_Walk f p :=
 begin
   have : push_step f e = Walk.nil (f e.fst) := by simp [push_step,push_step_aux,h'],
   rw [push_cons], simp only [this], exact append_nil_left
 end
 
-lemma push_cons_ne (f : V → V') (e : G.step) (p : G.Walk) (h : e.y = p.a) (h' : f e.fst ≠ f e.y) :
-  push_Walk f (p.cons e h) = Walk.cons ⟨_,_,⟨h',e.fst,e.y,rfl,rfl,e.h⟩⟩ (push_Walk f p) (by simp [h]) :=
+lemma push_cons_ne (f : V → V') (e : G.step) (p : G.Walk) (h : e.snd = p.a) (h' : f e.fst ≠ f e.snd) :
+  push_Walk f (p.cons e h) = Walk.cons ⟨_,_,⟨h',e.fst,e.snd,rfl,rfl,e.h⟩⟩ (push_Walk f p) (by simp [h]) :=
 begin
-  have : push_step f e = Walk.step ⟨_,_,⟨h',e.fst,e.y,rfl,rfl,e.h⟩⟩ :=
+  have : push_step f e = Walk.step ⟨_,_,⟨h',e.fst,e.snd,rfl,rfl,e.h⟩⟩ :=
     by simp [push_step,push_step_aux,h'],
   rw [push_cons], simp [this,step]
 end
@@ -204,7 +204,7 @@ lemma push_append (f : V → V') (p q : G.Walk) (hpq : p.b = q.a) :
   Walk.append (push_Walk f p) (push_Walk f q) (by simp [hpq]) :=
 begin
   revert p, refine rec₀ (by simp) _,
-  intros e p h ih hpq, by_cases h' : f e.fst = f e.y,
+  intros e p h ih hpq, by_cases h' : f e.fst = f e.snd,
   { have h₁ := push_cons_eq f e p h h',
     have h₂ := push_cons_eq f e (Walk.append p q hpq) (h.trans append_a.symm) h',
       simp only [h₁, h₂, ih, append_cons] },
@@ -220,13 +220,13 @@ begin
   { intros, specialize hp u (by simp [Walk.nil]), simp [hp] },
   { intros e p h ih hp,
     have h₁ : f e.fst = w := by { apply hp, left, refl },
-    have h₂ : f e.y = w := by { apply hp, right, rw h, exact p.p.start_mem_support },
+    have h₂ : f e.snd = w := by { apply hp, right, rw h, exact p.p.start_mem_support },
     rw push_cons_eq f e p h (h₁.trans h₂.symm),
     apply ih, intros z hz, apply hp, right, exact hz }
 end
 
-@[simp] lemma push_step_range : (push_step f e).range = {f e.fst, f e.y} :=
-by { by_cases f e.fst = f e.y; simp [push_step, push_step_aux, h] }
+@[simp] lemma push_step_range : (push_step f e).range = {f e.fst, f e.snd} :=
+by { by_cases f e.fst = f e.snd; simp [push_step, push_step_aux, h] }
 
 lemma push_range : (push_Walk f p).range = finset.image f p.range :=
 begin
@@ -276,7 +276,7 @@ lemma pull_Walk_push : push_Walk f (pull_Walk f hf p' x y hx hy) = p' :=
 (pull_Walk_aux f hf p' x y hx hy).prop.2.2
 
 def transportable_to (G' : simple_graph V) (p : G.Walk) : Prop :=
-  ∀ e : G.step, e ∈ p.edges → G'.adj e.fst e.y
+  ∀ e : G.step, e ∈ p.edges → G'.adj e.fst e.snd
 
 lemma transportable_to_of_le (G_le : G ≤ G') : p.transportable_to G' :=
 begin
@@ -291,7 +291,7 @@ begin
   revert p, refine rec₀ _ _,
   { rintro a hp, exact ⟨nil a, rfl, rfl, rfl, rfl, rfl⟩ },
   { rintro e p h ih hp,
-    have : ∀ (e : G.step), e ∈ p.edges → G'.adj e.fst e.y :=
+    have : ∀ (e : G.step), e ∈ p.edges → G'.adj e.fst e.snd :=
       by { rintro e he, apply hp, simp [edges], right, exact he },
     specialize ih this, rcases ih with ⟨q,hq⟩, rw ←hq.1 at h,
     exact ⟨cons ⟨_,_,hp e first_edge⟩ q h, by simp [hq]⟩ }
@@ -346,7 +346,7 @@ begin
   refine rec₀ _ _ p,
   { intro v, exact ⟨nil v, rfl⟩ },
   { rintro e p h q,
-    by_cases h' : G'.adj e.fst e.y,
+    by_cases h' : G'.adj e.fst e.snd,
     { rw ← q.prop at h, refine ⟨cons ⟨_,_,h'⟩ q h, rfl⟩ },
     { exact ⟨nil e.fst, rfl⟩ } }
 end

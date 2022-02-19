@@ -175,7 +175,7 @@ end
 
 def minus (G : simple_graph V) (e : G.step) : simple_graph V :=
 {
-  adj := λ x y, G.adj x y ∧ ((x ≠ e.fst ∧ x ≠ e.y) ∨ (y ≠ e.fst ∧ y ≠ e.y)),
+  adj := λ x y, G.adj x y ∧ ((x ≠ e.fst ∧ x ≠ e.snd) ∨ (y ≠ e.fst ∧ y ≠ e.snd)),
   symm := λ x y ⟨h₁,h₂⟩, ⟨h₁.symm,h₂.symm⟩,
   loopless := λ x h, G.loopless _ h.1
 }
@@ -190,11 +190,11 @@ begin
   have φ_inj : injective φ := by { rintro e₁ e₂ h, simp [φ] at h, exact e₁.ext e₂ h.1 h.2 },
   suffices : e ∉ set.range φ, refine fintype.card_lt_of_injective_of_not_mem φ φ_inj this,
   intro he, rw set.mem_range at he, choose e' he using he, rcases e' with ⟨x,y,he'⟩,
-  have : x = e.fst := congr_arg step.fst he, have : y = e.y := congr_arg step.y he,
+  have : x = e.fst := congr_arg step.fst he, have : y = e.snd := congr_arg step.snd he,
   substs x y, simp [minus] at he', simp at he', exact he'
 end
 
-lemma sep_AB_of_sep₂_AX ⦃e : G.step⦄ (ex_in_X : e.fst ∈ X) (ey_in_X : e.y ∈ X) :
+lemma sep_AB_of_sep₂_AX ⦃e : G.step⦄ (ex_in_X : e.fst ∈ X) (ey_in_X : e.snd ∈ X) :
   separates G A B X → separates (G-e) A X Z → separates G A B Z :=
 by {
   rintro X_sep_AB Z_sep₂_AX γ,
@@ -311,7 +311,7 @@ begin
   { simp, apply P_eq.trans, convert (fintype.card_coe B).symm },
 end
 
-noncomputable def sep_cleanup {e : G.step} (ex_in_X : e.fst ∈ X) (ey_in_X : e.y ∈ X)
+noncomputable def sep_cleanup {e : G.step} (ex_in_X : e.fst ∈ X) (ey_in_X : e.snd ∈ X)
   (X_eq_min : X.card = min_cut G A B) (X_sep_AB : separates G A B X)
   (ih : ∃ (P : finset (AB_walk (G-e) A X)), pw_disjoint P ∧ P.card = min_cut (G-e) A X) :
   {P : finset (AB_walk' G A X) // pw_disjoint' P ∧ P.card = X.card} :=
@@ -417,10 +417,10 @@ begin
   -- is an AB separator in G, of exactly k vertices.
 
   have step₁ : ∃ X : finset V,
-    e.fst ∈ X ∧ e.y ∈ X ∧ separates G A B X ∧ X.card = min_cut G A B :=
+    e.fst ∈ X ∧ e.snd ∈ X ∧ separates G A B X ∧ X.card = min_cut G A B :=
   by {
     let G₁ := G/e, let A₁ := image (merge_edge e) A, let B₁ := image (merge_edge e) B,
-    obtain ⟨Y, Y_eq_min₁, Y_sep⟩ := min_cut_set G₁ A₁ B₁, let X := Y ∪ {e.y},
+    obtain ⟨Y, Y_eq_min₁, Y_sep⟩ := min_cut_set G₁ A₁ B₁, let X := Y ∪ {e.snd},
 
     have Y_lt_min : Y.card < min_cut G A B :=
     by {
@@ -434,7 +434,7 @@ begin
     have X_sep_AB : separates G A B X :=
     by { intro γ, choose z hz using Y_sep (AB_push (merge_edge e) A B γ),
       rw [mem_inter,AB_push,Walk.push_range,mem_image] at hz,
-      choose x hx₁ hx₂ using hz.1, by_cases x = e.y; simp [merge_edge,h] at hx₂,
+      choose x hx₁ hx₂ using hz.1, by_cases x = e.snd; simp [merge_edge,h] at hx₂,
       { use x, simp, split, exact hx₁, right, exact h },
       { use x, simp, split, exact hx₁, left, rw hx₂, exact hz.2 } },
 
@@ -445,7 +445,7 @@ begin
       intro p, choose z hz using Y_sep (AB_push (merge_edge e) A B p), use z,
       rw mem_inter at hz ⊢, rcases hz with ⟨hz₁,hz₂⟩, refine ⟨_,hz₂⟩,
       rw [AB_push,Walk.push_range,mem_image] at hz₁, choose x hx₁ hx₂ using hz₁,
-      by_cases x = e.y; simp [merge_edge,h] at hx₂,
+      by_cases x = e.snd; simp [merge_edge,h] at hx₂,
       { rw [←hx₂] at hz₂, contradiction },
       { rwa [←hx₂] } },
     { rw [mem_union,mem_singleton], right, refl },

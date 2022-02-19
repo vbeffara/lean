@@ -10,12 +10,12 @@ namespace simple_graph
 
     @[reducible] def vertices (G : simple_graph V) : Type := V
 
-    @[ext] structure step (G : simple_graph V) := (fst y : V) (h : G.adj fst y)
+    @[ext] structure step (G : simple_graph V) := (fst snd : V) (h : G.adj fst snd)
 
     namespace step
         variables {e e' : step G}
 
-        @[simp] def ends (e : step G) : sym2 V := ⟦( e.fst, e.y )⟧
+        @[simp] def ends (e : step G) : sym2 V := ⟦( e.fst, e.snd )⟧
         @[simp] def flip (e : step G) : step G := ⟨_,_,e.h.symm⟩
 
         @[simp] lemma ends_flip : e.flip.ends = e.ends := sym2.eq_swap
@@ -33,7 +33,7 @@ namespace simple_graph
 
         noncomputable instance fintype_step : fintype G.step :=
         begin
-            let f : G.step → V × V := λ e, (e.fst, e.y), apply fintype.of_injective f,
+            let f : G.step → V × V := λ e, (e.fst, e.snd), apply fintype.of_injective f,
             rintros ⟨x₁,y₁,h₁⟩ ⟨x₂,y₂,h₂⟩, simp only [prod.mk.inj_iff], exact id
         end
 
