@@ -15,12 +15,11 @@ namespace simple_graph
     namespace step
         variables {e e' : step G}
 
-        @[simp] def ends (e : step G) : sym2 V := ⟦( e.fst, e.snd )⟧
         @[simp] def flip (e : step G) : step G := ⟨_,_,e.is_adj.symm⟩
 
-        @[simp] lemma ends_flip : e.flip.ends = e.ends := sym2.eq_swap
+        @[simp] lemma ends_flip : e.flip.edge = e.edge := sym2.eq_swap
 
-        lemma same_iff : (e' = e ∨ e' = flip e) <-> e.ends = e'.ends
+        lemma same_iff : (e' = e ∨ e' = flip e) <-> e.edge = e'.edge
             := by { split; intro h,
                 { cases h; subst e', rw ends_flip },
                 { replace h := sym2.eq_iff.mp h, cases e with x y h1, cases e' with x' y', dsimp at h,

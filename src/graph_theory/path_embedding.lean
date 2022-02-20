@@ -12,8 +12,8 @@ namespace simple_graph
         (nodup    : ∀ e : step G, (df e).support.nodup)
         (sym      : ∀ e : step G, df e.flip = (df e).reverse)
         --
-        (endpoint : ∀ {e x},    f x ∈ (df e).support                        -> x ∈ e.ends)
-        (disjoint : ∀ {e e' z},   z ∈ (df e).support -> z ∈ (df e').support -> e.ends = e'.ends ∨ ∃ x, z = f x)
+        (endpoint : ∀ {e x},    f x ∈ (df e).support                        -> x ∈ e.edge)
+        (disjoint : ∀ {e e' z},   z ∈ (df e).support -> z ∈ (df e').support -> e.edge = e'.edge ∨ ∃ x, z = f x)
 
     def embeds_into (G : simple_graph V) (G' : simple_graph V') := nonempty (path_embedding G G')
 
@@ -130,9 +130,9 @@ namespace simple_graph
                     replace h6 := F'.endpoint h6,
                     replace h3 := walk.mem_edges h3,
                     replace h5 := walk.mem_edges h5,
-                    replace h3 : y ∈ (F.df e).support, by { simp only [step.ends, sym2.mem_iff] at h4,
+                    replace h3 : y ∈ (F.df e).support, by { simp only [dart.edge, sym2.mem_iff] at h4,
                         cases h4; subst h4, exact h3.1, exact h3.2 },
-                    replace h5 : y ∈ (F.df e').support, by { simp only [step.ends, sym2.mem_iff] at h6,
+                    replace h5 : y ∈ (F.df e').support, by { simp only [dart.edge, sym2.mem_iff] at h6,
                         cases h6; subst h6, exact h5.1, exact h5.2 },
                     cases F.disjoint h3 h5 with h9 h9,
                         { left, exact h9 },
@@ -157,7 +157,7 @@ namespace simple_graph
             endpoint := λ e x h, by {
                 simp only [embedding.coe_fn_mk, support_cons, support_nil, rel_hom.coe_fn_to_fun, list.mem_cons_iff,
                             list.mem_singleton] at h,
-                simp only [step.ends, sym2.mem_iff], cases h, { left, exact inj h }, { right, exact inj h } },
+                simp only [dart.edge, sym2.mem_iff], cases h, { left, exact inj h }, { right, exact inj h } },
             disjoint := by { intros e e' z h₁ h₂, right, cases h₁, subst h₁, exact ⟨e.fst,rfl⟩,
                                 cases h₁, subst h₁, exact ⟨e.snd,rfl⟩, cases h₁ }
         }

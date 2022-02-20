@@ -34,22 +34,22 @@ namespace simple_graph
             { specialize ih h', exact ⟨or.inr ih.1, or.inr ih.2⟩ }
         end
 
-        lemma mem_of_edges (h : 0 < p.length) : u ∈ p.support <-> ∃ e ∈ myedges p, u ∈ step.ends e :=
+        lemma mem_of_edges (h : 0 < p.length) : u ∈ p.support <-> ∃ e ∈ myedges p, u ∈ dart.edge e :=
         begin
             induction p with u u v w h p ih, { simp only [length_nil, nat.not_lt_zero] at h, contradiction },
             clear h, cases nat.eq_zero_or_pos (length p),
             { cases p,
-                simp only [myedges, step.ends, support_cons, support_nil, list.mem_cons_iff, list.mem_singleton,
+                simp only [myedges, dart.edge, support_cons, support_nil, list.mem_cons_iff, list.mem_singleton,
                             sym2.mem_iff, exists_prop, exists_eq_left],
                 simp only [length_cons, nat.succ_ne_zero] at h_1, contradiction },
             { specialize ih h_1, clear h_1,
-                simp only [step.ends, sym2.mem_iff] at ih,
+                simp only [dart.edge, sym2.mem_iff] at ih,
                 split,
-                { simp only [myedges, step.ends, support_cons, list.mem_cons_iff, sym2.mem_iff, exists_prop],
+                { simp only [myedges, dart.edge, support_cons, list.mem_cons_iff, sym2.mem_iff, exists_prop],
                     intro h1, cases h1,
                     { subst h1, exact ⟨⟨_,_,h⟩, or.inl rfl, or.inl rfl⟩ },
                     { obtain ⟨e,h2,h3⟩ := ih.mp h1, exact ⟨e, or.inr h2, h3⟩ } },
-                { simp only [myedges, step.ends, list.mem_cons_iff, sym2.mem_iff, support_cons,
+                { simp only [myedges, dart.edge, list.mem_cons_iff, sym2.mem_iff, support_cons,
                         forall_exists_index, and_imp, forall_eq_or_imp],
                     exact ⟨(λ h, or.cases_on h or.inl (λ h, by { subst h, exact or.inr (start_mem_support _) })),
                     (λ e he h1, or.inr (ih.mpr ⟨e,he,h1⟩))⟩ } }
