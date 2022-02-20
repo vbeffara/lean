@@ -10,7 +10,7 @@ namespace simple_graph
         (df       : Π e : step G, walk G' (f e.fst) (f e.snd))
         --
         (nodup    : ∀ e : step G, (df e).support.nodup)
-        (sym      : ∀ e : step G, df e.flip = (df e).reverse)
+        (sym      : ∀ e : step G, df e.rev = (df e).reverse)
         --
         (endpoint : ∀ {e x},    f x ∈ (df e).support                        -> x ∈ e.edge)
         (disjoint : ∀ {e e' z},   z ∈ (df e).support -> z ∈ (df e').support -> e.edge = e'.edge ∨ ∃ x, z = f x)
@@ -111,7 +111,7 @@ namespace simple_graph
                     replace h5 := walk.mem_edges h5,
                     replace h5 : e1.fst ∈ (F.df e').support ∧ e1.snd ∈ (F.df e').support := by {
                         cases step.same_iff.mpr h7; subst e2,
-                        exact h5, simp only [step.flip] at h5, exact h5.symm
+                        exact h5, simp only [dart.rev] at h5, exact h5.symm
                     }, clear h7,
                     cases F.disjoint h3.1 h5.1 with h10 h10, exact h10,
                     obtain ⟨x,h10⟩ := h10, rw h10 at h3 h5,
@@ -152,7 +152,7 @@ namespace simple_graph
                 simp only [support_cons, embedding.coe_fn_mk, support_nil, rel_hom.coe_fn_to_fun, list.nodup_cons,
                             list.mem_singleton, list.not_mem_nil, not_false_iff, list.nodup_nil, and_true],
                 exact G'.ne_of_adj (f.map_rel' e.is_adj) },
-            sym := λ e, by { simp only [step.flip, reverse_cons, reverse_nil, nil_append, rel_hom.coe_fn_to_fun,
+            sym := λ e, by { simp only [dart.rev, reverse_cons, reverse_nil, nil_append, rel_hom.coe_fn_to_fun,
                             embedding.coe_fn_mk, eq_self_iff_true, heq_iff_eq, and_self] },
             endpoint := λ e x h, by {
                 simp only [embedding.coe_fn_mk, support_cons, support_nil, rel_hom.coe_fn_to_fun, list.mem_cons_iff,

@@ -355,11 +355,11 @@ def reverse_aux (p : G.Walk) : {q : G.Walk // q.a = p.b ∧ q.b = p.a ∧ q.rang
 begin
   refine rec₀ _ _ p,
   { rintro u, refine ⟨nil u, rfl, rfl, rfl⟩ },
-  { rintro e p h ⟨q,qa,qb,qr⟩, refine ⟨q.append (step e.flip) _, _, _, _⟩,
+  { rintro e p h ⟨q,qa,qb,qr⟩, refine ⟨q.append (step e.rev) _, _, _, _⟩,
     { rw [qb,←h], refl },
     { simp [qa] },
     { simp, refl },
-    { simp [qr], rw finset.union_comm, simp [h] }
+    { simp [qr], rw finset.union_comm, simp [h,dart.rev] }
   }
 end
 
