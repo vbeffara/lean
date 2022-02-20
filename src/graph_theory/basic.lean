@@ -12,17 +12,6 @@ namespace simple_graph
 
     @[reducible] def step (G : simple_graph V) := G.dart
 
-    namespace step
-        variables {e e' : step G}
-
-        lemma same_iff : (e' = e ∨ e' = e.rev) <-> e.edge = e'.edge
-            := by { split; intro h,
-                { cases h; subst e', rw dart.rev_edge },
-                { replace h := sym2.eq_iff.mp h, cases e with x y h1, cases e' with x' y', dsimp at h,
-                    cases h; { cases h, substs x' y', simp [flip,dart.rev] } }
-            }
-    end step
-
     section finite
         variables [fintype V]
 
