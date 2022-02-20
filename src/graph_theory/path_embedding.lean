@@ -110,8 +110,8 @@ namespace simple_graph
                     replace h3 := walk.mem_edges h3,
                     replace h5 := walk.mem_edges h5,
                     replace h5 : e1.fst ∈ (F.df e').support ∧ e1.snd ∈ (F.df e').support := by {
-                        cases step.same_iff.mpr h7; subst e2,
-                        exact h5, simp only [dart.rev] at h5, exact h5.symm
+                        cases (dart_edge_eq_iff e1 e2).mp h7; subst e1,
+                        exact h5, simp only [dart.rev], exact h5.symm
                     }, clear h7,
                     cases F.disjoint h3.1 h5.1 with h10 h10, exact h10,
                     obtain ⟨x,h10⟩ := h10, rw h10 at h3 h5,

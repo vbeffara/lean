@@ -187,8 +187,7 @@ lemma minus_le {e : G.step} : G-e ≤ G := λ x y h, h.1
 lemma minus_lt_edges {e : G.step} : fintype.card (G-e).step < fintype.card G.step :=
 begin
   let φ : (G-e).step → G.step := λ e, ⟨_,_,e.is_adj.1⟩,
-  have φ_inj : injective φ := by { rintro e₁ e₂ h, simp [φ] at h,
-    rw dart.ext_iff at h, exact e₁.ext e₂ h.1 h.2 },
+  have φ_inj : injective φ := by { rintro e₁ e₂ h, simp [φ] at h, exact e₁.ext e₂ h.1 h.2 },
   suffices : e ∉ set.range φ, refine fintype.card_lt_of_injective_of_not_mem φ φ_inj this,
   intro he, rw set.mem_range at he, choose e' he using he, rcases e' with ⟨x,y,he'⟩,
   have : x = e.fst := congr_arg dart.fst he, have : y = e.snd := congr_arg dart.snd he,
