@@ -93,11 +93,11 @@ end
 lemma upper_bound (dis : pw_disjoint P) : P.card ≤ min_cut G A B :=
 by { obtain ⟨X,h₁,h₂⟩ := min_cut_set G A B, rw ←h₁, exact path_le_cut dis h₂ }
 
-lemma bot_iff_no_edge : fintype.card G.step = 0 ↔ G = ⊥ :=
+lemma bot_iff_no_edge : fintype.card G.dart = 0 ↔ G = ⊥ :=
 begin
   split; intro h,
   { ext x y, simp, intro h₁, exact is_empty_iff.mp (fintype.card_eq_zero_iff.mp h) ⟨_,_,h₁⟩ },
-  { rw h, exact fintype.card_eq_zero_iff.mpr (is_empty_iff.mpr dart.is_adj), }
+  { rw h, apply fintype.card_eq_zero_iff.mpr, exact (is_empty_iff.mpr dart.is_adj) }
 end
 
 lemma bot_separates_iff : separates ⊥ A B X ↔ (A ∩ B) ⊆ X :=
@@ -173,7 +173,7 @@ begin
   exact mem_image_of_mem f h.1, exact mem_image_of_mem f h.2
 end
 
-def minus (G : simple_graph V) (e : G.step) : simple_graph V :=
+def minus (G : simple_graph V) (e : G.dart) : simple_graph V :=
 {
   adj := λ x y, G.adj x y ∧ ((x ≠ e.fst ∧ x ≠ e.snd) ∨ (y ≠ e.fst ∧ y ≠ e.snd)),
   symm := λ x y ⟨h₁,h₂⟩, ⟨h₁.symm,h₂.symm⟩,
@@ -182,11 +182,11 @@ def minus (G : simple_graph V) (e : G.step) : simple_graph V :=
 
 infix `-` := minus
 
-lemma minus_le {e : G.step} : G-e ≤ G := λ x y h, h.1
+lemma minus_le {e : G.dart} : G-e ≤ G := λ x y h, h.1
 
-lemma minus_lt_edges {e : G.step} : fintype.card (G-e).step < fintype.card G.step :=
+lemma minus_lt_edges {e : G.dart} : fintype.card (G-e).dart < fintype.card G.dart :=
 begin
-  let φ : (G-e).step → G.step := λ e, ⟨_,_,e.is_adj.1⟩,
+  let φ : (G-e).dart → G.dart := λ e, ⟨_,_,e.is_adj.1⟩,
   have φ_inj : injective φ := by { rintro e₁ e₂ h, simp [φ] at h, exact e₁.ext e₂ h.1 h.2 },
   suffices : e ∉ set.range φ, refine fintype.card_lt_of_injective_of_not_mem φ φ_inj this,
   intro he, rw set.mem_range at he, choose e' he using he, rcases e' with ⟨x,y,he'⟩,
@@ -194,7 +194,7 @@ begin
   substs x y, simp [minus] at he', simp at he', exact he'
 end
 
-lemma sep_AB_of_sep₂_AX ⦃e : G.step⦄ (ex_in_X : e.fst ∈ X) (ey_in_X : e.snd ∈ X) :
+lemma sep_AB_of_sep₂_AX ⦃e : G.dart⦄ (ex_in_X : e.fst ∈ X) (ey_in_X : e.snd ∈ X) :
   separates G A B X → separates (G-e) A X Z → separates G A B Z :=
 by {
   rintro X_sep_AB Z_sep₂_AX γ,
@@ -311,7 +311,7 @@ begin
   { simp, apply P_eq.trans, convert (fintype.card_coe B).symm },
 end
 
-noncomputable def sep_cleanup {e : G.step} (ex_in_X : e.fst ∈ X) (ey_in_X : e.snd ∈ X)
+noncomputable def sep_cleanup {e : G.dart} (ex_in_X : e.fst ∈ X) (ey_in_X : e.snd ∈ X)
   (X_eq_min : X.card = min_cut G A B) (X_sep_AB : separates G A B X)
   (ih : ∃ (P : finset (AB_walk (G-e) A X)), pw_disjoint P ∧ P.card = min_cut (G-e) A X) :
   {P : finset (AB_walk' G A X) // pw_disjoint' P ∧ P.card = X.card} :=
@@ -392,7 +392,7 @@ begin
   refine ⟨R, R_dis, _⟩, rw finset.card_image_of_injective _ Ψ_inj, convert fintype.card_coe X
 end
 
-lemma lower_bound_aux (n : ℕ) : ∀ (G : simple_graph V), fintype.card G.step ≤ n →
+lemma lower_bound_aux (n : ℕ) : ∀ (G : simple_graph V), fintype.card G.dart ≤ n →
   is_menger G :=
 begin
   -- We apply induction on ∥G∥.
@@ -403,7 +403,7 @@ begin
     exact (bot_path_set A B).exists_of_subtype },
 
   -- So we assume that G has an edge e = xy.
-  rintros G hG A B, by_cases (fintype.card G.step = 0), { apply ih, linarith },
+  rintros G hG A B, by_cases (fintype.card G.dart = 0), { apply ih, linarith },
   cases not_is_empty_iff.mp (h ∘ fintype.card_eq_zero_iff.mpr) with e, clear h,
 
   apply not_imp_self.mp, intro too_small, push_neg at too_small, replace too_small :
@@ -424,7 +424,7 @@ begin
 
     have Y_lt_min : Y.card < min_cut G A B :=
     by {
-      have G₁_le_n : fintype.card G₁.step ≤ n :=
+      have G₁_le_n : fintype.card G₁.dart ≤ n :=
         nat.le_of_lt_succ (nat.lt_of_lt_of_le contract_edge.fewer_edges hG),
       choose P₁ P₁_dis P₁_eq_min₁ using ih G₁ G₁_le_n A₁ B₁,
       rw [Y_eq_min₁, ←P₁_eq_min₁, ←card_image_of_injective P₁ AB_lift_inj],
@@ -458,7 +458,7 @@ begin
   -- We now consider the graph G−e.
   let G₂ : simple_graph V := G-e,
 
-  have G₂_le_n : fintype.card G₂.step ≤ n :=
+  have G₂_le_n : fintype.card G₂.dart ≤ n :=
   nat.le_of_lt_succ (nat.lt_of_lt_of_le minus_lt_edges hG),
 
   -- Since x,y ∈ X, every AX-separator in G−e is also an AB-separator in G and hence contains at
@@ -474,7 +474,7 @@ begin
 end
 
 theorem menger : is_menger G :=
-lower_bound_aux (fintype.card G.step) G (le_of_eq rfl)
+lower_bound_aux (fintype.card G.dart) G (le_of_eq rfl)
 
 -- theorem menger (h : separable G A B) : max_path_number G A B = min_cut h
 end menger

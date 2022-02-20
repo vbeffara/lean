@@ -135,27 +135,27 @@ namespace simple_graph
         lemma le {φ : G →g G'} : push φ G ≤ G' :=
         by { rintros x' y' ⟨-,x,y,rfl,rfl,h₂⟩, exact φ.map_rel h₂ }
 
-        noncomputable def lift_step_aux (e' : (push f G).step) : {e : G.step // f e.fst = e'.fst ∧ f e.snd = e'.snd} :=
+        noncomputable def lift_step_aux (e' : (push f G).dart) : {e : G.dart // f e.fst = e'.fst ∧ f e.snd = e'.snd} :=
         by { choose x y h₁ h₂ h₃ using e'.is_adj.2, exact ⟨⟨_,_,h₃⟩,h₁,h₂⟩ }
 
-        noncomputable def lift_step (e' : (push f G).step) : G.step :=
+        noncomputable def lift_step (e' : (push f G).dart) : G.dart :=
         (lift_step_aux e').val
 
-        @[simp] lemma lift_step_x {e' : (push f G).step} : f (lift_step e').fst = e'.fst := (lift_step_aux e').2.1
+        @[simp] lemma lift_step_x {e' : (push f G).dart} : f (lift_step e').fst = e'.fst := (lift_step_aux e').2.1
 
-        @[simp] lemma lift_step_y {e' : (push f G).step} : f (lift_step e').snd = e'.snd := (lift_step_aux e').2.2
+        @[simp] lemma lift_step_y {e' : (push f G).dart} : f (lift_step e').snd = e'.snd := (lift_step_aux e').2.2
 
-        lemma lift_step_inj : injective (lift_step : (push f G).step → G.step) :=
+        lemma lift_step_inj : injective (lift_step : (push f G).dart → G.dart) :=
         λ f₁ f₂ h, by { ext, rw [←lift_step_x, ←lift_step_x, h], rw [←lift_step_y, ←lift_step_y, h] }
 
-        lemma lift_step_ne_of_mem {e : G.step} : e ∈ set.range (lift_step : (push f G).step → G.step) → f e.fst ≠ f e.snd :=
+        lemma lift_step_ne_of_mem {e : G.dart} : e ∈ set.range (lift_step : (push f G).dart → G.dart) → f e.fst ≠ f e.snd :=
         begin
             rintro ⟨e',h₄⟩,
             rw [←h₄,@lift_step_x V V' f G e',@lift_step_y V V' f G e'],
             exact (push f G).ne_of_adj e'.is_adj
         end
 
-        lemma lift_step_ne_mem {e : G.step} : f e.fst = f e.snd → e ∉ set.range (lift_step : (push f G).step → G.step) :=
+        lemma lift_step_ne_mem {e : G.dart} : f e.fst = f e.snd → e ∉ set.range (lift_step : (push f G).dart → G.dart) :=
         begin
             contrapose, push_neg, exact lift_step_ne_of_mem
         end
@@ -164,14 +164,14 @@ namespace simple_graph
     def merge [decidable_eq V] (P : V → Prop) [decidable_pred P] : V → {z // ¬ (P z)} ⊕ unit :=
     λ z, dite (P z) (λ _, sum.inr unit.star) (λ h, sum.inl ⟨z,h⟩)
 
-    def merge_edge [decidable_eq V] {G : simple_graph V} (e : step G) : V → V :=
+    def merge_edge [decidable_eq V] {G : simple_graph V} (e : G.dart) : V → V :=
     λ z, ite (z = e.snd) e.fst z
 
-    lemma merge_edge_idempotent [decidable_eq V] {G : simple_graph V} {e : step G} (z : V) :
+    lemma merge_edge_idempotent [decidable_eq V] {G : simple_graph V} {e : G.dart} (z : V) :
         merge_edge e (merge_edge e z) = merge_edge e z :=
     by { by_cases z = e.snd; simp [merge_edge,h] }
 
-    def contract_edge (G : simple_graph V) [decidable_eq V] (e : step G) :=
+    def contract_edge (G : simple_graph V) [decidable_eq V] (e : G.dart) :=
     G.push (merge_edge e)
 
     infix ` / ` := contract_edge
@@ -179,23 +179,23 @@ namespace simple_graph
     namespace contract_edge
         variables [fintype V] [decidable_eq V] [decidable_eq V'] [decidable_rel G.adj]
 
-        @[reducible] def preserved (f : V → V') (G : simple_graph V) : Type := {e : G.step // f e.fst ≠ f e.snd}
+        @[reducible] def preserved (f : V → V') (G : simple_graph V) : Type := {e : G.dart // f e.fst ≠ f e.snd}
 
-        def proj_edge (e : G.step) : preserved (merge_edge e) G → (G/e).step :=
+        def proj_edge (e : G.dart) : preserved (merge_edge e) G → (G/e).dart :=
         begin
             rintro ⟨e',h₁⟩, suffices : (G/e).adj (merge_edge e e'.fst) (merge_edge e e'.snd), by { exact ⟨_,_,this⟩ },
             cases push.adj (merge_edge e) e'.is_adj, contradiction, assumption
         end
 
-        lemma proj_edge_surj {e : G.step} : surjective (proj_edge e) :=
+        lemma proj_edge_surj {e : G.dart} : surjective (proj_edge e) :=
         begin
             rintro ⟨x,y,h₁,u,v,rfl,rfl,h₂⟩, use ⟨⟨_,_,h₂⟩,h₁⟩, simp only [proj_edge, eq_self_iff_true, and_self, merge_edge]
         end
 
-        lemma fewer_edges {e : G.step} [decidable_rel (G/e).adj] : fintype.card (G/e).step < fintype.card G.step :=
-        calc fintype.card (G/e).step ≤ fintype.card (preserved (merge_edge e) G) :
+        lemma fewer_edges {e : G.dart} [decidable_rel (G/e).adj] : fintype.card (G/e).dart < fintype.card G.dart :=
+        calc fintype.card (G/e).dart ≤ fintype.card (preserved (merge_edge e) G) :
                                                     fintype.card_le_of_surjective _ proj_edge_surj
-                                ...  < fintype.card (G.step) :
+                                ...  < fintype.card (G.dart) :
                                                     by { apply fintype.card_lt_of_injective_of_not_mem _ subtype.coe_injective,
                                                         swap, exact e, simp [merge,merge_edge] }
     end contract_edge

@@ -3,7 +3,7 @@ import combinatorics.simple_graph.connectivity
 import graph_theory.basic graph_theory.pushforward
 
 namespace simple_graph
-    variables {V V' : Type} {G G₁ G₂ : simple_graph V} {G' : simple_graph V'} {u v x y z : V} {e : step G}
+    variables {V V' : Type} {G G₁ G₂ : simple_graph V} {G' : simple_graph V'} {u v x y z : V} {e : G.dart}
     variables {p : walk G x y} {p' : walk G y z} {p'' : walk G z u} {h : G.adj y z} {h' : G.adj u x} {h'' : G.adj z v}
 
     namespace walk
@@ -14,11 +14,11 @@ namespace simple_graph
     end walk
 
     namespace walk
-        @[simp] def myedges : Π {x y : V}, walk G x y -> list (step G)
+        @[simp] def myedges : Π {x y : V}, walk G x y -> list G.dart
             | _ _ nil        := []
             | _ _ (cons h p) := ⟨_,_,h⟩ :: myedges p
 
-        def transport (p : walk G₁ x y) (h : ∀ e : G₁.step, e ∈ p.myedges → G₂.adj e.fst e.snd) : walk G₂ x y :=
+        def transport (p : walk G₁ x y) (h : ∀ e : G₁.dart, e ∈ p.myedges → G₂.adj e.fst e.snd) : walk G₂ x y :=
         begin
             induction p with u u v w h' p ih, refl,
             refine cons (h ⟨_,_,h'⟩ (by simp)) (ih _), rintro e he, apply h, right, exact he

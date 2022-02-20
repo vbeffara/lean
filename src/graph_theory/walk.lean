@@ -12,7 +12,7 @@ structure Walk (G : simple_graph V) := {a b : V} (p : G.walk a b)
 
 namespace Walk
 
-variables {e : G.step} {p q : G.Walk} {hep : e.snd = p.a} {hpq : p.b = q.a}
+variables {e : G.dart} {p q : G.Walk} {hep : e.snd = p.a} {hpq : p.b = q.a}
 
 def nil (a : V) : G.Walk := ⟨(walk.nil : G.walk a a)⟩
 
@@ -20,10 +20,10 @@ def nil (a : V) : G.Walk := ⟨(walk.nil : G.walk a a)⟩
 
 @[simp] lemma nil_b : (nil b : G.Walk).b = b := rfl
 
-def cons (e : G.step) (p : G.Walk) (h : e.snd = p.a) : G.Walk :=
+def cons (e : G.dart) (p : G.Walk) (h : e.snd = p.a) : G.Walk :=
 by { let h' := e.is_adj, rw h at h', exact ⟨p.p.cons h'⟩ }
 
-def step (e : G.step) : G.Walk := cons e (nil e.snd) rfl
+def step (e : G.dart) : G.Walk := cons e (nil e.snd) rfl
 
 def rec₀ {motive : G.Walk → Sort*} :
   (Π u, motive (Walk.nil u)) →
@@ -140,7 +140,7 @@ begin
   rw [append, append_aux], simp only [walk.mem_support_append_iff]
 end
 
-def push_step_aux (f : V → V') (e : G.step) :
+def push_step_aux (f : V → V') (e : G.dart) :
   {w : (push f G).Walk // w.a = f e.fst ∧ w.b = f e.snd} :=
 begin
   by_cases f e.fst = f e.snd,
@@ -148,7 +148,7 @@ begin
   exact ⟨Walk.step ⟨_,_,⟨h,e.fst,e.snd,rfl,rfl,e.is_adj⟩⟩, rfl, rfl⟩
 end
 
-def push_step (f : V → V') (e : G.step) : (push f G).Walk :=
+def push_step (f : V → V') (e : G.dart) : (push f G).Walk :=
 (push_step_aux f e).val
 
 @[simp] lemma push_step_a : (push_step f e).a = f e.fst :=
@@ -180,18 +180,18 @@ def push_Walk (f : V → V') (p : G.Walk) : (push f G).Walk :=
 
 @[simp] lemma push_nil : push_Walk f (@Walk.nil _ _ G a) = Walk.nil (f a) := rfl
 
-lemma push_cons (f : V → V') (e : G.step) (p : G.Walk) (h : e.snd = p.a) :
+lemma push_cons (f : V → V') (e : G.dart) (p : G.Walk) (h : e.snd = p.a) :
   push_Walk f (p.cons e h) = Walk.append (push_step f e) (push_Walk f p) (by simp [h]) :=
 by { rcases p with ⟨a,b,p⟩, rcases e with ⟨u,v,e⟩, simp at h, subst a, refl }
 
-lemma push_cons_eq (f : V → V') (e : G.step) (p : G.Walk) (h : e.snd = p.a) (h' : f e.fst = f e.snd) :
+lemma push_cons_eq (f : V → V') (e : G.dart) (p : G.Walk) (h : e.snd = p.a) (h' : f e.fst = f e.snd) :
   push_Walk f (p.cons e h) = push_Walk f p :=
 begin
   have : push_step f e = Walk.nil (f e.fst) := by simp [push_step,push_step_aux,h'],
   rw [push_cons], simp only [this], exact append_nil_left
 end
 
-lemma push_cons_ne (f : V → V') (e : G.step) (p : G.Walk) (h : e.snd = p.a) (h' : f e.fst ≠ f e.snd) :
+lemma push_cons_ne (f : V → V') (e : G.dart) (p : G.Walk) (h : e.snd = p.a) (h' : f e.fst ≠ f e.snd) :
   push_Walk f (p.cons e h) = Walk.cons ⟨_,_,⟨h',e.fst,e.snd,rfl,rfl,e.is_adj⟩⟩ (push_Walk f p) (by simp [h]) :=
 begin
   have : push_step f e = Walk.step ⟨_,_,⟨h',e.fst,e.snd,rfl,rfl,e.is_adj⟩⟩ :=
@@ -276,7 +276,7 @@ lemma pull_Walk_push : push_Walk f (pull_Walk f hf p' x y hx hy) = p' :=
 (pull_Walk_aux f hf p' x y hx hy).prop.2.2
 
 def transportable_to (G' : simple_graph V) (p : G.Walk) : Prop :=
-  ∀ e : G.step, e ∈ p.edges → G'.adj e.fst e.snd
+  ∀ e : G.dart, e ∈ p.edges → G'.adj e.fst e.snd
 
 lemma transportable_to_of_le (G_le : G ≤ G') : p.transportable_to G' :=
 begin
@@ -291,8 +291,8 @@ begin
   revert p, refine rec₀ _ _,
   { rintro a hp, exact ⟨nil a, rfl, rfl, rfl, rfl, rfl⟩ },
   { rintro e p h ih hp,
-    have : ∀ (e : G.step), e ∈ p.edges → G'.adj e.fst e.snd :=
-      by { rintro e he, apply hp, simp [edges], right, exact he },
+    have : transportable_to G' p :=
+      by { rintro e he, apply hp, rw [edges_cons,finset.mem_union], right, exact he },
     specialize ih this, rcases ih with ⟨q,hq⟩, rw ←hq.1 at h,
     exact ⟨cons ⟨_,_,hp e first_edge⟩ q h, by simp [hq]⟩ }
 end

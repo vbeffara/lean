@@ -7,10 +7,10 @@ namespace simple_graph
 
     structure path_embedding (G : simple_graph V) (G' : simple_graph V') :=
         (f        : V ↪ V')
-        (df       : Π e : step G, walk G' (f e.fst) (f e.snd))
+        (df       : Π e : G.dart, walk G' (f e.fst) (f e.snd))
         --
-        (nodup    : ∀ e : step G, (df e).support.nodup)
-        (sym      : ∀ e : step G, df e.rev = (df e).reverse)
+        (nodup    : ∀ e : G.dart, (df e).support.nodup)
+        (sym      : ∀ e : G.dart, df e.rev = (df e).reverse)
         --
         (endpoint : ∀ {e x},    f x ∈ (df e).support                        -> x ∈ e.edge)
         (disjoint : ∀ {e e' z},   z ∈ (df e).support -> z ∈ (df e').support -> e.edge = e'.edge ∨ ∃ x, z = f x)
@@ -24,7 +24,7 @@ namespace simple_graph
         variables {x y z : V} {p : walk G x y} {p' : walk G y z}
         open walk
 
-        lemma nop {e : step G} : 0 < (F.df e).length
+        lemma nop {e : G.dart} : 0 < (F.df e).length
             := by { cases nat.eq_zero_or_pos (F.df e).length, swap, exact h, exfalso,
                 exact G.ne_of_adj e.is_adj (F.f.injective (point_of_size_0 h)) }
 

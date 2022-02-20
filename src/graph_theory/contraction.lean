@@ -12,7 +12,7 @@ namespace simple_graph
     def adapted' (f : V → V') (G : simple_graph V) : Prop :=
         ∀ (x y : V), f x = f y → ∃ p : walk G x y, ∀ z ∈ p.support, f z = f y
 
-    lemma merge_edge_adapted [decidable_eq V] {e : G.step} : adapted' (merge_edge e) G :=
+    lemma merge_edge_adapted [decidable_eq V] {e : G.dart} : adapted' (merge_edge e) G :=
     begin
         intros x y hxy, rcases e with ⟨u,v,e⟩, have : u ≠ v := G.ne_of_adj e,
         have l₁ : ∀ {z}, z = u ∨ z = v → merge_edge ⟨_,_,e⟩ z = u :=
