@@ -81,7 +81,7 @@ rec₀ (λ v, ∅) (λ e p h q, p.range)
 lemma range_eq_start_union_tail : p.range = {p.a} ∪ p.tail :=
 by { refine rec₀ _ _ p, { intro, refl }, { intros, simp [*] } }
 
-noncomputable def edges : G.Walk → finset G.step :=
+def edges : G.Walk → finset G.dart :=
 rec₀ (λ v, ∅) (λ e p h q, {e} ∪ q)
 
 @[simp] lemma edges_cons : (cons e p hep).edges = {e} ∪ p.edges := rec_cons

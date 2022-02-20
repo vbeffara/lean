@@ -1,5 +1,5 @@
 import tactic
-import combinatorics.simple_graph.basic data.set.basic
+import combinatorics.simple_graph.basic combinatorics.simple_graph.degree_sum data.set.basic
 import graph_theory.to_mathlib
 
 variables {V V' V'' : Type} {G H : simple_graph V} {G' : simple_graph V'} {G'' : simple_graph V''}
@@ -10,7 +10,7 @@ namespace simple_graph
 
     @[reducible] def vertices (G : simple_graph V) : Type := V
 
-    @[ext] structure step (G : simple_graph V) := (fst snd : V) (is_adj : G.adj fst snd)
+    def step (G : simple_graph V) := G.dart
 
     namespace step
         variables {e e' : step G}
@@ -34,7 +34,8 @@ namespace simple_graph
         noncomputable instance fintype_step : fintype G.step :=
         begin
             let f : G.step → V × V := λ e, (e.fst, e.snd), apply fintype.of_injective f,
-            rintros ⟨x₁,y₁,h₁⟩ ⟨x₂,y₂,h₂⟩, simp only [prod.mk.inj_iff], exact id
+            rintros ⟨x₁,y₁,h₁⟩ ⟨x₂,y₂,h₂⟩, simp only [prod.mk.inj_iff], intro h, ext,
+            exact h.1, exact h.2
         end
 
         variables [decidable_eq V] [decidable_rel G.adj]
@@ -60,14 +61,15 @@ namespace simple_graph
             split,
             { rintros ⟨x,y,h⟩ ⟨x',y',h'⟩, simp, intros h₁ h₂,
                 replace h₂ := quotient.eq.mpr h₂,
-                have := sym2.eq_iff.mp h₂, cases this, exact this,
+                have := sym2.eq_iff.mp h₂, cases this, ext, exact this.1, exact this.2,
                 cases this, substs x' y', rw ←h₂ at h₁,
                 set xy : sym2 V := ⟦(x,y)⟧,
                 have := (quotient.out_eq xy).trans h₂,
                 cases xy.out,
                 have := sym2.eq_iff.mp this, cases this,
-                { cases this_1, substs fst snd, simp at h₁, exact h₁.symm },
-                { cases this_1, substs fst snd, replace h₁ := h₁.symm, simp at h₁, exact h₁ }
+                { cases this_1, substs fst snd, simp at h₁, ext, exact h₁.2, exact h₁.1 },
+                { cases this_1, substs fst snd, replace h₁ := h₁.symm, simp at h₁,
+                    cases h₁, subst x }
             },
             { rintros ⟨ε,⟨xy,h⟩⟩, have h₁ := quotient.out_eq xy, set e := xy.out with he,
                 have : e = (e.fst,e.snd) := prod.ext rfl rfl, rw this at *, rw ←h₁ at h,
