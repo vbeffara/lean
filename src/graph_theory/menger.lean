@@ -32,10 +32,10 @@ lemma separates.comm : separates G A B X ↔ separates G B A X :=
 ⟨separates.symm,separates.symm⟩
 
 def is_cut_set_size (G : simple_graph V) (A B : finset V) (n : ℕ) : Prop :=
-  ∃ X : finset V, X.card = n ∧ separates G A B X
+∃ X : finset V, X.card = n ∧ separates G A B X
 
 noncomputable def min_cut' (G : simple_graph V) (A B : finset V) :
-  {n : ℕ // (is_cut_set_size G A B n) ∧ (∀ m < n, ¬is_cut_set_size G A B m) } :=
+  { n : ℕ // is_cut_set_size G A B n ∧ ∀ m < n, ¬ is_cut_set_size G A B m } :=
 begin
   let n := @nat.find (is_cut_set_size G A B) _ ⟨A.card,⟨A,rfl,separates_self⟩⟩,
   have p₁ := @nat.find_spec (is_cut_set_size G A B) _ ⟨A.card,⟨A,rfl,separates_self⟩⟩,
