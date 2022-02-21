@@ -5,7 +5,7 @@ open_locale classical
 
 namespace simple_graph
 
-variables {V V' : Type} [decidable_eq V] [decidable_eq V'] {f : V → V'}
+variables {V V' : Type*} [decidable_eq V] [decidable_eq V'] {f : V → V'}
 variables {G G' : simple_graph V} {x y z u v w a b c : V}
 
 structure Walk (G : simple_graph V) := {a b : V} (p : G.walk a b)

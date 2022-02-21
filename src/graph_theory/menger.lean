@@ -3,7 +3,7 @@ import graph_theory.contraction graph_theory.pushforward graph_theory.basic grap
 open finset classical function simple_graph.Walk
 open_locale classical
 
-variables {V V' : Type} {a : V} {G : simple_graph V}
+variables {V V' : Type*} {a : V} {G : simple_graph V}
 
 namespace simple_graph
 namespace menger
