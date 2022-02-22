@@ -392,41 +392,22 @@ begin
   refine ⟨R, R_dis, _⟩, rw finset.card_image_of_injective _ Ψ_inj, convert fintype.card_coe X
 end
 
-lemma lower_bound_aux (n : ℕ) : ∀ (G : simple_graph V), fintype.card G.dart ≤ n →
-  is_menger G :=
+lemma main_step (e : G.dart) : is_menger (G/e) → is_menger (G-e) → is_menger G :=
 begin
-  -- We apply induction on ∥G∥.
-  induction n with n ih,
-
-  -- If G has no edge, then |A∩B| = k and we have k trivial AB paths.
-  { intros G hG A B, simp at hG, rw [bot_iff_no_edge.mp hG,bot_min_cut],
-    exact (bot_path_set A B).exists_of_subtype },
-
-  -- So we assume that G has an edge e = xy.
-  rintros G hG A B, by_cases (fintype.card G.dart = 0), { apply ih, linarith },
-  cases not_is_empty_iff.mp (h ∘ fintype.card_eq_zero_iff.mpr) with e, clear h,
+  intros h_contract h_minus A B,
 
   apply not_imp_self.mp, intro too_small, push_neg at too_small, replace too_small :
     ∀ P : finset (AB_walk G A B), pw_disjoint P → P.card < min_cut G A B :=
   by { intros P h, exact lt_of_le_of_ne (upper_bound h) (too_small P h) },
 
-  -- If G has no k disjoint AB paths then neither does G/e; here, we count the contracted vertex ve
-  -- as an element of A (resp.B) in G/e if in G at least one of x,y lies in A (resp.B) By the
-  -- induction hypothesis, G/e contains an AB separator Y of fewer than k vertices. Among these must
-  -- be the vertex ve, since otherwise Y ⊆ V would be an AB separator in G. Then X := (Y-ve)∪{x,y}
-  -- is an AB separator in G, of exactly k vertices.
-
-  have step₁ : ∃ X : finset V,
-    e.fst ∈ X ∧ e.snd ∈ X ∧ separates G A B X ∧ X.card = min_cut G A B :=
+  have step₁ : ∃ X, e.fst ∈ X ∧ e.snd ∈ X ∧ separates G A B X ∧ X.card = min_cut G A B :=
   by {
     let G₁ := G/e, let A₁ := image (merge_edge e) A, let B₁ := image (merge_edge e) B,
     obtain ⟨Y, Y_eq_min₁, Y_sep⟩ := min_cut_set G₁ A₁ B₁, let X := Y ∪ {e.snd},
 
     have Y_lt_min : Y.card < min_cut G A B :=
     by {
-      have G₁_le_n : fintype.card G₁.dart ≤ n :=
-        nat.le_of_lt_succ (nat.lt_of_lt_of_le contract_edge.fewer_edges hG),
-      choose P₁ P₁_dis P₁_eq_min₁ using ih G₁ G₁_le_n A₁ B₁,
+      choose P₁ P₁_dis P₁_eq_min₁ using h_contract A₁ B₁,
       rw [Y_eq_min₁, ←P₁_eq_min₁, ←card_image_of_injective P₁ AB_lift_inj],
       apply too_small, { apply AB_lift_dis, exact P₁_dis }, { exact merge_edge_adapted }
     },
@@ -455,22 +436,23 @@ begin
 
   choose X ex_in_X ey_in_X X_sep_AB X_eq_min using step₁,
 
-  -- We now consider the graph G−e.
-  let G₂ : simple_graph V := G-e,
-
-  have G₂_le_n : fintype.card G₂.dart ≤ n :=
-  nat.le_of_lt_succ (nat.lt_of_lt_of_le minus_lt_edges hG),
-
-  -- Since x,y ∈ X, every AX-separator in G−e is also an AB-separator in G and hence contains at
-  -- least k vertices, so by induction there are k disjoint AX paths in G−e and similarly there are
-  -- k disjoint XB paths in G−e
-  rcases sep_cleanup ex_in_X ey_in_X X_eq_min X_sep_AB (ih G₂ G₂_le_n A X) with ⟨P,P_dis,P_eq_X⟩,
-
+  rcases sep_cleanup ex_in_X ey_in_X X_eq_min X_sep_AB (h_minus A X) with ⟨P,P_dis,P_eq_X⟩,
   let X_eq_min' : X.card = min_cut G B A := X_eq_min.trans min_cut_symm,
-  rcases sep_cleanup ex_in_X ey_in_X X_eq_min' X_sep_AB.symm (ih G₂ G₂_le_n B X) with ⟨Q,Q_dis,Q_eq_X⟩,
+  rcases sep_cleanup ex_in_X ey_in_X X_eq_min' X_sep_AB.symm (h_minus B X) with ⟨Q,Q_dis,Q_eq_X⟩,
+  rw ←X_eq_min, apply subtype.exists_of_subtype,
+  exact stitch X_sep_AB P P_dis P_eq_X Q Q_dis Q_eq_X,
+end
 
-  rw ←X_eq_min,
-  rcases stitch X_sep_AB P P_dis P_eq_X Q Q_dis Q_eq_X with ⟨R,R_dis,R_eq_X⟩, exact ⟨R,R_dis,R_eq_X⟩
+lemma lower_bound_aux (n : ℕ) : ∀ G : simple_graph V, fintype.card G.dart ≤ n → is_menger G :=
+begin
+  induction n with n ih,
+  { intros G hG A B, have : G = ⊥ := bot_iff_no_edge.mp (nonpos_iff_eq_zero.mp hG),
+    subst G, rw [bot_min_cut], exact (bot_path_set A B).exists_of_subtype },
+  { rintros G hG, by_cases (fintype.card G.dart = 0),
+    { apply ih, linarith },
+    { cases not_is_empty_iff.mp (h ∘ fintype.card_eq_zero_iff.mpr) with e, apply main_step e,
+      { apply ih, exact nat.le_of_lt_succ (nat.lt_of_lt_of_le contract_edge.fewer_edges hG) },
+      { apply ih, exact nat.le_of_lt_succ (nat.lt_of_lt_of_le minus_lt_edges hG) } } }
 end
 
 theorem menger : is_menger G :=
