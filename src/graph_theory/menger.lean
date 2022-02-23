@@ -3,11 +3,11 @@ import graph_theory.contraction graph_theory.pushforward graph_theory.basic grap
 open finset classical function simple_graph.Walk
 open_locale classical
 
-variables {V V' : Type*} {a : V} {G : simple_graph V}
+variables {V V' : Type*} [fintype V] [fintype V'] {G : simple_graph V}
+variables {a : V} {A B X Y Z : finset V}
 
 namespace simple_graph
 namespace menger
-variables [fintype V] [fintype V'] {A B X Y Z : finset V}
 
 @[ext] structure AB_walk (G : simple_graph V) (A B : finset V) extends Walk G :=
   (ha : a ∈ A) (hb : b ∈ B)
@@ -18,18 +18,22 @@ variables [fintype V] [fintype V'] {A B X Y Z : finset V}
 def separates (G : simple_graph V) (A B : finset V) (X : finset V) : Prop :=
   ∀ γ : AB_walk G A B, (γ.to_Walk.range ∩ X).nonempty
 
-lemma separates_self : separates G A B A :=
+namespace separates
+
+lemma self : separates G A B A :=
   λ γ, ⟨γ.a, mem_inter.mpr ⟨Walk.start_mem_range,γ.ha⟩⟩
 
-lemma separates.symm : separates G A B X → separates G B A X :=
+lemma symm : separates G A B X → separates G B A X :=
 begin
   rintro h ⟨p,pa,pb⟩, rcases p.reverse_aux with ⟨q,qa,qb,qr⟩,
   let q' : AB_walk G A B := ⟨q, qa.symm ▸ pb, qb.symm ▸ pa⟩,
   dsimp, rw ←qr, exact h q'
 end
 
-lemma separates.comm : separates G A B X ↔ separates G B A X :=
+lemma comm : separates G A B X ↔ separates G B A X :=
 ⟨separates.symm,separates.symm⟩
+
+end separates
 
 def is_cut_set_size (G : simple_graph V) (A B : finset V) (n : ℕ) : Prop :=
 ∃ X : finset V, X.card = n ∧ separates G A B X
@@ -37,9 +41,9 @@ def is_cut_set_size (G : simple_graph V) (A B : finset V) (n : ℕ) : Prop :=
 noncomputable def min_cut' (G : simple_graph V) (A B : finset V) :
   { n : ℕ // is_cut_set_size G A B n ∧ ∀ m < n, ¬ is_cut_set_size G A B m } :=
 begin
-  let n := @nat.find (is_cut_set_size G A B) _ ⟨A.card,⟨A,rfl,separates_self⟩⟩,
-  have p₁ := @nat.find_spec (is_cut_set_size G A B) _ ⟨A.card,⟨A,rfl,separates_self⟩⟩,
-  have p₂ := λ m, @nat.find_eq_iff m (is_cut_set_size G A B) _ ⟨A.card,⟨A,rfl,separates_self⟩⟩,
+  let n := @nat.find (is_cut_set_size G A B) _ ⟨A.card,⟨A,rfl,separates.self⟩⟩,
+  have p₁ := @nat.find_spec (is_cut_set_size G A B) _ ⟨A.card,⟨A,rfl,separates.self⟩⟩,
+  have p₂ := λ m, @nat.find_eq_iff m (is_cut_set_size G A B) _ ⟨A.card,⟨A,rfl,separates.self⟩⟩,
   exact ⟨n, p₁, ((p₂ n).mp rfl).2⟩
 end
 
@@ -104,10 +108,10 @@ lemma bot_separates_iff : separates ⊥ A B X ↔ (A ∩ B) ⊆ X :=
 begin
   split; intro h,
   { rintros z hz, rw [mem_inter] at hz, let γ : AB_walk ⊥ A B := ⟨Walk.nil _, hz.1, hz.2⟩,
-    have := h γ, choose z h₁ using this, simp at h₁, rw ←h₁.1, exact h₁.2 },
+    choose z h₁ using h γ, simp at h₁, rw ←h₁.1, exact h₁.2 },
   { rintro ⟨⟨a,b,γ⟩,ha,hb⟩, cases γ, swap, exfalso, exact γ_h,
     simp at ha hb ⊢, use a, simp, split, exact Walk.start_mem_range,
-    apply mem_of_subset h, simp, exact ⟨ha,hb⟩ }
+    apply h, simp, exact ⟨ha,hb⟩ }
 end
 
 lemma bot_min_cut : min_cut ⊥ A B = (A ∩ B).card :=
@@ -133,7 +137,10 @@ begin
     { rintros h₁, exact h₁ } }
 end
 
-variables {f : V → V'} {hf : adapted' f G}
+lemma bot_is_menger : is_menger (⊥ : simple_graph V) :=
+by { rintro A B, rw bot_min_cut, exact (bot_path_set A B).exists_of_subtype }
+
+variables {f : V → V'} {hf : adapted' f G} {e : G.dart}
 
 noncomputable def AB_lift (f : V → V') (hf : adapted' f G) (A B : finset V) :
   AB_walk (push f G) (A.image f) (B.image f) → AB_walk G A B :=
@@ -333,24 +340,33 @@ begin
   let ψ : X ≃ Q := (endpoint Q Q_dis Q_eq_X).symm,
 
   have φxb : ∀ x : X, (φ x).val.b = x.val :=
-  by { intro x, set γ := φ x, have : x = φ.symm γ := by simp [γ], rw this, refl },
+  by { intro x, set γ := φ x,
+    have : x = φ.symm γ := by simp only [equiv.symm_symm, equiv.apply_symm_apply],
+    rw this, refl },
+
   have ψxb : ∀ x : X, (ψ x).val.b = x.val :=
-  by { intro x, set γ := ψ x, have : x = ψ.symm γ := by simp [γ], rw this, refl },
+  by { intro x, set γ := ψ x,
+    have : x = ψ.symm γ := by simp only [equiv.symm_symm, equiv.apply_symm_apply],
+    rw this, refl },
 
   let Ψ : X → AB_walk G A B :=
   by { intro x, set γ := φ x with hγ, set δ := ψ x with hδ,
     have γbx : γ.val.b = x := φxb x, have δbx : δ.val.b = x := ψxb x,
     set ζ := δ.val.to_Walk.reverse, refine ⟨Walk.append γ.val.to_Walk ζ _, _, _⟩,
-    { rw [γbx,←δbx], simp }, { simp, exact γ.val.ha }, { simp, exact δ.val.ha } },
+    { rw [γbx,←δbx,reverse_a] },
+    { rw [append_a], exact γ.val.ha },
+    { rw [append_b,reverse_b], exact δ.val.ha } },
 
   set R := image Ψ univ,
 
-  have Ψ_r : ∀ x : X, (Ψ x).to_Walk.range = (φ x).val.to_Walk.range ∪ (ψ x).val.to_Walk.range :=
-  by { intro x, simp [Ψ] },
-
   have Ψ_i : ∀ x : X, (Ψ x).to_Walk.range ∩ X = {x} :=
-  by { intro, rw Ψ_r, simp_rw range_eq_init_union_last, simp_rw inter_distrib_right,
-    rw [(φ x).val.h'a, (ψ x).val.h'a, φxb, ψxb], simp },
+  by { intro,
+    simp only [range_append, reverse_range],
+    simp_rw range_eq_init_union_last, simp_rw inter_distrib_right,
+    simp only [union_assoc],
+    rw [(φ x).val.h'a, (ψ x).val.h'a, φxb, ψxb],
+    simp only [subtype.val_eq_coe, singleton_inter_of_mem, coe_mem, empty_union, union_idempotent]
+  },
 
   have Ψ_inj : injective Ψ :=
   by { rintro x y h, ext, apply singleton_inj.mp, rw [←Ψ_i x, ←Ψ_i y, h] },
@@ -361,35 +377,55 @@ begin
     choose x hx using mem_image.mp hγ₁, replace hx := hx.2, subst hx,
     choose y hy using mem_image.mp hγ₂, replace hy := hy.2, subst hy,
     suffices : x = y, subst this,
-    simp [inter_distrib_left,inter_distrib_right] at h_dis,
-    choose z hz using h_dis, simp at hz,
+    simp only [inter_distrib_left, inter_distrib_right, subtype.val_eq_coe, range_append,
+      reverse_range, union_assoc] at h_dis,
+    choose z hz using h_dis,
+    simp only [mem_union, mem_inter] at hz,
     cases hz, { apply φ.left_inv.injective, apply P_dis, use z, rw mem_inter, exact hz },
     cases hz, {
       have z_in_X : z ∈ X :=
         by { apply meet_sub_X X_sep_AB (φ x) (ψ y), rw mem_inter, exact hz },
-      have := mem_inter.mpr ⟨hz.1,z_in_X⟩, rw range_eq_init_union_last at this,
-        rw inter_distrib_right at this, have h := (φ x).val.h'a, simp at h φxb,
-        simp [h,φxb] at this,
+      have := mem_inter.mpr ⟨hz.1,z_in_X⟩,
+      rw range_eq_init_union_last at this,
+      rw inter_distrib_right at this, have h := (φ x).val.h'a,
+      simp only [subtype.val_eq_coe] at h φxb,
+      simp only [h, φxb, singleton_inter_of_mem, coe_mem, empty_union, mem_singleton] at this,
       ext, rw ←this,
-      have := mem_inter.mpr ⟨hz.2,z_in_X⟩, rw range_eq_init_union_last at this,
-        rw inter_distrib_right at this, have h := (ψ y).val.h'a, simp at h ψxb,
-        simp [h,ψxb] at this,
+      have := mem_inter.mpr ⟨hz.2,z_in_X⟩,
+      rw range_eq_init_union_last at this,
+      rw inter_distrib_right at this, have h := (ψ y).val.h'a,
+      simp only [subtype.val_eq_coe] at h ψxb,
+      simp only [h, ψxb, singleton_inter_of_mem, coe_mem, empty_union, mem_singleton] at this,
       exact this },
     cases hz, {
       have z_in_X : z ∈ X :=
         by { apply meet_sub_X X_sep_AB (φ y) (ψ x), rw mem_inter, exact hz.symm },
       have := mem_inter.mpr ⟨hz.1,z_in_X⟩, rw range_eq_init_union_last at this,
-        rw inter_distrib_right at this, have h := (ψ x).val.h'a, simp at h ψxb,
-        simp [h,ψxb] at this,
+        rw inter_distrib_right at this, have h := (ψ x).val.h'a,
+        simp only [subtype.val_eq_coe] at h ψxb,
+        simp only [h, ψxb, singleton_inter_of_mem, coe_mem, empty_union, mem_singleton] at this,
       ext, rw ←this,
       have := mem_inter.mpr ⟨hz.2,z_in_X⟩, rw range_eq_init_union_last at this,
-        rw inter_distrib_right at this, have h := (φ y).val.h'a, simp at h φxb,
-        simp [h,φxb] at this,
+        rw inter_distrib_right at this, have h := (φ y).val.h'a,
+        simp only [subtype.val_eq_coe] at h φxb,
+        simp only [h, φxb, singleton_inter_of_mem, coe_mem, empty_union, mem_singleton] at this,
       exact this },
     { apply ψ.left_inv.injective, apply Q_dis, use z, rw mem_inter, exact hz }
   },
 
   refine ⟨R, R_dis, _⟩, rw finset.card_image_of_injective _ Ψ_inj, convert fintype.card_coe X
+end
+
+lemma sep_of_sep_in_merge : separates (G/e) (image (merge_edge e) A) (image (merge_edge e) B) Y →
+  separates G A B (Y ∪ {e.snd}) :=
+begin
+  rintro Y_sep γ,
+  choose z hz using Y_sep (AB_push (merge_edge e) A B γ),
+  rw [mem_inter,AB_push,Walk.push_range,mem_image] at hz,
+  choose x hx₁ hx₂ using hz.1,
+  by_cases x = e.snd; simp [merge_edge,h] at hx₂,
+  { use x, simp, split, exact hx₁, right, exact h },
+  { use x, simp, split, exact hx₁, left, rw hx₂, exact hz.2 }
 end
 
 lemma main_step (e : G.dart) : is_menger (G/e) → is_menger (G-e) → is_menger G :=
@@ -412,12 +448,7 @@ begin
       apply too_small, { apply AB_lift_dis, exact P₁_dis }, { exact merge_edge_adapted }
     },
 
-    have X_sep_AB : separates G A B X :=
-    by { intro γ, choose z hz using Y_sep (AB_push (merge_edge e) A B γ),
-      rw [mem_inter,AB_push,Walk.push_range,mem_image] at hz,
-      choose x hx₁ hx₂ using hz.1, by_cases x = e.snd; simp [merge_edge,h] at hx₂,
-      { use x, simp, split, exact hx₁, right, exact h },
-      { use x, simp, split, exact hx₁, left, rw hx₂, exact hz.2 } },
+    have X_sep_AB : separates G A B X := sep_of_sep_in_merge Y_sep,
 
     refine ⟨X, _, _, X_sep_AB, _⟩,
 
@@ -445,14 +476,13 @@ end
 
 lemma lower_bound_aux (n : ℕ) : ∀ G : simple_graph V, fintype.card G.dart ≤ n → is_menger G :=
 begin
-  induction n with n ih,
-  { intros G hG A B, have : G = ⊥ := bot_iff_no_edge.mp (nonpos_iff_eq_zero.mp hG),
-    subst G, rw [bot_min_cut], exact (bot_path_set A B).exists_of_subtype },
-  { rintros G hG, by_cases (fintype.card G.dart = 0),
+  induction n with n ih; intros G hG,
+  { rw [bot_iff_no_edge.mp (nonpos_iff_eq_zero.mp hG)], exact bot_is_menger },
+  { by_cases (fintype.card G.dart = 0),
     { apply ih, linarith },
     { cases not_is_empty_iff.mp (h ∘ fintype.card_eq_zero_iff.mpr) with e, apply main_step e,
-      { apply ih, exact nat.le_of_lt_succ (nat.lt_of_lt_of_le contract_edge.fewer_edges hG) },
-      { apply ih, exact nat.le_of_lt_succ (nat.lt_of_lt_of_le minus_lt_edges hG) } } }
+      { exact ih _ (nat.le_of_lt_succ (nat.lt_of_lt_of_le contract_edge.fewer_edges hG)) },
+      { exact ih _ (nat.le_of_lt_succ (nat.lt_of_lt_of_le minus_lt_edges hG)) } } }
 end
 
 theorem menger : is_menger G :=
