@@ -356,17 +356,16 @@ begin
 
   set R := image Ψ univ,
 
-  have Ψ_i : ∀ x : X, (Ψ x).to_Walk.range ∩ X = {x} :=
-  by { intro,
-    simp only [range_append, reverse_range],
-    simp_rw range_eq_init_union_last, simp_rw inter_distrib_right,
-    simp only [union_assoc],
-    rw [(φ x).val.h'a, (ψ x).val.h'a, φxb, ψxb],
-    simp only [subtype.val_eq_coe, singleton_inter_of_mem, coe_mem, empty_union, union_idempotent]
-  },
-
   have Ψ_inj : injective Ψ :=
-  by { rintro x y h, ext, apply singleton_inj.mp, rw [←Ψ_i x, ←Ψ_i y, h] },
+  by {
+    have : ∀ x : X, (Ψ x).to_Walk.range ∩ X = {x} :=
+    by { intro,
+      simp only [range_append, reverse_range],
+      simp_rw range_eq_init_union_last, simp_rw inter_distrib_right,
+      simp only [union_assoc],
+      rw [(φ x).val.h'a, (ψ x).val.h'a, φxb, ψxb],
+      simp only [subtype.val_eq_coe,singleton_inter_of_mem,coe_mem,empty_union,union_idempotent] },
+    rintro x y h, ext, apply singleton_inj.mp, rw [← this x, ← this y, h] },
 
   have l₁ : ∀ x y, ∀ z, z ∈ (φ x).val.to_Walk.range ∧ z ∈ (ψ y).val.to_Walk.range → x = y :=
   by {
