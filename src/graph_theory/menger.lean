@@ -181,11 +181,7 @@ begin
 end
 
 def minus (G : simple_graph V) (e : G.dart) : simple_graph V :=
-{
-  adj := λ x y, G.adj x y ∧ ((x ≠ e.fst ∧ x ≠ e.snd) ∨ (y ≠ e.fst ∧ y ≠ e.snd)),
-  symm := λ x y ⟨h₁,h₂⟩, ⟨h₁.symm,h₂.symm⟩,
-  loopless := λ x h, G.loopless _ h.1
-}
+G.delete_edges {e.edge}
 
 infix `-` := minus
 
@@ -198,7 +194,7 @@ begin
   suffices : e ∉ set.range φ, refine fintype.card_lt_of_injective_of_not_mem φ φ_inj this,
   intro he, rw set.mem_range at he, choose e' he using he, rcases e' with ⟨x,y,he'⟩,
   have : x = e.fst := congr_arg dart.fst he, have : y = e.snd := congr_arg dart.snd he,
-  substs x y, simp [minus] at he', simp at he', exact he'
+  substs x y, simp [minus] at he', simp [dart.edge,sym2] at he', apply he'.2, refl
 end
 
 lemma sep_AB_of_sep₂_AX ⦃e : G.dart⦄ (ex_in_X : e.fst ∈ X) (ey_in_X : e.snd ∈ X) :
@@ -217,8 +213,9 @@ by {
       { subst e'', simp at h₁, simp [minus,e'.is_adj],
         have : e'.fst ∉ X :=
         by { rw [inter_distrib_right, union_eq_empty_iff] at h₁, intro h,
-          have : ({e'.fst} ∩ X).nonempty := ⟨e'.fst, by simp [h]⟩, simp [h₁.1] at this, exact this },
-        refine ⟨e'.is_adj,_⟩, left, split; { intro h, rw h at this, contradiction } },
+          apply not_nonempty_empty, rw ←h₁.1,
+          exact ⟨e'.fst, by simp only [h, singleton_inter_of_mem, mem_singleton]⟩ },
+        intro h', rw [dart.edge,sym2.eq_iff] at h', cases h'; { rw h'.1 at this, contradiction } },
       { exact ih h₃ e'' h₂ }
     }
   },
@@ -371,6 +368,21 @@ begin
   have Ψ_inj : injective Ψ :=
   by { rintro x y h, ext, apply singleton_inj.mp, rw [←Ψ_i x, ←Ψ_i y, h] },
 
+  have l₁ : ∀ x y, ∀ z, z ∈ (φ x).val.to_Walk.range ∧ z ∈ (ψ y).val.to_Walk.range → x = y :=
+  by {
+    intros x y z hz,
+    have z_in_X : z ∈ X := by { apply meet_sub_X X_sep_AB (φ x) (ψ y), rw mem_inter, exact hz },
+    have z_is_x : z = x := by {
+      apply mem_singleton.mp, convert ← mem_inter.mpr ⟨hz.1,z_in_X⟩,
+      rw [range_eq_init_union_last, inter_distrib_right, φxb, (φ x).val.h'a],
+      simp only [subtype.val_eq_coe, singleton_inter_of_mem, coe_mem, empty_union],
+    },
+    have z_is_y : z = y := by {
+      apply mem_singleton.mp, convert ← mem_inter.mpr ⟨hz.2,z_in_X⟩,
+      rw [range_eq_init_union_last, inter_distrib_right, ψxb, (ψ y).val.h'a],
+      simp only [subtype.val_eq_coe, singleton_inter_of_mem, coe_mem, empty_union] },
+    ext, exact z_is_x.symm.trans z_is_y },
+
   have R_dis : pw_disjoint R :=
   by {
     rintro ⟨γ₁, hγ₁⟩ ⟨γ₂, hγ₂⟩ h_dis,
@@ -382,34 +394,8 @@ begin
     choose z hz using h_dis,
     simp only [mem_union, mem_inter] at hz,
     cases hz, { apply φ.left_inv.injective, apply P_dis, use z, rw mem_inter, exact hz },
-    cases hz, {
-      have z_in_X : z ∈ X :=
-        by { apply meet_sub_X X_sep_AB (φ x) (ψ y), rw mem_inter, exact hz },
-      have := mem_inter.mpr ⟨hz.1,z_in_X⟩,
-      rw range_eq_init_union_last at this,
-      rw inter_distrib_right at this, have h := (φ x).val.h'a,
-      simp only [subtype.val_eq_coe] at h φxb,
-      simp only [h, φxb, singleton_inter_of_mem, coe_mem, empty_union, mem_singleton] at this,
-      ext, rw ←this,
-      have := mem_inter.mpr ⟨hz.2,z_in_X⟩,
-      rw range_eq_init_union_last at this,
-      rw inter_distrib_right at this, have h := (ψ y).val.h'a,
-      simp only [subtype.val_eq_coe] at h ψxb,
-      simp only [h, ψxb, singleton_inter_of_mem, coe_mem, empty_union, mem_singleton] at this,
-      exact this },
-    cases hz, {
-      have z_in_X : z ∈ X :=
-        by { apply meet_sub_X X_sep_AB (φ y) (ψ x), rw mem_inter, exact hz.symm },
-      have := mem_inter.mpr ⟨hz.1,z_in_X⟩, rw range_eq_init_union_last at this,
-        rw inter_distrib_right at this, have h := (ψ x).val.h'a,
-        simp only [subtype.val_eq_coe] at h ψxb,
-        simp only [h, ψxb, singleton_inter_of_mem, coe_mem, empty_union, mem_singleton] at this,
-      ext, rw ←this,
-      have := mem_inter.mpr ⟨hz.2,z_in_X⟩, rw range_eq_init_union_last at this,
-        rw inter_distrib_right at this, have h := (φ y).val.h'a,
-        simp only [subtype.val_eq_coe] at h φxb,
-        simp only [h, φxb, singleton_inter_of_mem, coe_mem, empty_union, mem_singleton] at this,
-      exact this },
+    cases hz, { exact l₁ x y z hz },
+    cases hz, { exact (l₁ y x z hz.symm).symm },
     { apply ψ.left_inv.injective, apply Q_dis, use z, rw mem_inter, exact hz }
   },
 
