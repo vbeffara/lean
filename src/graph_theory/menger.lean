@@ -367,15 +367,14 @@ begin
       simp only [subtype.val_eq_coe,singleton_inter_of_mem,coe_mem,empty_union,union_idempotent] },
     rintro x y h, ext, apply singleton_inj.mp, rw [← this x, ← this y, h] },
 
-  have l₁ : ∀ x y, ∀ z, z ∈ (φ x).val.to_Walk.range ∧ z ∈ (ψ y).val.to_Walk.range → x = y :=
+  have l₁ : ∀ x y z, z ∈ (φ x).val.to_Walk.range ∩ (ψ y).val.to_Walk.range → x = y :=
   by {
     intros x y z hz,
-    have z_in_X : z ∈ X := by { apply meet_sub_X X_sep_AB (φ x) (ψ y), rw mem_inter, exact hz },
+    have z_in_X : z ∈ X := meet_sub_X X_sep_AB (φ x) (ψ y) hz, rw mem_inter at hz,
     have z_is_x : z = x := by {
       apply mem_singleton.mp, convert ← mem_inter.mpr ⟨hz.1,z_in_X⟩,
       rw [range_eq_init_union_last, inter_distrib_right, φxb, (φ x).val.h'a],
-      simp only [subtype.val_eq_coe, singleton_inter_of_mem, coe_mem, empty_union],
-    },
+      simp only [subtype.val_eq_coe, singleton_inter_of_mem, coe_mem, empty_union], },
     have z_is_y : z = y := by {
       apply mem_singleton.mp, convert ← mem_inter.mpr ⟨hz.2,z_in_X⟩,
       rw [range_eq_init_union_last, inter_distrib_right, ψxb, (ψ y).val.h'a],
@@ -390,12 +389,11 @@ begin
     suffices : x = y, subst this,
     simp only [inter_distrib_left, inter_distrib_right, subtype.val_eq_coe, range_append,
       reverse_range, union_assoc] at h_dis,
-    choose z hz using h_dis,
-    simp only [mem_union, mem_inter] at hz,
-    cases hz, { apply φ.left_inv.injective, apply P_dis, use z, rw mem_inter, exact hz },
+    choose z hz using h_dis, simp only [mem_union] at hz,
+    cases hz, { apply φ.left_inv.injective, apply P_dis, use z, exact hz },
     cases hz, { exact l₁ x y z hz },
-    cases hz, { exact (l₁ y x z hz.symm).symm },
-    { apply ψ.left_inv.injective, apply Q_dis, use z, rw mem_inter, exact hz }
+    cases hz, { rw inter_comm at hz, exact (l₁ y x z hz).symm },
+    { apply ψ.left_inv.injective, apply Q_dis, use z, exact hz }
   },
 
   refine ⟨R, R_dis, _⟩, rw finset.card_image_of_injective _ Ψ_inj, convert fintype.card_coe X
