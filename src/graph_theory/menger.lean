@@ -15,6 +15,9 @@ namespace menger
 @[ext] structure AB_walk' (G : simple_graph V) (A B : finset V) extends AB_walk G A B :=
   (h'a : to_Walk.init ∩ B = ∅) (h'b : to_Walk.tail ∩ A = ∅)
 
+def minimal (p : AB_walk G A B) : Prop :=
+p.to_Walk.init ∩ B = ∅ ∧ p.to_Walk.tail ∩ A = ∅
+
 def separates (G : simple_graph V) (A B : finset V) (X : finset V) : Prop :=
   ∀ γ : AB_walk G A B, (γ.to_Walk.range ∩ X).nonempty
 
@@ -278,10 +281,14 @@ begin
   apply massage_eq hP, rw he, simp
 end
 
-lemma meet_sub_X (X_sep_AB : separates G A B X) (p : AB_walk' G A X) (q : AB_walk' G B X) :
+lemma meet_sub_X (X_sep_AB : separates G A B X) (p : AB_walk G A X) (q : AB_walk G B X)
+  (hp : minimal p) (hq : minimal q) :
   p.to_Walk.range ∩ q.to_Walk.range ⊆ X :=
 begin
-  rcases p with ⟨⟨p,pa,pb⟩,pa',pb'⟩, rcases q with ⟨⟨q,qa,qb⟩,qa',qb'⟩, dsimp at pa' pb' qa' qb' ⊢,
+  rcases p with ⟨p,pa,pb⟩, rcases q with ⟨q,qa,qb⟩, dsimp,
+  have pa' := hp.1,
+  have qa' := hq.1,
+  dsimp at pa' qa',
   rintro x hx, rw mem_inter at hx, cases hx with hx₁ hx₂, by_contra,
 
   rcases p.until {x} ⟨x, by simp [hx₁]⟩ with ⟨p', p'a, p'b, p'r, p'i, p'i2, p't⟩, simp at p'b,
@@ -302,10 +309,10 @@ begin
   rw mem_union at hz, cases hz; { have := ne_empty_of_mem hz, contradiction }
 end
 
-noncomputable def endpoint (P : finset (AB_walk' G A B))
-  (P_dis : pw_disjoint' P) (P_eq : P.card = B.card) : P ≃ B :=
+noncomputable def endpoint (P : finset (AB_walk G A B))
+  (P_dis : pw_disjoint P) (P_eq : P.card = B.card) : P ≃ B :=
 begin
-  let φ : P → B := λ p, let q := p.val.to_AB_walk in ⟨q.b,q.hb⟩,
+  let φ : P → B := λ p, let q := p.val in ⟨q.b,q.hb⟩,
   apply equiv.of_bijective φ, rw fintype.bijective_iff_injective_and_card, split,
   { rintro p₁ p₂ h, apply P_dis, use p₁.val.b, simp at h ⊢, simp [h]  },
   { simp, apply P_eq.trans, convert (fintype.card_coe B).symm },
@@ -325,8 +332,9 @@ begin
 end
 
 noncomputable def stitch (X_sep_AB : separates G A B X)
-  (P : finset (AB_walk' G A X)) (P_dis: pw_disjoint' P) (P_eq_X: P.card = X.card)
-  (Q : finset (AB_walk' G B X)) (Q_dis: pw_disjoint' Q) (Q_eq_X: Q.card = X.card) :
+  (P : finset (AB_walk G A X)) (P_dis: pw_disjoint P) (P_eq_X: P.card = X.card)
+  (Q : finset (AB_walk G B X)) (Q_dis: pw_disjoint Q) (Q_eq_X: Q.card = X.card)
+  (hP : ∀ p : P, minimal p.val) (hQ : ∀ q : Q, minimal q.val) :
   {R : finset (AB_walk G A B) // pw_disjoint R ∧ R.card = X.card} :=
 begin
   let φ : X ≃ P := (endpoint P P_dis P_eq_X).symm,
@@ -359,21 +367,22 @@ begin
       simp only [range_append, reverse_range],
       simp_rw range_eq_init_union_last, simp_rw inter_distrib_right,
       simp only [union_assoc],
-      rw [(φ x).val.h'a, (ψ x).val.h'a, φxb, ψxb],
+      rw [(hP (φ x)).1, (hQ (ψ x)).1, φxb, ψxb],
       simp only [subtype.val_eq_coe,singleton_inter_of_mem,coe_mem,empty_union,union_idempotent] },
     rintro x y h, ext, apply singleton_inj.mp, rw [← this x, ← this y, h] },
 
   have l₁ : ∀ x y z, z ∈ (φ x).val.to_Walk.range ∩ (ψ y).val.to_Walk.range → x = y :=
   by {
     intros x y z hz,
-    have z_in_X : z ∈ X := meet_sub_X X_sep_AB (φ x) (ψ y) hz, rw mem_inter at hz,
+    have z_in_X : z ∈ X := meet_sub_X X_sep_AB (φ x) (ψ y) (hP (φ x)) (hQ (ψ y)) hz,
+    rw mem_inter at hz,
     have z_is_x : z = x := by {
       apply mem_singleton.mp, convert ← mem_inter.mpr ⟨hz.1,z_in_X⟩,
-      rw [range_eq_init_union_last, inter_distrib_right, φxb, (φ x).val.h'a],
+      rw [range_eq_init_union_last, inter_distrib_right, φxb, (hP (φ x)).1],
       simp only [subtype.val_eq_coe, singleton_inter_of_mem, coe_mem, empty_union], },
     have z_is_y : z = y := by {
       apply mem_singleton.mp, convert ← mem_inter.mpr ⟨hz.2,z_in_X⟩,
-      rw [range_eq_init_union_last, inter_distrib_right, ψxb, (ψ y).val.h'a],
+      rw [range_eq_init_union_last, inter_distrib_right, ψxb, (hQ (ψ y)).1],
       simp only [subtype.val_eq_coe, singleton_inter_of_mem, coe_mem, empty_union] },
     ext, exact z_is_x.symm.trans z_is_y },
 
@@ -438,6 +447,33 @@ begin
     exact (card_union_le _ _).trans (nat.succ_le_of_lt Y_lt_min) }
 end
 
+noncomputable def adapt (P' : finset (AB_walk' G A B)) :
+  {P : finset (AB_walk G A B) // ∀ p : P, minimal p.val} :=
+begin
+  use image AB_walk'.to_AB_walk P',
+  rintro ⟨p,hp⟩,
+  choose p' hp'₁ hp'₂ using mem_image.mp hp,
+  subst p,
+  split,
+  exact p'.h'a,
+  exact p'.h'b
+end
+
+lemma adapt_disjoint {P' : finset (AB_walk' G A B)} (h : pw_disjoint' P') :
+  pw_disjoint (adapt P').val :=
+begin
+  rw adapt, rintro ⟨p,hp⟩ ⟨q,hq⟩ hpq, simp only [subtype.mk_eq_mk],
+  choose p' hp'₁ hp'₂ using mem_image.mp hp, choose q' hq'₁ hq'₂ using mem_image.mp hq,
+  let pp' : P' := ⟨p',hp'₁⟩, let qq' : P' := ⟨q',hq'₁⟩, substs p q,
+  change (pp'.val.to_Walk.range ∩ qq'.val.to_Walk.range).nonempty at hpq,
+  have := h hpq, simp at this, rw this,
+end
+
+lemma adapt_card {P' : finset (AB_walk' G A B)} : (adapt P').val.card = P'.card :=
+begin
+  simp [adapt], apply card_image_of_injective, rintro p q hpq, ext, rw hpq
+end
+
 lemma induction_step (e : G.dart) : is_menger (G/e) → is_menger (G-e) → is_menger G :=
 begin
   intros h_contract h_minus A B,
@@ -452,7 +488,12 @@ begin
   let X_eq_min' : X.card = min_cut G B A := X_eq_min.trans min_cut_symm,
   rcases sep_cleanup ex_in_X ey_in_X X_eq_min' X_sep_AB.symm (h_minus B X) with ⟨Q,Q_dis,Q_eq_X⟩,
   rw ←X_eq_min, apply subtype.exists_of_subtype,
-  exact stitch X_sep_AB P P_dis P_eq_X Q Q_dis Q_eq_X,
+
+  set PP := adapt P,
+  set QQ := adapt Q,
+  rw ← adapt_card at P_eq_X Q_eq_X,
+  exact stitch X_sep_AB PP (adapt_disjoint P_dis) P_eq_X QQ (adapt_disjoint Q_dis)
+    Q_eq_X PP.prop QQ.prop
 end
 
 lemma lower_bound_aux (n : ℕ) : ∀ G : simple_graph V, fintype.card G.dart ≤ n → is_menger G :=
