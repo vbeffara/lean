@@ -229,14 +229,14 @@ by {
 }
 
 noncomputable def trim (p : AB_walk G A B) :
-  {q : AB_walk' G A B // q.to_Walk.range ⊆ p.to_Walk.range} :=
+  {q : AB_walk G A B // minimal q ∧ q.to_Walk.range ⊆ p.to_Walk.range} :=
 begin
   rcases p with ⟨p₁, p₁a, p₁b⟩,
   have h₁ : (p₁.range ∩ A).nonempty := ⟨p₁.a, by simp [p₁a]⟩,
   rcases p₁.after A h₁ with ⟨p₂, p₂a, p₂b, p₂r, p₂i, -, p₂t⟩,
   have h₂ : (p₂.range ∩ B).nonempty := by { refine ⟨p₂.b, _⟩, simp, rwa p₂b },
   rcases p₂.until B h₂ with ⟨p₃, p₃a, p₃b, p₃r, p₃i, -, p₃t⟩,
-  refine ⟨⟨⟨p₃, p₃a.symm ▸ p₂a, p₃b⟩, by simp [p₃i], _⟩, p₃r.trans p₂r⟩,
+  refine ⟨⟨p₃, p₃a.symm ▸ p₂a, p₃b⟩, ⟨by simp [p₃i], _⟩, p₃r.trans p₂r⟩,
   have : p₃.tail ∩ A ⊆ p₂.tail ∩ A := inter_subset_inter_right p₃t,
   simp, rw ←subset_empty, apply this.trans, rw p₂t, refl
 end
@@ -244,7 +244,7 @@ end
 noncomputable def massage_aux {G₁ G₂ : simple_graph V} (h : G₂ ≤ G₁)
   (p : AB_walk G₂ A X) : {q : AB_walk' G₁ A X // q.to_Walk.range ⊆ p.to_Walk.range} :=
 begin
-  rcases trim p with ⟨⟨⟨p',p'a,p'b⟩,p'aa,p'bb⟩,hp'⟩,
+  rcases trim p with ⟨⟨p',p'a,p'b⟩,⟨p'aa,p'bb⟩,hp'⟩,
   rcases p'.transport (transportable_to_of_le h) with ⟨q,qa,qb,qr,qi,qt⟩,
   use ⟨⟨q, qa.symm ▸ p'a, qb.symm ▸ p'b⟩, qi.symm ▸ p'aa, qt.symm ▸ p'bb⟩,
   simp, simp at hp', rw qr, exact hp'
@@ -513,3 +513,4 @@ lower_bound_aux (fintype.card G.dart) G (le_of_eq rfl)
 -- theorem menger (h : separable G A B) : max_path_number G A B = min_cut h
 end menger
 end simple_graph
+#lint
