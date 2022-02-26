@@ -286,19 +286,15 @@ begin
 
   rcases p.until {x} ⟨x, by simp [hx₁]⟩ with ⟨p', p'a, p'b, p'r, p'i, p'i2, p't⟩, simp at p'b,
   have h₁ : p'.range ∩ X = ∅ :=
-  by { rw Walk.range_eq_init_union_last, by_contra', have := nonempty_of_ne_empty this,
-    choose z hz using this, simp at hz, cases hz with hz₁ hz₂, cases hz₁,
-    { have : p.init ∩ X ≠ ∅ := by { apply nonempty.ne_empty,
-      use z, rw mem_inter, exact ⟨p'i2 hz₁, hz₂⟩ }, contradiction },
-    { subst z, subst p'b, exact h hz₂ } },
+  by { rw Walk.range_eq_init_union_last, rw inter_distrib_right, rw union_eq_empty_iff, split,
+    { exact subset_empty.mp ((inter_subset_inter_right p'i2).trans (subset_empty.mpr pa')) },
+    { rw p'b, exact singleton_inter_of_not_mem h } },
 
   rcases q.until {x} ⟨x, by simp [hx₂]⟩ with ⟨q', q'a, q'b, q'r, q'i, q'i2, q't⟩, simp at q'b,
   have h₁ : q'.range ∩ X = ∅ :=
-  by { rw Walk.range_eq_init_union_last, by_contra', have := nonempty_of_ne_empty this,
-    choose z hz using this, simp at hz, cases hz with hz₁ hz₂, cases hz₁,
-    { have : q.init ∩ X ≠ ∅ := by { apply nonempty.ne_empty,
-      use z, rw mem_inter, exact ⟨q'i2 hz₁, hz₂⟩ }, contradiction },
-    { subst z, subst q'b, exact h hz₂ } },
+  by { rw Walk.range_eq_init_union_last, rw inter_distrib_right, rw union_eq_empty_iff, split,
+    { exact subset_empty.mp ((inter_subset_inter_right q'i2).trans (subset_empty.mpr qa')) },
+    { rw q'b, exact singleton_inter_of_not_mem h } },
 
   let γ : AB_walk G A B :=
   ⟨Walk.append p' q'.reverse (by simp [p'b,q'b]), by simp [p'a,pa], by simp [q'a,qa]⟩,
@@ -411,7 +407,38 @@ begin
   { use x, simp, split, exact hx₁, left, rw hx₂, exact hz.2 }
 end
 
-lemma main_step (e : G.dart) : is_menger (G/e) → is_menger (G-e) → is_menger G :=
+lemma step_1 (h_contract : is_menger (G/e))
+  (too_small : ∀ P : finset (AB_walk G A B), pw_disjoint P → P.card < min_cut G A B) :
+  ∃ X : finset V, e.fst ∈ X ∧ e.snd ∈ X ∧ separates G A B X ∧ X.card = min_cut G A B :=
+begin
+  let A₁ := image (merge_edge e) A, let B₁ := image (merge_edge e) B,
+  obtain ⟨Y, Y_eq_min₁, Y_sep⟩ := min_cut_set (G/e) A₁ B₁, let X := Y ∪ {e.snd},
+
+  have Y_lt_min : Y.card < min_cut G A B :=
+  by {
+    choose P₁ P₁_dis P₁_eq_min₁ using h_contract A₁ B₁,
+    rw [Y_eq_min₁, ←P₁_eq_min₁, ←card_image_of_injective P₁ AB_lift_inj],
+    apply too_small, { apply AB_lift_dis, exact P₁_dis }, { exact merge_edge_adapted }
+  },
+
+  have X_sep_AB : separates G A B X := sep_of_sep_in_merge Y_sep,
+
+  refine ⟨X, _, _, X_sep_AB, _⟩,
+
+  { rw [mem_union], left, by_contradiction,
+    suffices : separates G A B Y, by { exact not_lt_of_le (min_cut_spec this) Y_lt_min },
+    intro p, choose z hz using Y_sep (AB_push (merge_edge e) A B p), use z,
+    rw mem_inter at hz ⊢, rcases hz with ⟨hz₁,hz₂⟩, refine ⟨_,hz₂⟩,
+    rw [AB_push,Walk.push_range,mem_image] at hz₁, choose x hx₁ hx₂ using hz₁,
+    by_cases x = e.snd; simp [merge_edge,h] at hx₂,
+    { rw [←hx₂] at hz₂, contradiction },
+    { rwa [←hx₂] } },
+  { rw [mem_union,mem_singleton], right, refl },
+  { refine le_antisymm _ (min_cut_spec X_sep_AB),
+    exact (card_union_le _ _).trans (nat.succ_le_of_lt Y_lt_min) }
+end
+
+lemma induction_step (e : G.dart) : is_menger (G/e) → is_menger (G-e) → is_menger G :=
 begin
   intros h_contract h_minus A B,
 
@@ -419,36 +446,7 @@ begin
     ∀ P : finset (AB_walk G A B), pw_disjoint P → P.card < min_cut G A B :=
   by { intros P h, exact lt_of_le_of_ne (upper_bound h) (too_small P h) },
 
-  have step₁ : ∃ X, e.fst ∈ X ∧ e.snd ∈ X ∧ separates G A B X ∧ X.card = min_cut G A B :=
-  by {
-    let G₁ := G/e, let A₁ := image (merge_edge e) A, let B₁ := image (merge_edge e) B,
-    obtain ⟨Y, Y_eq_min₁, Y_sep⟩ := min_cut_set G₁ A₁ B₁, let X := Y ∪ {e.snd},
-
-    have Y_lt_min : Y.card < min_cut G A B :=
-    by {
-      choose P₁ P₁_dis P₁_eq_min₁ using h_contract A₁ B₁,
-      rw [Y_eq_min₁, ←P₁_eq_min₁, ←card_image_of_injective P₁ AB_lift_inj],
-      apply too_small, { apply AB_lift_dis, exact P₁_dis }, { exact merge_edge_adapted }
-    },
-
-    have X_sep_AB : separates G A B X := sep_of_sep_in_merge Y_sep,
-
-    refine ⟨X, _, _, X_sep_AB, _⟩,
-
-    { rw [mem_union], left, by_contradiction,
-      suffices : separates G A B Y, by { exact not_lt_of_le (min_cut_spec this) Y_lt_min },
-      intro p, choose z hz using Y_sep (AB_push (merge_edge e) A B p), use z,
-      rw mem_inter at hz ⊢, rcases hz with ⟨hz₁,hz₂⟩, refine ⟨_,hz₂⟩,
-      rw [AB_push,Walk.push_range,mem_image] at hz₁, choose x hx₁ hx₂ using hz₁,
-      by_cases x = e.snd; simp [merge_edge,h] at hx₂,
-      { rw [←hx₂] at hz₂, contradiction },
-      { rwa [←hx₂] } },
-    { rw [mem_union,mem_singleton], right, refl },
-    { refine le_antisymm _ (min_cut_spec X_sep_AB),
-      exact (card_union_le _ _).trans (nat.succ_le_of_lt Y_lt_min) }
-  },
-
-  choose X ex_in_X ey_in_X X_sep_AB X_eq_min using step₁,
+  choose X ex_in_X ey_in_X X_sep_AB X_eq_min using step_1 h_contract too_small,
 
   rcases sep_cleanup ex_in_X ey_in_X X_eq_min X_sep_AB (h_minus A X) with ⟨P,P_dis,P_eq_X⟩,
   let X_eq_min' : X.card = min_cut G B A := X_eq_min.trans min_cut_symm,
@@ -463,7 +461,7 @@ begin
   { rw [bot_iff_no_edge.mp (nonpos_iff_eq_zero.mp hG)], exact bot_is_menger },
   { by_cases (fintype.card G.dart = 0),
     { apply ih, linarith },
-    { cases not_is_empty_iff.mp (h ∘ fintype.card_eq_zero_iff.mpr) with e, apply main_step e,
+    { cases not_is_empty_iff.mp (h ∘ fintype.card_eq_zero_iff.mpr) with e, apply induction_step e,
       { exact ih _ (nat.le_of_lt_succ (nat.lt_of_lt_of_le contract_edge.fewer_edges hG)) },
       { exact ih _ (nat.le_of_lt_succ (nat.lt_of_lt_of_le minus_lt_edges hG)) } } }
 end
