@@ -276,25 +276,21 @@ begin
 end
 
 lemma meet_sub_X (X_sep_AB : separates G A B X) (p : AB_walk G A X) (q : AB_walk G B X)
-  (hp : minimal p) (hq : minimal q) :
-  p.to_Walk.range ∩ q.to_Walk.range ⊆ X :=
+  (hp : minimal p) (hq : minimal q) : p.to_Walk.range ∩ q.to_Walk.range ⊆ X :=
 begin
   rcases p with ⟨p,pa,pb⟩, rcases q with ⟨q,qa,qb⟩, dsimp,
-  have pa' := hp.1,
-  have qa' := hq.1,
-  dsimp at pa' qa',
   rintro x hx, rw mem_inter at hx, cases hx with hx₁ hx₂, by_contra,
 
   rcases p.until {x} ⟨x, by simp [hx₁]⟩ with ⟨p', p'a, p'b, p'r, p'i, p'i2, p't⟩, simp at p'b,
   have h₁ : p'.range ∩ X = ∅ :=
   by { rw Walk.range_eq_init_union_last, rw inter_distrib_right, rw union_eq_empty_iff, split,
-    { exact subset_empty.mp ((inter_subset_inter_right p'i2).trans (subset_empty.mpr pa')) },
+    { exact subset_empty.mp ((inter_subset_inter_right p'i2).trans (subset_empty.mpr hp.1)) },
     { rw p'b, exact singleton_inter_of_not_mem h } },
 
   rcases q.until {x} ⟨x, by simp [hx₂]⟩ with ⟨q', q'a, q'b, q'r, q'i, q'i2, q't⟩, simp at q'b,
   have h₁ : q'.range ∩ X = ∅ :=
   by { rw Walk.range_eq_init_union_last, rw inter_distrib_right, rw union_eq_empty_iff, split,
-    { exact subset_empty.mp ((inter_subset_inter_right q'i2).trans (subset_empty.mpr qa')) },
+    { exact subset_empty.mp ((inter_subset_inter_right q'i2).trans (subset_empty.mpr hq.1)) },
     { rw q'b, exact singleton_inter_of_not_mem h } },
 
   let γ : AB_walk G A B :=
