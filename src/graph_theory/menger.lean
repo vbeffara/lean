@@ -242,16 +242,16 @@ begin
 end
 
 noncomputable def massage_aux {G₁ G₂ : simple_graph V} (h : G₂ ≤ G₁)
-  (p : AB_walk G₂ A X) : {q : AB_walk' G₁ A X // q.to_Walk.range ⊆ p.to_Walk.range} :=
+  (p : AB_walk G₂ A X) : {q : AB_walk G₁ A X // minimal q ∧ q.to_Walk.range ⊆ p.to_Walk.range} :=
 begin
   rcases trim p with ⟨⟨p',p'a,p'b⟩,⟨p'aa,p'bb⟩,hp'⟩,
   rcases p'.transport (transportable_to_of_le h) with ⟨q,qa,qb,qr,qi,qt⟩,
-  use ⟨⟨q, qa.symm ▸ p'a, qb.symm ▸ p'b⟩, qi.symm ▸ p'aa, qt.symm ▸ p'bb⟩,
-  simp, simp at hp', rw qr, exact hp'
+  refine ⟨⟨q, qa.symm ▸ p'a, qb.symm ▸ p'b⟩, ⟨qi.symm ▸ p'aa, qt.symm ▸ p'bb⟩, _⟩,
+  simp, rw qr, exact hp'
 end
 
 noncomputable def massage {G₁ G₂ : simple_graph V} (h : G₂ ≤ G₁) :
-  AB_walk G₂ A X → AB_walk' G₁ A X :=
+  AB_walk G₂ A X → AB_walk G₁ A X :=
 λ p, (massage_aux h p).val
 
 lemma massage_eq {G₁ G₂ : simple_graph V} {h : G₂ ≤ G₁} {P : finset (AB_walk G₂ A B)} {p₁ p₂ : P} :
@@ -259,12 +259,12 @@ lemma massage_eq {G₁ G₂ : simple_graph V} {h : G₂ ≤ G₁} {P : finset (A
   p₁ = p₂ :=
 begin
   rintro hP h, apply hP, rcases h with ⟨z,hz⟩, use z, simp at hz ⊢, split,
-  { apply (massage_aux h p₁.val).prop, exact hz.1 },
-  { apply (massage_aux h p₂.val).prop, exact hz.2 }
+  { apply (massage_aux h p₁.val).prop.2, exact hz.1 },
+  { apply (massage_aux h p₂.val).prop.2, exact hz.2 }
 end
 
 lemma massage_disjoint {G₁ G₂ : simple_graph V} {h : G₂ ≤ G₁} {P : finset (AB_walk G₂ A B)} :
-  pw_disjoint P → pw_disjoint' (image (massage h) P) :=
+  pw_disjoint P → pw_disjoint (image (massage h) P) :=
 begin
   rintro h₁ ⟨p₁,hp₁⟩ ⟨p₂,hp₂⟩ h, apply subtype.ext, dsimp,
   choose q₁ hq₁ hq₁' using mem_image.mp hp₁, choose q₂ hq₂ hq₂' using mem_image.mp hp₂,
@@ -321,14 +321,17 @@ end
 noncomputable def sep_cleanup {e : G.dart} (ex_in_X : e.fst ∈ X) (ey_in_X : e.snd ∈ X)
   (X_eq_min : X.card = min_cut G A B) (X_sep_AB : separates G A B X)
   (ih : ∃ (P : finset (AB_walk (G-e) A X)), pw_disjoint P ∧ P.card = min_cut (G-e) A X) :
-  {P : finset (AB_walk' G A X) // pw_disjoint' P ∧ P.card = X.card} :=
+  {P : finset (AB_walk G A X) // pw_disjoint P ∧ P.card = X.card ∧ ∀ p : P, minimal p.val} :=
 begin
-  choose P h₁ h₂ using ih, use image (massage minus_le) P, split,
+  choose P h₁ h₂ using ih, use image (massage minus_le) P, refine ⟨_,_,_⟩,
   { exact massage_disjoint h₁ },
   { apply (massage_card h₁).trans, apply le_antisymm (path_le_B h₁),
     rcases min_cut_set (G-e) A X with ⟨Z,Z_eq_min,Z_sep₂_AB⟩,
     rw [X_eq_min,h₂,←Z_eq_min], apply min_cut_spec,
-    exact sep_AB_of_sep₂_AX ex_in_X ey_in_X X_sep_AB Z_sep₂_AB }
+    exact sep_AB_of_sep₂_AX ex_in_X ey_in_X X_sep_AB Z_sep₂_AB },
+  { intro p, choose p' hp'₁ hp'₂ using mem_image.mp p.prop,
+    have := (massage_aux minus_le p').prop.1, simp [massage] at hp'₂, rw hp'₂ at this,
+    simp, exact this }
 end
 
 noncomputable def stitch (X_sep_AB : separates G A B X)
@@ -484,16 +487,12 @@ begin
 
   choose X ex_in_X ey_in_X X_sep_AB X_eq_min using step_1 h_contract too_small,
 
-  rcases sep_cleanup ex_in_X ey_in_X X_eq_min X_sep_AB (h_minus A X) with ⟨P,P_dis,P_eq_X⟩,
+  rcases sep_cleanup ex_in_X ey_in_X X_eq_min X_sep_AB (h_minus A X) with ⟨P,hP⟩,
   let X_eq_min' : X.card = min_cut G B A := X_eq_min.trans min_cut_symm,
-  rcases sep_cleanup ex_in_X ey_in_X X_eq_min' X_sep_AB.symm (h_minus B X) with ⟨Q,Q_dis,Q_eq_X⟩,
+  rcases sep_cleanup ex_in_X ey_in_X X_eq_min' X_sep_AB.symm (h_minus B X) with ⟨Q,hQ⟩,
   rw ←X_eq_min, apply subtype.exists_of_subtype,
 
-  set PP := adapt P,
-  set QQ := adapt Q,
-  rw ← adapt_card at P_eq_X Q_eq_X,
-  exact stitch X_sep_AB PP (adapt_disjoint P_dis) P_eq_X QQ (adapt_disjoint Q_dis)
-    Q_eq_X PP.prop QQ.prop
+  exact stitch X_sep_AB P hP.1 hP.2.1 Q hQ.1 hQ.2.1 hP.2.2 hQ.2.2
 end
 
 lemma lower_bound_aux (n : ℕ) : ∀ G : simple_graph V, fintype.card G.dart ≤ n → is_menger G :=
