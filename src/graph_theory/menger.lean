@@ -12,9 +12,6 @@ namespace menger
 @[ext] structure AB_walk (G : simple_graph V) (A B : finset V) extends Walk G :=
   (ha : a ∈ A) (hb : b ∈ B)
 
-@[ext] structure AB_walk' (G : simple_graph V) (A B : finset V) extends AB_walk G A B :=
-  (h'a : to_Walk.init ∩ B = ∅) (h'b : to_Walk.tail ∩ A = ∅)
-
 def minimal (p : AB_walk G A B) : Prop :=
 p.to_Walk.init ∩ B = ∅ ∧ p.to_Walk.tail ∩ A = ∅
 
@@ -66,9 +63,6 @@ by { have h := mt ((min_cut' G A B).2.2 X.card), rw [not_not,not_lt] at h, exact
 variables {P : finset (AB_walk G A B)}
 
 def pw_disjoint (P : finset (AB_walk G A B)) : Prop :=
-∀ ⦃γ₁ γ₂ : P⦄, (γ₁.val.to_Walk.range ∩ γ₂.val.to_Walk.range).nonempty → γ₁ = γ₂
-
-def pw_disjoint' (P : finset (AB_walk' G A B)) : Prop :=
 ∀ ⦃γ₁ γ₂ : P⦄, (γ₁.val.to_Walk.range ∩ γ₂.val.to_Walk.range).nonempty → γ₁ = γ₂
 
 def is_menger (G : simple_graph V) : Prop :=
@@ -448,33 +442,6 @@ begin
   { rw [mem_union,mem_singleton], right, refl },
   { refine le_antisymm _ (min_cut_spec X_sep_AB),
     exact (card_union_le _ _).trans (nat.succ_le_of_lt Y_lt_min) }
-end
-
-noncomputable def adapt (P' : finset (AB_walk' G A B)) :
-  {P : finset (AB_walk G A B) // ∀ p : P, minimal p.val} :=
-begin
-  use image AB_walk'.to_AB_walk P',
-  rintro ⟨p,hp⟩,
-  choose p' hp'₁ hp'₂ using mem_image.mp hp,
-  subst p,
-  split,
-  exact p'.h'a,
-  exact p'.h'b
-end
-
-lemma adapt_disjoint {P' : finset (AB_walk' G A B)} (h : pw_disjoint' P') :
-  pw_disjoint (adapt P').val :=
-begin
-  rw adapt, rintro ⟨p,hp⟩ ⟨q,hq⟩ hpq, simp only [subtype.mk_eq_mk],
-  choose p' hp'₁ hp'₂ using mem_image.mp hp, choose q' hq'₁ hq'₂ using mem_image.mp hq,
-  let pp' : P' := ⟨p',hp'₁⟩, let qq' : P' := ⟨q',hq'₁⟩, substs p q,
-  change (pp'.val.to_Walk.range ∩ qq'.val.to_Walk.range).nonempty at hpq,
-  have := h hpq, simp at this, rw this,
-end
-
-lemma adapt_card {P' : finset (AB_walk' G A B)} : (adapt P').val.card = P'.card :=
-begin
-  simp [adapt], apply card_image_of_injective, rintro p q hpq, ext, rw hpq
 end
 
 lemma induction_step (e : G.dart) : is_menger (G/e) → is_menger (G-e) → is_menger G :=
