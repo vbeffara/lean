@@ -475,4 +475,3 @@ lower_bound_aux (fintype.card G.dart) G (le_of_eq rfl)
 -- theorem menger (h : separable G A B) : max_path_number G A B = min_cut h
 end menger
 end simple_graph
-#lint
