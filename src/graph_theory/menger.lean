@@ -3,8 +3,9 @@ import graph_theory.contraction graph_theory.pushforward graph_theory.basic grap
 open finset classical function simple_graph.Walk
 open_locale classical
 
-variables {V V' : Type*} [fintype V] [fintype V'] {G : simple_graph V}
+variables {V V' : Type*} [fintype V] [fintype V'] {G : simple_graph V} {e : G.dart}
 variables {a : V} {A B X Y Z : finset V}
+variables {f : V → V'} {hf : G.adapted' f}
 
 namespace simple_graph
 namespace menger
@@ -12,8 +13,59 @@ namespace menger
 @[ext] structure AB_walk (G : simple_graph V) (A B : finset V) extends Walk G :=
   (ha : a ∈ A) (hb : b ∈ B)
 
+namespace AB_walk
+
 def minimal (p : AB_walk G A B) : Prop :=
 p.to_Walk.init ∩ B = ∅ ∧ p.to_Walk.tail ∩ A = ∅
+
+noncomputable def lift (f : V → V') (hf : adapted' f G) (A B : finset V) :
+  AB_walk (push f G) (A.image f) (B.image f) → AB_walk G A B :=
+begin
+  rintro ⟨p,ha,hb⟩,
+  choose a h₂ h₃ using mem_image.mp ha,
+  choose b h₅ h₆ using mem_image.mp hb,
+  let γ := Walk.pull_Walk_aux f hf p a b h₃ h₆,
+  rw ←γ.2.1 at h₂, rw ←γ.2.2.1 at h₅, exact ⟨γ,h₂,h₅⟩
+end
+
+noncomputable def push (f : V → V') (A B : finset V) :
+  AB_walk G A B → AB_walk (push f G) (A.image f) (B.image f) :=
+begin
+  intro p, refine ⟨Walk.push_Walk f p.to_Walk, _, _⟩,
+  rw Walk.push_Walk_a, exact mem_image_of_mem f p.ha,
+  rw Walk.push_Walk_b, exact mem_image_of_mem f p.hb,
+end
+
+lemma push_lift : left_inverse (push f A B) (lift f hf A B) :=
+by { rintro ⟨p,ha,hb⟩, simp [lift,push], exact Walk.pull_Walk_push, }
+
+lemma lift_inj : injective (lift f hf A B) :=
+left_inverse.injective push_lift
+
+end AB_walk
+
+variables {P : finset (AB_walk G A B)}
+
+def pw_disjoint (P : finset (AB_walk G A B)) : Prop :=
+∀ ⦃γ₁ γ₂ : P⦄, (γ₁.val.to_Walk.range ∩ γ₂.val.to_Walk.range).nonempty → γ₁ = γ₂
+
+namespace pw_disjoint
+
+lemma le_A (dis : pw_disjoint P) : P.card ≤ A.card :=
+begin
+  let φ : P → A := λ p, ⟨p.1.1.a, p.1.ha⟩,
+  have : injective φ := by { rintro p₁ p₂ h, simp at h, apply dis, use p₁.1.1.a, simp, simp [h] },
+  simp_rw [←fintype.card_coe], convert fintype.card_le_of_injective φ this,
+end
+
+lemma le_B (dis : pw_disjoint P) : P.card ≤ B.card :=
+begin
+  let φ : P → B := λ p, ⟨p.val.b, p.val.hb⟩,
+  have : injective φ := by { rintro p₁ p₂ h, apply dis, use p₁.val.b, simp at h, simp, simp [h] },
+  simp_rw [←fintype.card_coe], convert fintype.card_le_of_injective φ this,
+end
+
+end pw_disjoint
 
 def separates (G : simple_graph V) (A B : finset V) (X : finset V) : Prop :=
   ∀ γ : AB_walk G A B, (γ.to_Walk.range ∩ X).nonempty
@@ -60,27 +112,8 @@ noncomputable def min_cut_set (G : simple_graph V) (A B : finset V) :
 lemma min_cut_spec (sep : separates G A B X) : min_cut G A B ≤ X.card :=
 by { have h := mt ((min_cut' G A B).2.2 X.card), rw [not_not,not_lt] at h, exact h ⟨X,rfl,sep⟩ }
 
-variables {P : finset (AB_walk G A B)}
-
-def pw_disjoint (P : finset (AB_walk G A B)) : Prop :=
-∀ ⦃γ₁ γ₂ : P⦄, (γ₁.val.to_Walk.range ∩ γ₂.val.to_Walk.range).nonempty → γ₁ = γ₂
-
 def is_menger (G : simple_graph V) : Prop :=
 ∀ A B : finset V, ∃ P : finset (AB_walk G A B), pw_disjoint P ∧ P.card = min_cut G A B
-
-lemma path_le_A (dis : pw_disjoint P) : P.card ≤ A.card :=
-begin
-  let φ : P → A := λ p, ⟨p.1.1.a, p.1.ha⟩,
-  have : injective φ := by { rintro p₁ p₂ h, simp at h, apply dis, use p₁.1.1.a, simp, simp [h] },
-  simp_rw [←fintype.card_coe], convert fintype.card_le_of_injective φ this,
-end
-
-lemma path_le_B (dis : pw_disjoint P) : P.card ≤ B.card :=
-begin
-  let φ : P → B := λ p, ⟨p.val.b, p.val.hb⟩,
-  have : injective φ := by { rintro p₁ p₂ h, apply dis, use p₁.val.b, simp at h, simp, simp [h] },
-  simp_rw [←fintype.card_coe], convert fintype.card_le_of_injective φ this,
-end
 
 lemma path_le_cut (dis : pw_disjoint P) (sep : separates G A B X) : P.card ≤ X.card :=
 begin
@@ -137,43 +170,17 @@ end
 lemma bot_is_menger : is_menger (⊥ : simple_graph V) :=
 by { rintro A B, rw bot_min_cut, exact (bot_path_set A B).exists_of_subtype }
 
-variables {f : V → V'} {hf : adapted' f G} {e : G.dart}
-
-noncomputable def AB_lift (f : V → V') (hf : adapted' f G) (A B : finset V) :
-  AB_walk (push f G) (A.image f) (B.image f) → AB_walk G A B :=
-begin
-  rintro ⟨p,ha,hb⟩,
-  choose a h₂ h₃ using mem_image.mp ha,
-  choose b h₅ h₆ using mem_image.mp hb,
-  let γ := Walk.pull_Walk_aux f hf p a b h₃ h₆,
-  rw ←γ.2.1 at h₂, rw ←γ.2.2.1 at h₅, exact ⟨γ,h₂,h₅⟩
-end
-
-noncomputable def AB_push (f : V → V') (A B : finset V) :
-  AB_walk G A B → AB_walk (push f G) (A.image f) (B.image f) :=
-begin
-  intro p, refine ⟨Walk.push_Walk f p.to_Walk, _, _⟩,
-  rw Walk.push_Walk_a, exact mem_image_of_mem f p.ha,
-  rw Walk.push_Walk_b, exact mem_image_of_mem f p.hb,
-end
-
-lemma AB_push_lift : left_inverse (AB_push f A B) (AB_lift f hf A B) :=
-by { rintro ⟨p,ha,hb⟩, simp [AB_lift,AB_push], exact Walk.pull_Walk_push, }
-
-lemma AB_lift_inj : injective (AB_lift f hf A B) :=
-left_inverse.injective AB_push_lift
-
 lemma AB_lift_dis (P' : finset (AB_walk (push f G) (A.image f) (B.image f))) :
-  pw_disjoint P' → pw_disjoint (P'.image (AB_lift f hf A B)) :=
+  pw_disjoint P' → pw_disjoint (P'.image (AB_walk.lift f hf A B)) :=
 begin
   rintro hP' ⟨γ₁,h₁⟩ ⟨γ₂,h₂⟩ h, simp at h ⊢, choose z h using h,
   choose γ'₁ h'₁ h''₁ using mem_image.mp h₁,
   choose γ'₂ h'₂ h''₂ using mem_image.mp h₂,
-  have h₃ := congr_arg (AB_push f A B) h''₁, rw AB_push_lift at h₃,
-  have h₄ := congr_arg (AB_push f A B) h''₂, rw AB_push_lift at h₄,
+  have h₃ := congr_arg (AB_walk.push f A B) h''₁, rw AB_walk.push_lift at h₃,
+  have h₄ := congr_arg (AB_walk.push f A B) h''₂, rw AB_walk.push_lift at h₄,
   suffices : γ'₁ = γ'₂, { rw [←h''₁,←h''₂,this] },
   have := @hP' ⟨_,h'₁⟩ ⟨_,h'₂⟩, simp at this, apply this,
-  simp [h₃,h₄,AB_push,Walk.push_range], use f z, rw mem_inter at h ⊢, split,
+  simp [h₃,h₄,AB_walk.push,Walk.push_range], use f z, rw mem_inter at h ⊢, split,
   exact mem_image_of_mem f h.1, exact mem_image_of_mem f h.2
 end
 
@@ -223,7 +230,7 @@ by {
 }
 
 noncomputable def trim (p : AB_walk G A B) :
-  {q : AB_walk G A B // minimal q ∧ q.to_Walk.range ⊆ p.to_Walk.range} :=
+  {q : AB_walk G A B // q.minimal ∧ q.to_Walk.range ⊆ p.to_Walk.range} :=
 begin
   rcases p with ⟨p₁, p₁a, p₁b⟩,
   have h₁ : (p₁.range ∩ A).nonempty := ⟨p₁.a, by simp [p₁a]⟩,
@@ -236,7 +243,7 @@ begin
 end
 
 noncomputable def massage_aux {G₁ G₂ : simple_graph V} (h : G₂ ≤ G₁)
-  (p : AB_walk G₂ A X) : {q : AB_walk G₁ A X // minimal q ∧ q.to_Walk.range ⊆ p.to_Walk.range} :=
+  (p : AB_walk G₂ A X) : {q : AB_walk G₁ A X // q.minimal ∧ q.to_Walk.range ⊆ p.to_Walk.range} :=
 begin
   rcases trim p with ⟨⟨p',p'a,p'b⟩,⟨p'aa,p'bb⟩,hp'⟩,
   rcases p'.transport (transportable_to_of_le h) with ⟨q,qa,qb,qr,qi,qt⟩,
@@ -276,7 +283,7 @@ begin
 end
 
 lemma meet_sub_X (X_sep_AB : separates G A B X) (p : AB_walk G A X) (q : AB_walk G B X)
-  (hp : minimal p) (hq : minimal q) : p.to_Walk.range ∩ q.to_Walk.range ⊆ X :=
+  (hp : p.minimal) (hq : q.minimal) : p.to_Walk.range ∩ q.to_Walk.range ⊆ X :=
 begin
   rcases p with ⟨p,pa,pb⟩, rcases q with ⟨q,qa,qb⟩, dsimp,
   rintro x hx, rw mem_inter at hx, cases hx with hx₁ hx₂, by_contra,
@@ -311,11 +318,11 @@ end
 noncomputable def sep_cleanup {e : G.dart} (ex_in_X : e.fst ∈ X) (ey_in_X : e.snd ∈ X)
   (X_eq_min : X.card = min_cut G A B) (X_sep_AB : separates G A B X)
   (ih : ∃ (P : finset (AB_walk (G-e) A X)), pw_disjoint P ∧ P.card = min_cut (G-e) A X) :
-  {P : finset (AB_walk G A X) // pw_disjoint P ∧ P.card = X.card ∧ ∀ p : P, minimal p.val} :=
+  {P : finset (AB_walk G A X) // pw_disjoint P ∧ P.card = X.card ∧ ∀ p : P, p.val.minimal} :=
 begin
   choose P h₁ h₂ using ih, use image (massage minus_le) P, refine ⟨_,_,_⟩,
   { exact massage_disjoint h₁ },
-  { apply (massage_card h₁).trans, apply le_antisymm (path_le_B h₁),
+  { apply (massage_card h₁).trans, apply le_antisymm h₁.le_B,
     rcases min_cut_set (G-e) A X with ⟨Z,Z_eq_min,Z_sep₂_AB⟩,
     rw [X_eq_min,h₂,←Z_eq_min], apply min_cut_spec,
     exact sep_AB_of_sep₂_AX ex_in_X ey_in_X X_sep_AB Z_sep₂_AB },
@@ -327,7 +334,7 @@ end
 noncomputable def stitch (X_sep_AB : separates G A B X)
   (P : finset (AB_walk G A X)) (P_dis: pw_disjoint P) (P_eq_X: P.card = X.card)
   (Q : finset (AB_walk G B X)) (Q_dis: pw_disjoint Q) (Q_eq_X: Q.card = X.card)
-  (hP : ∀ p : P, minimal p.val) (hQ : ∀ q : Q, minimal q.val) :
+  (hP : ∀ p : P, p.val.minimal) (hQ : ∀ q : Q, q.val.minimal) :
   {R : finset (AB_walk G A B) // pw_disjoint R ∧ R.card = X.card} :=
 begin
   let φ : X ≃ P := (endpoint P P_dis P_eq_X).symm,
@@ -401,8 +408,8 @@ lemma sep_of_sep_in_merge : separates (G/e) (image (merge_edge e) A) (image (mer
   separates G A B (Y ∪ {e.snd}) :=
 begin
   rintro Y_sep γ,
-  choose z hz using Y_sep (AB_push (merge_edge e) A B γ),
-  rw [mem_inter,AB_push,Walk.push_range,mem_image] at hz,
+  choose z hz using Y_sep (AB_walk.push (merge_edge e) A B γ),
+  rw [mem_inter,AB_walk.push,Walk.push_range,mem_image] at hz,
   choose x hx₁ hx₂ using hz.1,
   by_cases x = e.snd; simp [merge_edge,h] at hx₂,
   { use x, simp, split, exact hx₁, right, exact h },
@@ -419,7 +426,7 @@ begin
   have Y_lt_min : Y.card < min_cut G A B :=
   by {
     choose P₁ P₁_dis P₁_eq_min₁ using h_contract A₁ B₁,
-    rw [Y_eq_min₁, ←P₁_eq_min₁, ←card_image_of_injective P₁ AB_lift_inj],
+    rw [Y_eq_min₁, ←P₁_eq_min₁, ←card_image_of_injective P₁ AB_walk.lift_inj],
     apply too_small, { apply AB_lift_dis, exact P₁_dis }, { exact merge_edge_adapted }
   },
 
@@ -429,9 +436,9 @@ begin
 
   { rw [mem_union], left, by_contradiction,
     suffices : separates G A B Y, by { exact not_lt_of_le (min_cut_spec this) Y_lt_min },
-    intro p, choose z hz using Y_sep (AB_push (merge_edge e) A B p), use z,
+    intro p, choose z hz using Y_sep (AB_walk.push (merge_edge e) A B p), use z,
     rw mem_inter at hz ⊢, rcases hz with ⟨hz₁,hz₂⟩, refine ⟨_,hz₂⟩,
-    rw [AB_push,Walk.push_range,mem_image] at hz₁, choose x hx₁ hx₂ using hz₁,
+    rw [AB_walk.push,Walk.push_range,mem_image] at hz₁, choose x hx₁ hx₂ using hz₁,
     by_cases x = e.snd; simp [merge_edge,h] at hx₂,
     { rw [←hx₂] at hz₂, contradiction },
     { rwa [←hx₂] } },
