@@ -37,10 +37,36 @@ begin
 end
 
 lemma push_lift : left_inverse (push f A B) (lift f hf A B) :=
-by { rintro ⟨p,ha,hb⟩, simp [lift,push], exact Walk.pull_Walk_push, }
+by { rintro ⟨p,ha,hb⟩, simp [lift,push], exact Walk.pull_Walk_push }
 
 lemma lift_inj : injective (lift f hf A B) :=
 left_inverse.injective push_lift
+
+noncomputable def trim (p : AB_walk G A B) :
+  {q : AB_walk G A B // q.minimal ∧ q.to_Walk.range ⊆ p.to_Walk.range} :=
+begin
+  rcases p with ⟨p₁, p₁a, p₁b⟩,
+  have h₁ : (p₁.range ∩ A).nonempty := ⟨p₁.a, by simp [p₁a]⟩,
+  rcases p₁.after A h₁ with ⟨p₂, p₂a, p₂b, p₂r, p₂i, -, p₂t⟩,
+  have h₂ : (p₂.range ∩ B).nonempty := by { refine ⟨p₂.b, _⟩, simp, rwa p₂b },
+  rcases p₂.until B h₂ with ⟨p₃, p₃a, p₃b, p₃r, p₃i, -, p₃t⟩,
+  refine ⟨⟨p₃, p₃a.symm ▸ p₂a, p₃b⟩, ⟨by simp [p₃i], _⟩, p₃r.trans p₂r⟩,
+  have : p₃.tail ∩ A ⊆ p₂.tail ∩ A := inter_subset_inter_right p₃t,
+  simp, rw ←subset_empty, apply this.trans, rw p₂t, refl
+end
+
+noncomputable def massage_aux {G₁ G₂ : simple_graph V} (h : G₂ ≤ G₁)
+  (p : AB_walk G₂ A X) : {q : AB_walk G₁ A X // q.minimal ∧ q.to_Walk.range ⊆ p.to_Walk.range} :=
+begin
+  rcases trim p with ⟨⟨p',p'a,p'b⟩,⟨p'aa,p'bb⟩,hp'⟩,
+  rcases p'.transport (transportable_to_of_le h) with ⟨q,qa,qb,qr,qi,qt⟩,
+  refine ⟨⟨q, qa.symm ▸ p'a, qb.symm ▸ p'b⟩, ⟨qi.symm ▸ p'aa, qt.symm ▸ p'bb⟩, _⟩,
+  simp, rw qr, exact hp'
+end
+
+noncomputable def massage {G₁ G₂ : simple_graph V} (h : G₂ ≤ G₁) :
+  AB_walk G₂ A X → AB_walk G₁ A X :=
+λ p, (massage_aux h p).val
 
 end AB_walk
 
@@ -229,43 +255,17 @@ by {
   exact ⟨z, mem_inter.mpr ⟨mem_of_subset δ_range hz.1, hz.2⟩⟩,
 }
 
-noncomputable def trim (p : AB_walk G A B) :
-  {q : AB_walk G A B // q.minimal ∧ q.to_Walk.range ⊆ p.to_Walk.range} :=
-begin
-  rcases p with ⟨p₁, p₁a, p₁b⟩,
-  have h₁ : (p₁.range ∩ A).nonempty := ⟨p₁.a, by simp [p₁a]⟩,
-  rcases p₁.after A h₁ with ⟨p₂, p₂a, p₂b, p₂r, p₂i, -, p₂t⟩,
-  have h₂ : (p₂.range ∩ B).nonempty := by { refine ⟨p₂.b, _⟩, simp, rwa p₂b },
-  rcases p₂.until B h₂ with ⟨p₃, p₃a, p₃b, p₃r, p₃i, -, p₃t⟩,
-  refine ⟨⟨p₃, p₃a.symm ▸ p₂a, p₃b⟩, ⟨by simp [p₃i], _⟩, p₃r.trans p₂r⟩,
-  have : p₃.tail ∩ A ⊆ p₂.tail ∩ A := inter_subset_inter_right p₃t,
-  simp, rw ←subset_empty, apply this.trans, rw p₂t, refl
-end
-
-noncomputable def massage_aux {G₁ G₂ : simple_graph V} (h : G₂ ≤ G₁)
-  (p : AB_walk G₂ A X) : {q : AB_walk G₁ A X // q.minimal ∧ q.to_Walk.range ⊆ p.to_Walk.range} :=
-begin
-  rcases trim p with ⟨⟨p',p'a,p'b⟩,⟨p'aa,p'bb⟩,hp'⟩,
-  rcases p'.transport (transportable_to_of_le h) with ⟨q,qa,qb,qr,qi,qt⟩,
-  refine ⟨⟨q, qa.symm ▸ p'a, qb.symm ▸ p'b⟩, ⟨qi.symm ▸ p'aa, qt.symm ▸ p'bb⟩, _⟩,
-  simp, rw qr, exact hp'
-end
-
-noncomputable def massage {G₁ G₂ : simple_graph V} (h : G₂ ≤ G₁) :
-  AB_walk G₂ A X → AB_walk G₁ A X :=
-λ p, (massage_aux h p).val
-
 lemma massage_eq {G₁ G₂ : simple_graph V} {h : G₂ ≤ G₁} {P : finset (AB_walk G₂ A B)} {p₁ p₂ : P} :
-  pw_disjoint P → ((massage h p₁.val).to_Walk.range ∩ (massage h p₂.val).to_Walk.range).nonempty →
+  pw_disjoint P → ((p₁.val.massage h).to_Walk.range ∩ (p₂.val.massage h).to_Walk.range).nonempty →
   p₁ = p₂ :=
 begin
   rintro hP h, apply hP, rcases h with ⟨z,hz⟩, use z, simp at hz ⊢, split,
-  { apply (massage_aux h p₁.val).prop.2, exact hz.1 },
-  { apply (massage_aux h p₂.val).prop.2, exact hz.2 }
+  { apply (p₁.val.massage_aux h).prop.2, exact hz.1 },
+  { apply (p₂.val.massage_aux h).prop.2, exact hz.2 }
 end
 
 lemma massage_disjoint {G₁ G₂ : simple_graph V} {h : G₂ ≤ G₁} {P : finset (AB_walk G₂ A B)} :
-  pw_disjoint P → pw_disjoint (image (massage h) P) :=
+  pw_disjoint P → pw_disjoint (image (AB_walk.massage h) P) :=
 begin
   rintro h₁ ⟨p₁,hp₁⟩ ⟨p₂,hp₂⟩ h, apply subtype.ext, dsimp,
   choose q₁ hq₁ hq₁' using mem_image.mp hp₁, choose q₂ hq₂ hq₂' using mem_image.mp hp₂,
@@ -275,7 +275,7 @@ begin
 end
 
 lemma massage_card {G₁ G₂ : simple_graph V} {h : G₂ ≤ G₁} {P : finset (AB_walk G₂ A B)} :
-  pw_disjoint P → (image (massage h) P).card = P.card :=
+  pw_disjoint P → (image (AB_walk.massage h) P).card = P.card :=
 begin
   rintro hP, apply card_image_of_inj_on, rintro p₁ hp₁ p₂ hp₂ he,
   let q₁ : P := ⟨p₁,hp₁⟩, let q₂ : P := ⟨p₂,hp₂⟩, suffices : q₁ = q₂, simp at this, exact this,
@@ -320,14 +320,14 @@ noncomputable def sep_cleanup {e : G.dart} (ex_in_X : e.fst ∈ X) (ey_in_X : e.
   (ih : ∃ (P : finset (AB_walk (G-e) A X)), pw_disjoint P ∧ P.card = min_cut (G-e) A X) :
   {P : finset (AB_walk G A X) // pw_disjoint P ∧ P.card = X.card ∧ ∀ p : P, p.val.minimal} :=
 begin
-  choose P h₁ h₂ using ih, use image (massage minus_le) P, refine ⟨_,_,_⟩,
+  choose P h₁ h₂ using ih, use image (AB_walk.massage minus_le) P, refine ⟨_,_,_⟩,
   { exact massage_disjoint h₁ },
   { apply (massage_card h₁).trans, apply le_antisymm h₁.le_B,
     rcases min_cut_set (G-e) A X with ⟨Z,Z_eq_min,Z_sep₂_AB⟩,
     rw [X_eq_min,h₂,←Z_eq_min], apply min_cut_spec,
     exact sep_AB_of_sep₂_AX ex_in_X ey_in_X X_sep_AB Z_sep₂_AB },
   { intro p, choose p' hp'₁ hp'₂ using mem_image.mp p.prop,
-    have := (massage_aux minus_le p').prop.1, simp [massage] at hp'₂, rw hp'₂ at this,
+    have := (p'.massage_aux minus_le).prop.1, simp [AB_walk.massage] at hp'₂, rw hp'₂ at this,
     simp, exact this }
 end
 
@@ -408,7 +408,7 @@ lemma sep_of_sep_in_merge : separates (G/e) (image (merge_edge e) A) (image (mer
   separates G A B (Y ∪ {e.snd}) :=
 begin
   rintro Y_sep γ,
-  choose z hz using Y_sep (AB_walk.push (merge_edge e) A B γ),
+  choose z hz using Y_sep (γ.push (merge_edge e) A B),
   rw [mem_inter,AB_walk.push,Walk.push_range,mem_image] at hz,
   choose x hx₁ hx₂ using hz.1,
   by_cases x = e.snd; simp [merge_edge,h] at hx₂,
@@ -436,7 +436,7 @@ begin
 
   { rw [mem_union], left, by_contradiction,
     suffices : separates G A B Y, by { exact not_lt_of_le (min_cut_spec this) Y_lt_min },
-    intro p, choose z hz using Y_sep (AB_walk.push (merge_edge e) A B p), use z,
+    intro p, choose z hz using Y_sep (p.push (merge_edge e) A B), use z,
     rw mem_inter at hz ⊢, rcases hz with ⟨hz₁,hz₂⟩, refine ⟨_,hz₂⟩,
     rw [AB_walk.push,Walk.push_range,mem_image] at hz₁, choose x hx₁ hx₂ using hz₁,
     by_cases x = e.snd; simp [merge_edge,h] at hx₂,
