@@ -455,7 +455,7 @@ lemma step_1 (h_contract : is_menger (G/e))
   ∃ X : finset V, e.fst ∈ X ∧ e.snd ∈ X ∧ separates G A B X ∧ X.card = min_cut G A B :=
 begin
   let A₁ := image (merge_edge e) A, let B₁ := image (merge_edge e) B,
-  obtain ⟨Y, Y_eq_min₁⟩ := min_cut_set (G/e) A₁ B₁, let X := Y.to_finset ∪ {e.snd},
+  obtain ⟨Y, Y_eq_min₁⟩ := min_cut.set (G/e) A₁ B₁, let X := Y.to_finset ∪ {e.snd},
 
   have Y_lt_min : Y.card < min_cut G A B :=
   by {
@@ -469,7 +469,7 @@ begin
   refine ⟨X, _, _, X_sep_AB, _⟩,
 
   { rw [mem_union], left, by_contradiction,
-    suffices : separates G A B Y.to_finset, by { exact not_lt_of_le (min_cut_le' this) Y_lt_min },
+    suffices : separates G A B Y.to_finset, by { exact not_lt_of_le (min_cut.le' this) Y_lt_min },
     intro p, choose z hz using Y.sep (p.push (merge_edge e) A B), use z,
     rw mem_inter at hz ⊢, rcases hz with ⟨hz₁,hz₂⟩, refine ⟨_,hz₂⟩,
     rw [AB_walk.push,Walk.push_range,mem_image] at hz₁, choose x hx₁ hx₂ using hz₁,
@@ -477,7 +477,7 @@ begin
     { rw [←hx₂] at hz₂, contradiction },
     { rwa [←hx₂] } },
   { rw [mem_union,mem_singleton], right, refl },
-  { refine le_antisymm _ (min_cut_le' X_sep_AB),
+  { refine le_antisymm _ (min_cut.le' X_sep_AB),
     exact (card_union_le _ _).trans (nat.succ_le_of_lt Y_lt_min) }
 end
 
