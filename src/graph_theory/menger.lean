@@ -118,22 +118,58 @@ lemma comm : separates G A B X ↔ separates G B A X :=
 
 end separates
 
+@[ext] structure separator (G : simple_graph V) (A B : finset V) extends finset V :=
+  (sep : separates G A B to_finset)
+
+namespace separator
+
+abbreviation card (X : separator G A B) : ℕ := X.to_finset.card
+
+instance nonempty : nonempty (separator G A B) :=
+⟨⟨A,separates.self⟩⟩
+
+def symm : separator G A B → separator G B A :=
+λ ⟨X, sep⟩, ⟨X, sep.symm⟩
+
+@[simp] lemma card_symm {X : separator G A B} : X.symm.card = X.card :=
+by { cases X, simp only [symm] }
+
+def comm : separator G A B ≃ separator G B A :=
+{ to_fun := symm,
+  inv_fun := symm,
+  left_inv := λ ⟨X,sep⟩, by simp only [symm],
+  right_inv := λ ⟨X,sep⟩, by simp only [symm] }
+
+end separator
+
 def is_cut_set_size (G : simple_graph V) (A B : finset V) (n : ℕ) : Prop :=
-∃ X : finset V, X.card = n ∧ separates G A B X
+∃ X : separator G A B, X.card = n
 
 noncomputable def min_cut (G : simple_graph V) (A B : finset V) : ℕ :=
-@nat.find (is_cut_set_size G A B) _ ⟨A.card,⟨A,rfl,separates.self⟩⟩
+@nat.find (is_cut_set_size G A B) _ ⟨A.card, ⟨A, separates.self⟩, rfl⟩
 
-lemma min_cut_symm : min_cut G A B = min_cut G B A :=
-by { simp_rw [min_cut], congr' 1, ext n, simp_rw [is_cut_set_size,separates.comm] }
+namespace min_cut
 
-noncomputable def min_cut_set (G : simple_graph V) (A B : finset V) :
-  {X : finset V // X.card = min_cut G A B ∧ separates G A B X} :=
+lemma symm : min_cut G A B = min_cut G B A :=
+begin
+  simp_rw min_cut, congr' 1, ext n, split;
+  { rintro ⟨X,h⟩, refine ⟨X.symm,_⟩, rw [separator.card_symm], exact h }
+end
 
-subtype_of_exists (@nat.find_spec (is_cut_set_size G A B) _ ⟨A.card,⟨A,rfl,separates.self⟩⟩)
+lemma spec : is_cut_set_size G A B (min_cut G A B) :=
+by apply nat.find_spec
 
-lemma min_cut_le (sep : separates G A B X) : min_cut G A B ≤ X.card :=
-nat.find_le ⟨X, rfl, sep⟩
+noncomputable def set (G : simple_graph V) (A B : finset V) :
+  {X : separator G A B // X.card = min_cut G A B} :=
+subtype_of_exists (spec)
+
+lemma le {X : separator G A B} : min_cut G A B ≤ X.card :=
+nat.find_le ⟨X, rfl⟩
+
+lemma le' (sep : separates G A B X) : min_cut G A B ≤ X.card :=
+nat.find_le ⟨⟨X,sep⟩, rfl⟩
+
+end min_cut
 
 def is_menger (G : simple_graph V) : Prop :=
 ∀ A B : finset V, ∃ P : finset (AB_walk G A B), pw_disjoint P ∧ P.card = min_cut G A B
@@ -148,7 +184,7 @@ begin
 end
 
 lemma upper_bound (dis : pw_disjoint P) : P.card ≤ min_cut G A B :=
-by { obtain ⟨X,h₁,h₂⟩ := min_cut_set G A B, rw ←h₁, exact path_le_cut dis h₂ }
+by { obtain ⟨⟨X,h₁⟩,h₂⟩ := min_cut.set G A B, rw ←h₂, exact path_le_cut dis h₁ }
 
 lemma bot_iff_no_edge : fintype.card G.dart = 0 ↔ G = ⊥ :=
 begin
@@ -169,9 +205,10 @@ end
 
 lemma bot_min_cut : min_cut ⊥ A B = (A ∩ B).card :=
 begin
-  apply (nat.find_eq_iff _).mpr, simp [bot_separates_iff], split,
-  { use A ∩ B, exact ⟨rfl,subset.rfl⟩ },
-  { rintros n h₁ X rfl h₂, have := card_le_of_subset h₂, linarith }
+  apply (nat.find_eq_iff _).mpr, split,
+  { use A ∩ B, rw [bot_separates_iff], refl },
+  { rintro n hn ⟨X,rfl⟩, have := card_le_of_subset (bot_separates_iff.mp X.sep),
+    change (A ∩ B).card ≤ X.card at this, linarith }
 end
 
 noncomputable def bot_path_set (A B : finset V) :
@@ -320,8 +357,8 @@ begin
   choose P h₁ h₂ using ih, use image (AB_walk.massage minus_le) P, refine ⟨_,_,_⟩,
   { exact massage_disjoint h₁ },
   { apply (massage_card h₁).trans, apply le_antisymm h₁.le_B,
-    rcases min_cut_set (G-e) A X with ⟨Z,Z_eq_min,Z_sep₂_AB⟩,
-    rw [X_eq_min,h₂,←Z_eq_min], apply min_cut_le,
+    rcases min_cut.set (G-e) A X with ⟨⟨Z,Z_sep₂_AB⟩,Z_eq_min⟩,
+    rw [X_eq_min,h₂,←Z_eq_min], apply min_cut.le',
     exact sep_AB_of_sep₂_AX ex_in_X ey_in_X X_sep_AB Z_sep₂_AB },
   { intro p, choose p' hp'₁ hp'₂ using mem_image.mp p.prop,
     have := (p'.massage_aux minus_le).prop.1, simp [AB_walk.massage] at hp'₂, rw hp'₂ at this,
@@ -418,7 +455,7 @@ lemma step_1 (h_contract : is_menger (G/e))
   ∃ X : finset V, e.fst ∈ X ∧ e.snd ∈ X ∧ separates G A B X ∧ X.card = min_cut G A B :=
 begin
   let A₁ := image (merge_edge e) A, let B₁ := image (merge_edge e) B,
-  obtain ⟨Y, Y_eq_min₁, Y_sep⟩ := min_cut_set (G/e) A₁ B₁, let X := Y ∪ {e.snd},
+  obtain ⟨Y, Y_eq_min₁⟩ := min_cut_set (G/e) A₁ B₁, let X := Y.to_finset ∪ {e.snd},
 
   have Y_lt_min : Y.card < min_cut G A B :=
   by {
@@ -427,20 +464,20 @@ begin
     apply too_small, { apply AB_lift_dis, exact P₁_dis }, { exact merge_edge_adapted }
   },
 
-  have X_sep_AB : separates G A B X := sep_of_sep_in_merge Y_sep,
+  have X_sep_AB : separates G A B X := sep_of_sep_in_merge Y.sep,
 
   refine ⟨X, _, _, X_sep_AB, _⟩,
 
   { rw [mem_union], left, by_contradiction,
-    suffices : separates G A B Y, by { exact not_lt_of_le (min_cut_le this) Y_lt_min },
-    intro p, choose z hz using Y_sep (p.push (merge_edge e) A B), use z,
+    suffices : separates G A B Y.to_finset, by { exact not_lt_of_le (min_cut_le' this) Y_lt_min },
+    intro p, choose z hz using Y.sep (p.push (merge_edge e) A B), use z,
     rw mem_inter at hz ⊢, rcases hz with ⟨hz₁,hz₂⟩, refine ⟨_,hz₂⟩,
     rw [AB_walk.push,Walk.push_range,mem_image] at hz₁, choose x hx₁ hx₂ using hz₁,
     by_cases x = e.snd; simp [merge_edge,h] at hx₂,
     { rw [←hx₂] at hz₂, contradiction },
     { rwa [←hx₂] } },
   { rw [mem_union,mem_singleton], right, refl },
-  { refine le_antisymm _ (min_cut_le X_sep_AB),
+  { refine le_antisymm _ (min_cut_le' X_sep_AB),
     exact (card_union_le _ _).trans (nat.succ_le_of_lt Y_lt_min) }
 end
 
@@ -455,7 +492,7 @@ begin
   choose X ex_in_X ey_in_X X_sep_AB X_eq_min using step_1 h_contract too_small,
 
   rcases sep_cleanup ex_in_X ey_in_X X_eq_min X_sep_AB (h_minus A X) with ⟨P,hP⟩,
-  let X_eq_min' : X.card = min_cut G B A := X_eq_min.trans min_cut_symm,
+  let X_eq_min' : X.card = min_cut G B A := X_eq_min.trans min_cut.symm,
   rcases sep_cleanup ex_in_X ey_in_X X_eq_min' X_sep_AB.symm (h_minus B X) with ⟨Q,hQ⟩,
   rw ←X_eq_min, apply subtype.exists_of_subtype,
 
