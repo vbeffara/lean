@@ -116,4 +116,19 @@ begin
     rcases h with ⟨p,q,h⟩, wlog' : p ≥ 0,
 end
 
-#reduce fintype.card ((fin 3) ⊕ (fin 4))
+noncomputable def minimum (f : ℕ → ℕ) : ℕ :=
+begin
+    classical,
+    exact @nat.find (λ y, ∃ x, f x = y) _ ⟨f 0, 0, rfl⟩,
+end
+
+example {f : ℕ → ℕ} : ∃ x, f x = minimum f :=
+begin
+    apply @nat.find_spec (λ y, ∃ x, f x = y)
+end
+
+noncomputable def minimum' (f : ℕ → ℕ) : ℕ :=
+well_founded.min nat.lt_wf (set.range f) (set.range_nonempty _)
+
+example {f : ℕ → ℕ} : ∃ x, f x = minimum' f :=
+set.mem_range.mp (well_founded.min_mem _ _ _)

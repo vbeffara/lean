@@ -3,15 +3,17 @@ import graph_theory.contraction graph_theory.pushforward graph_theory.basic grap
 open finset classical function simple_graph.Walk
 open_locale classical
 
-variables {V V' : Type*} [fintype V] [fintype V'] {G : simple_graph V} {e : G.dart}
+variables {V V' : Type*} [fintype V] [fintype V'] {G G₁ G₂ : simple_graph V} {e : G.dart}
 variables {a : V} {A B X Y Z : finset V}
 variables {f : V → V'} {hf : G.adapted' f}
 
 namespace simple_graph
 namespace menger
 
-@[ext] structure AB_walk (G : simple_graph V) (A B : finset V) extends Walk G :=
+structure AB_walk (G : simple_graph V) (A B : finset V) extends Walk G :=
   (ha : a ∈ A) (hb : b ∈ B)
+
+variables {P : finset (AB_walk G A B)}
 
 namespace AB_walk
 
@@ -42,7 +44,7 @@ by { rintro ⟨p,ha,hb⟩, simp [lift,push], exact Walk.pull_Walk_push }
 lemma lift_inj : injective (lift f hf A B) :=
 left_inverse.injective push_lift
 
-noncomputable def trim (p : AB_walk G A B) :
+noncomputable def trim_aux (p : AB_walk G A B) :
   {q : AB_walk G A B // q.minimal ∧ q.to_Walk.range ⊆ p.to_Walk.range} :=
 begin
   rcases p with ⟨p₁, p₁a, p₁b⟩,
@@ -52,25 +54,28 @@ begin
   rcases p₂.until B h₂ with ⟨p₃, p₃a, p₃b, p₃r, p₃i, -, p₃t⟩,
   refine ⟨⟨p₃, p₃a.symm ▸ p₂a, p₃b⟩, ⟨by simp [p₃i], _⟩, p₃r.trans p₂r⟩,
   have : p₃.tail ∩ A ⊆ p₂.tail ∩ A := inter_subset_inter_right p₃t,
-  simp, rw ←subset_empty, apply this.trans, rw p₂t, refl
+  rw ←subset_empty, apply this.trans, rw p₂t, refl
 end
 
-noncomputable def massage_aux {G₁ G₂ : simple_graph V} (h : G₂ ≤ G₁)
-  (p : AB_walk G₂ A X) : {q : AB_walk G₁ A X // q.minimal ∧ q.to_Walk.range ⊆ p.to_Walk.range} :=
+noncomputable def trim (p : AB_walk G A B) : AB_walk G A B := p.trim_aux.val
+
+lemma trim_minimal {p : AB_walk G A B} : p.trim.minimal := p.trim_aux.prop.1
+
+lemma trim_range {p : AB_walk G A B} : p.trim.to_Walk.range ⊆ p.to_Walk.range := p.trim_aux.prop.2
+
+noncomputable def massage_aux (h : G₂ ≤ G₁) (p : AB_walk G₂ A X) :
+  {q : AB_walk G₁ A X // q.minimal ∧ q.to_Walk.range ⊆ p.to_Walk.range} :=
 begin
-  rcases trim p with ⟨⟨p',p'a,p'b⟩,⟨p'aa,p'bb⟩,hp'⟩,
-  rcases p'.transport (transportable_to_of_le h) with ⟨q,qa,qb,qr,qi,qt⟩,
-  refine ⟨⟨q, qa.symm ▸ p'a, qb.symm ▸ p'b⟩, ⟨qi.symm ▸ p'aa, qt.symm ▸ p'bb⟩, _⟩,
-  simp, rw qr, exact hp'
+  let p' := p.trim, rcases p'.to_Walk.transport (transportable_to_of_le h) with ⟨q,qa,qb,qr,qi,qt⟩,
+  refine ⟨⟨q, qa.symm ▸ p'.ha, qb.symm ▸ p'.hb⟩, _, _⟩,
+  { rw [minimal,qi,qt], exact trim_minimal },
+  { rw [qr], exact trim_range }
 end
 
-noncomputable def massage {G₁ G₂ : simple_graph V} (h : G₂ ≤ G₁) :
-  AB_walk G₂ A X → AB_walk G₁ A X :=
-λ p, (massage_aux h p).val
+noncomputable def massage (h : G₂ ≤ G₁) (p : AB_walk G₂ A X) : AB_walk G₁ A X :=
+(p.massage_aux h).val
 
 end AB_walk
-
-variables {P : finset (AB_walk G A B)}
 
 def pw_disjoint (P : finset (AB_walk G A B)) : Prop :=
 ∀ ⦃γ₁ γ₂ : P⦄, (γ₁.val.to_Walk.range ∩ γ₂.val.to_Walk.range).nonempty → γ₁ = γ₂
@@ -116,27 +121,19 @@ end separates
 def is_cut_set_size (G : simple_graph V) (A B : finset V) (n : ℕ) : Prop :=
 ∃ X : finset V, X.card = n ∧ separates G A B X
 
-noncomputable def min_cut' (G : simple_graph V) (A B : finset V) :
-  { n : ℕ // is_cut_set_size G A B n ∧ ∀ m < n, ¬ is_cut_set_size G A B m } :=
-begin
-  let n := @nat.find (is_cut_set_size G A B) _ ⟨A.card,⟨A,rfl,separates.self⟩⟩,
-  have p₁ := @nat.find_spec (is_cut_set_size G A B) _ ⟨A.card,⟨A,rfl,separates.self⟩⟩,
-  have p₂ := λ m, @nat.find_eq_iff m (is_cut_set_size G A B) _ ⟨A.card,⟨A,rfl,separates.self⟩⟩,
-  exact ⟨n, p₁, ((p₂ n).mp rfl).2⟩
-end
-
 noncomputable def min_cut (G : simple_graph V) (A B : finset V) : ℕ :=
-  (min_cut' G A B).val
+@nat.find (is_cut_set_size G A B) _ ⟨A.card,⟨A,rfl,separates.self⟩⟩
 
 lemma min_cut_symm : min_cut G A B = min_cut G B A :=
-by { simp_rw [min_cut,min_cut'], congr' 1, ext n, simp_rw [is_cut_set_size,separates.comm] }
+by { simp_rw [min_cut], congr' 1, ext n, simp_rw [is_cut_set_size,separates.comm] }
 
 noncomputable def min_cut_set (G : simple_graph V) (A B : finset V) :
   {X : finset V // X.card = min_cut G A B ∧ separates G A B X} :=
-⟨_, some_spec (min_cut' G A B).prop.1⟩
 
-lemma min_cut_spec (sep : separates G A B X) : min_cut G A B ≤ X.card :=
-by { have h := mt ((min_cut' G A B).2.2 X.card), rw [not_not,not_lt] at h, exact h ⟨X,rfl,sep⟩ }
+subtype_of_exists (@nat.find_spec (is_cut_set_size G A B) _ ⟨A.card,⟨A,rfl,separates.self⟩⟩)
+
+lemma min_cut_le (sep : separates G A B X) : min_cut G A B ≤ X.card :=
+nat.find_le ⟨X, rfl, sep⟩
 
 def is_menger (G : simple_graph V) : Prop :=
 ∀ A B : finset V, ∃ P : finset (AB_walk G A B), pw_disjoint P ∧ P.card = min_cut G A B
@@ -324,7 +321,7 @@ begin
   { exact massage_disjoint h₁ },
   { apply (massage_card h₁).trans, apply le_antisymm h₁.le_B,
     rcases min_cut_set (G-e) A X with ⟨Z,Z_eq_min,Z_sep₂_AB⟩,
-    rw [X_eq_min,h₂,←Z_eq_min], apply min_cut_spec,
+    rw [X_eq_min,h₂,←Z_eq_min], apply min_cut_le,
     exact sep_AB_of_sep₂_AX ex_in_X ey_in_X X_sep_AB Z_sep₂_AB },
   { intro p, choose p' hp'₁ hp'₂ using mem_image.mp p.prop,
     have := (p'.massage_aux minus_le).prop.1, simp [AB_walk.massage] at hp'₂, rw hp'₂ at this,
@@ -435,7 +432,7 @@ begin
   refine ⟨X, _, _, X_sep_AB, _⟩,
 
   { rw [mem_union], left, by_contradiction,
-    suffices : separates G A B Y, by { exact not_lt_of_le (min_cut_spec this) Y_lt_min },
+    suffices : separates G A B Y, by { exact not_lt_of_le (min_cut_le this) Y_lt_min },
     intro p, choose z hz using Y_sep (p.push (merge_edge e) A B), use z,
     rw mem_inter at hz ⊢, rcases hz with ⟨hz₁,hz₂⟩, refine ⟨_,hz₂⟩,
     rw [AB_walk.push,Walk.push_range,mem_image] at hz₁, choose x hx₁ hx₂ using hz₁,
@@ -443,7 +440,7 @@ begin
     { rw [←hx₂] at hz₂, contradiction },
     { rwa [←hx₂] } },
   { rw [mem_union,mem_singleton], right, refl },
-  { refine le_antisymm _ (min_cut_spec X_sep_AB),
+  { refine le_antisymm _ (min_cut_le X_sep_AB),
     exact (card_union_le _ _).trans (nat.succ_le_of_lt Y_lt_min) }
 end
 
