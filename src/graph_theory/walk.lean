@@ -1,7 +1,6 @@
 import tactic combinatorics.simple_graph.connectivity
 import graph_theory.path graph_theory.pushforward graph_theory.contraction
 open classical function
-open_locale classical
 
 namespace simple_graph
 

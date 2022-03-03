@@ -1,10 +1,11 @@
 import combinatorics.simple_graph.connectivity data.finset data.setoid.basic
 import graph_theory.contraction graph_theory.pushforward graph_theory.basic graph_theory.walk
 open finset classical function simple_graph.Walk
-open_locale classical
 
-variables {V V' : Type*} [fintype V] [fintype V'] {G G₁ G₂ : simple_graph V} {e : G.dart}
-variables {a : V} {A B X Y Z : finset V}
+variables {V V' : Type*} [fintype V] [decidable_eq V] [fintype V'] [decidable_eq V']
+variables {G G₁ G₂ : simple_graph V}
+variables [decidable_rel G.adj] [decidable_rel G₁.adj] [decidable_rel G₂.adj]
+variables {a : V} {A B X Y Z : finset V} {e : G.dart}
 variables {f : V → V'} {hf : G.adapted' f}
 
 namespace simple_graph
@@ -12,6 +13,8 @@ namespace menger
 
 structure AB_walk (G : simple_graph V) (A B : finset V) extends Walk G :=
   (ha : a ∈ A) (hb : b ∈ B)
+
+noncomputable instance : decidable_eq (AB_walk G A B) := by { classical, apply_instance }
 
 variables {P : finset (AB_walk G A B)}
 
@@ -30,7 +33,7 @@ begin
   rw ←γ.2.1 at h₂, rw ←γ.2.2.1 at h₅, exact ⟨γ,h₂,h₅⟩
 end
 
-noncomputable def push (f : V → V') (A B : finset V) :
+def push (f : V → V') (A B : finset V) :
   AB_walk G A B → AB_walk (push f G) (A.image f) (B.image f) :=
 begin
   intro p, refine ⟨Walk.push_Walk f p.to_Walk, _, _⟩,
@@ -142,10 +145,13 @@ def comm : separator G A B ≃ separator G B A :=
 
 end separator
 
-def is_cut_set_size (G : simple_graph V) (A B : finset V) (n : ℕ) : Prop :=
+def is_cut_set_size (G : simple_graph V) [decidable_rel G.adj] (A B : finset V) (n : ℕ) : Prop :=
 ∃ X : separator G A B, X.card = n
 
-noncomputable def min_cut (G : simple_graph V) (A B : finset V) : ℕ :=
+noncomputable instance : decidable_pred (is_cut_set_size G A B) :=
+by { classical, apply_instance }
+
+noncomputable def min_cut (G : simple_graph V) [decidable_rel G.adj] (A B : finset V) : ℕ :=
 @nat.find (is_cut_set_size G A B) _ ⟨A.card, ⟨A, separates.self⟩, rfl⟩
 
 namespace min_cut
@@ -159,7 +165,7 @@ end
 lemma spec : is_cut_set_size G A B (min_cut G A B) :=
 by apply nat.find_spec
 
-noncomputable def set (G : simple_graph V) (A B : finset V) :
+noncomputable def set (G : simple_graph V) [decidable_rel G.adj] (A B : finset V) :
   {X : separator G A B // X.card = min_cut G A B} :=
 subtype_of_exists (spec)
 
@@ -171,7 +177,7 @@ nat.find_le ⟨⟨X,sep⟩, rfl⟩
 
 end min_cut
 
-def is_menger (G : simple_graph V) : Prop :=
+def is_menger (G : simple_graph V) [decidable_rel G.adj] : Prop :=
 ∀ A B : finset V, ∃ P : finset (AB_walk G A B), pw_disjoint P ∧ P.card = min_cut G A B
 
 lemma path_le_cut (dis : pw_disjoint P) (sep : separates G A B X) : P.card ≤ X.card :=
@@ -190,7 +196,7 @@ lemma bot_iff_no_edge : fintype.card G.dart = 0 ↔ G = ⊥ :=
 begin
   split; intro h,
   { ext x y, simp, intro h₁, exact is_empty_iff.mp (fintype.card_eq_zero_iff.mp h) ⟨_,_,h₁⟩ },
-  { rw h, apply fintype.card_eq_zero_iff.mpr, exact (is_empty_iff.mpr dart.is_adj) }
+  { simp_rw h, apply fintype.card_eq_zero_iff.mpr, exact (is_empty_iff.mpr dart.is_adj) }
 end
 
 lemma bot_separates_iff : separates ⊥ A B X ↔ (A ∩ B) ⊆ X :=
@@ -249,6 +255,8 @@ G.delete_edges {e.edge}
 
 infix `-` := minus
 
+noncomputable instance : decidable_rel (G-e).adj := by { classical, apply_instance }
+
 lemma minus_le {e : G.dart} : G-e ≤ G := λ x y h, h.1
 
 lemma minus_lt_edges {e : G.dart} : fintype.card (G-e).dart < fintype.card G.dart :=
@@ -289,7 +297,7 @@ by {
   exact ⟨z, mem_inter.mpr ⟨mem_of_subset δ_range hz.1, hz.2⟩⟩,
 }
 
-lemma massage_eq {G₁ G₂ : simple_graph V} {h : G₂ ≤ G₁} {P : finset (AB_walk G₂ A B)} {p₁ p₂ : P} :
+lemma massage_eq {h : G₂ ≤ G₁} {P : finset (AB_walk G₂ A B)} {p₁ p₂ : P} :
   pw_disjoint P → ((p₁.val.massage h).to_Walk.range ∩ (p₂.val.massage h).to_Walk.range).nonempty →
   p₁ = p₂ :=
 begin
@@ -298,7 +306,7 @@ begin
   { apply (p₂.val.massage_aux h).prop.2, exact hz.2 }
 end
 
-lemma massage_disjoint {G₁ G₂ : simple_graph V} {h : G₂ ≤ G₁} {P : finset (AB_walk G₂ A B)} :
+lemma massage_disjoint {h : G₂ ≤ G₁} {P : finset (AB_walk G₂ A B)} :
   pw_disjoint P → pw_disjoint (image (AB_walk.massage h) P) :=
 begin
   rintro h₁ ⟨p₁,hp₁⟩ ⟨p₂,hp₂⟩ h, apply subtype.ext, dsimp,
@@ -308,7 +316,7 @@ begin
   rw [hq₁',hq₂'], exact h
 end
 
-lemma massage_card {G₁ G₂ : simple_graph V} {h : G₂ ≤ G₁} {P : finset (AB_walk G₂ A B)} :
+lemma massage_card {h : G₂ ≤ G₁} {P : finset (AB_walk G₂ A B)} :
   pw_disjoint P → (image (AB_walk.massage h) P).card = P.card :=
 begin
   rintro hP, apply card_image_of_inj_on, rintro p₁ hp₁ p₂ hp₂ he,
@@ -499,10 +507,12 @@ begin
   exact stitch X_sep_AB P hP.1 hP.2.1 Q hQ.1 hQ.2.1 hP.2.2 hQ.2.2
 end
 
-lemma lower_bound_aux (n : ℕ) : ∀ G : simple_graph V, fintype.card G.dart ≤ n → is_menger G :=
+open_locale classical
+
+lemma lower_bound_aux (n : ℕ) : ∀ (G : simple_graph V) [decidable_rel G.adj], fintype.card G.dart ≤ n → is_menger G :=
 begin
-  induction n with n ih; intros G hG,
-  { rw [bot_iff_no_edge.mp (nonpos_iff_eq_zero.mp hG)], exact bot_is_menger },
+  induction n with n ih; intros G G_dec hG,
+  { simp_rw [bot_iff_no_edge.mp (nonpos_iff_eq_zero.mp hG)], exact bot_is_menger },
   { by_cases (fintype.card G.dart = 0),
     { apply ih, linarith },
     { cases not_is_empty_iff.mp (h ∘ fintype.card_eq_zero_iff.mpr) with e, apply induction_step e,
@@ -511,8 +521,9 @@ begin
 end
 
 theorem menger : is_menger G :=
-lower_bound_aux (fintype.card G.dart) G (le_of_eq rfl)
+begin
+  apply lower_bound_aux (fintype.card G.dart), apply le_of_eq, convert rfl
+end
 
--- theorem menger (h : separable G A B) : max_path_number G A B = min_cut h
 end menger
 end simple_graph

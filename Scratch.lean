@@ -132,3 +132,21 @@ well_founded.min nat.lt_wf (set.range f) (set.range_nonempty _)
 
 example {f : ℕ → ℕ} : ∃ x, f x = minimum' f :=
 set.mem_range.mp (well_founded.min_mem _ _ _)
+
+@[irreducible] def foo (x : ℕ) : nat := 1
+example : foo = λ _, 1 := rfl -- fail
+example : foo = λ _, 1 := by delta foo; refl -- ok
+example : foo = λ _, 1 := by dunfold foo; refl -- fail
+example : foo = λ _, 1 := by unfold foo -- fail
+example : foo = λ _, 1 := by rw [foo] -- fail
+example : foo = λ _, 1 := by dsimp [foo]; refl -- fail
+example : foo = λ _, 1 := by simp [foo] -- fail
+
+lemma bar (x : nat) : nat := 1
+example : bar = λ _, 1 := rfl -- fail
+example : bar = λ _, 1 := by delta bar; refl -- ok
+example : bar = λ _, 1 := by dunfold bar; refl -- ok
+example : bar = λ _, 1 := by unfold bar -- fail
+example : bar = λ _, 1 := by rw [bar] -- fail
+example : bar = λ _, 1 := by dsimp [bar]; refl -- fail
+example : bar = λ _, 1 := by simp [bar] -- fail

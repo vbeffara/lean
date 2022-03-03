@@ -1,7 +1,6 @@
 import combinatorics.simple_graph.basic combinatorics.simple_graph.connectivity data.set.basic
 import graph_theory.basic
 open function set classical
-open_locale classical
 
 variables {V V' V'' : Type*} {x y z : V} {x' y' z' : V'} {f : V → V'} {g : V' → V''}
 variables {G G₁ G₂ : simple_graph V} {G' G'₁ G'₂ : simple_graph V'} {G'' : simple_graph V''}
@@ -70,6 +69,8 @@ def push (f : V → V') (G : simple_graph V) : simple_graph V' :=
   loopless := λ _ ⟨h₀,_⟩, h₀ rfl }
 
 namespace push
+noncomputable instance : decidable_rel (push f G).adj := by { classical, apply_instance }
+
 @[simp] lemma push_id : push id G = G :=
 begin
   ext x y, split,
@@ -178,6 +179,10 @@ def contract_edge (G : simple_graph V) [decidable_eq V] (e : G.dart) :=
 G.push (merge_edge e)
 
 infix ` / ` := contract_edge
+
+noncomputable instance {G : simple_graph V} [decidable_eq V] {e : G.dart} :
+  decidable_rel (G/e).adj :=
+by { classical, apply_instance }
 
 namespace contract_edge
 variables [fintype V] [decidable_eq V] [decidable_eq V'] [decidable_rel G.adj]
