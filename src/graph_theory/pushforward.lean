@@ -135,7 +135,7 @@ by { rintros x' y' ⟨-,x,y,rfl,rfl,h₂⟩, exact φ.map_rel h₂ }
 
 noncomputable def lift_step_aux (e' : (push f G).dart) :
   {e : G.dart // f e.fst = e'.fst ∧ f e.snd = e'.snd} :=
-by { choose x y h₁ h₂ h₃ using e'.is_adj.2, exact ⟨⟨_,_,h₃⟩,h₁,h₂⟩ }
+by { choose x y h₁ h₂ h₃ using e'.is_adj.2, exact ⟨⟨⟨_,_⟩,h₃⟩,h₁,h₂⟩ }
 
 noncomputable def lift_step (e' : (push f G).dart) : G.dart :=
 (lift_step_aux e').val
@@ -191,15 +191,13 @@ variables [fintype V] [decidable_eq V] [decidable_eq V'] [decidable_rel G.adj]
 {e : G.dart // f e.fst ≠ f e.snd}
 
 def proj_edge (e : G.dart) : preserved (merge_edge e) G → (G/e).dart :=
-begin
-  rintro ⟨e',h₁⟩, suffices : (G/e).adj (merge_edge e e'.fst) (merge_edge e e'.snd), by { exact ⟨_,_,this⟩ },
-  cases push.adj (merge_edge e) e'.is_adj, contradiction, assumption
-end
+λ ⟨⟨⟨x,y⟩,hxy⟩,h₁⟩, ⟨(merge_edge e x, merge_edge e y), ⟨h₁,x,y,rfl,rfl,hxy⟩⟩
 
 lemma proj_edge_surj {e : G.dart} : surjective (proj_edge e) :=
 begin
-  rintro ⟨x,y,h₁,u,v,rfl,rfl,h₂⟩, use ⟨⟨_,_,h₂⟩,h₁⟩,
-  simp only [proj_edge, eq_self_iff_true, and_self, merge_edge]
+  rintro ⟨⟨x',y'⟩,⟨h₁,⟨x,y,h₂,h₃,h₄⟩⟩⟩, refine ⟨⟨⟨(x,y),h₄⟩,_⟩,_⟩,
+  { rw [h₂,h₃], exact h₁ },
+  { simp only [proj_edge, prod.mk.inj_iff], exact ⟨h₂,h₃⟩ }
 end
 
 lemma fewer_edges {e : G.dart} [decidable_rel (G/e).adj] :

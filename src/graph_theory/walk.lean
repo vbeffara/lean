@@ -31,7 +31,7 @@ def rec₀ {motive : G.Walk → Sort*} :
 begin
   rintros h_nil h_cons ⟨a,b,p⟩, induction p with a a b c adj p ih,
   { exact h_nil a },
-  { exact h_cons ⟨_,_,adj⟩ ⟨p⟩ rfl ih }
+  { exact h_cons ⟨⟨_,_⟩,adj⟩ ⟨p⟩ rfl ih }
 end
 
 @[simp] lemma rec_nil {motive h_nil h_cons} :
@@ -41,7 +41,7 @@ end
   @rec₀ V _ G motive h_nil h_cons (cons e p h) =
   h_cons e p h (rec₀ h_nil h_cons p) :=
 begin
-  rcases e with ⟨u,v,e⟩, rcases p with ⟨a,b,p⟩, simp at h, subst v, refl
+  rcases e with ⟨⟨u,v⟩,e⟩, rcases p with ⟨a,b,p⟩, simp at h, subst v, refl
 end
 
 @[simp] lemma cons_a : (cons e p hep).a = e.fst := rfl
@@ -123,7 +123,7 @@ by { subst haq, rcases q with ⟨a,b,q⟩, refl }
 @[simp] lemma append_cons :
   append (cons e p hep) q hpq = cons e (append p q hpq) (by simp [hep]) :=
 begin
-  rcases e with ⟨u,v,e⟩, rcases p with ⟨a,b,p⟩, rcases q with ⟨c,d,q⟩,
+  rcases e with ⟨⟨u,v⟩,e⟩, rcases p with ⟨a,b,p⟩, rcases q with ⟨c,d,q⟩,
   simp at hep hpq, substs a b, refl
 end
 
@@ -144,7 +144,7 @@ def push_step_aux (f : V → V') (e : G.dart) :
 begin
   by_cases f e.fst = f e.snd,
   exact ⟨Walk.nil (f e.fst), rfl, h⟩,
-  exact ⟨Walk.step ⟨_,_,⟨h,e.fst,e.snd,rfl,rfl,e.is_adj⟩⟩, rfl, rfl⟩
+  exact ⟨Walk.step ⟨⟨_,_⟩,⟨h,e.fst,e.snd,rfl,rfl,e.is_adj⟩⟩, rfl, rfl⟩
 end
 
 def push_step (f : V → V') (e : G.dart) : (push f G).Walk :=
@@ -181,7 +181,7 @@ def push_Walk (f : V → V') (p : G.Walk) : (push f G).Walk :=
 
 lemma push_cons (f : V → V') (e : G.dart) (p : G.Walk) (h : e.snd = p.a) :
   push_Walk f (p.cons e h) = Walk.append (push_step f e) (push_Walk f p) (by simp [h]) :=
-by { rcases p with ⟨a,b,p⟩, rcases e with ⟨u,v,e⟩, simp at h, subst a, refl }
+by { rcases p with ⟨a,b,p⟩, rcases e with ⟨⟨u,v⟩,e⟩, simp at h, subst a, refl }
 
 lemma push_cons_eq (f : V → V') (e : G.dart) (p : G.Walk) (h : e.snd = p.a) (h' : f e.fst = f e.snd) :
   push_Walk f (p.cons e h) = push_Walk f p :=
@@ -191,9 +191,9 @@ begin
 end
 
 lemma push_cons_ne (f : V → V') (e : G.dart) (p : G.Walk) (h : e.snd = p.a) (h' : f e.fst ≠ f e.snd) :
-  push_Walk f (p.cons e h) = Walk.cons ⟨_,_,⟨h',e.fst,e.snd,rfl,rfl,e.is_adj⟩⟩ (push_Walk f p) (by simp [h]) :=
+  push_Walk f (p.cons e h) = Walk.cons ⟨⟨_,_⟩,⟨h',e.fst,e.snd,rfl,rfl,e.is_adj⟩⟩ (push_Walk f p) (by simp [h]) :=
 begin
-  have : push_step f e = Walk.step ⟨_,_,⟨h',e.fst,e.snd,rfl,rfl,e.is_adj⟩⟩ :=
+  have : push_step f e = Walk.step ⟨⟨_,_⟩,⟨h',e.fst,e.snd,rfl,rfl,e.is_adj⟩⟩ :=
     by simp [push_step,push_step_aux,h'],
   rw [push_cons], simp [this,step]
 end
@@ -248,16 +248,16 @@ begin
   revert p' x y, refine rec₀ _ _,
   { rintros u x y hx hy, simp at hx hy, subst hy, choose p h₃ using hf x y hx,
     refine ⟨⟨p⟩,rfl,rfl,_⟩, apply push_eq_nil, exact h₃ },
-  { rintros ⟨u,v,⟨huv,ee⟩⟩ p h ih x y hx hy,
+  { rintros ⟨⟨u,v⟩,⟨huv,ee⟩⟩ p h ih x y hx hy,
     choose xx yy h₂ h₃ h₄ using ee, -- TODO `substs u v`
     choose p₁ h₆ using hf x xx (hx.trans h₂.symm),
     simp_rw [h₂] at h₆,
     obtain p₂ := ih yy y (h₃.trans h) hy,
-    let pp := Walk.append ⟨p₁⟩ (p₂.val.cons ⟨_,_,h₄⟩ p₂.2.1.symm) rfl,
+    let pp := Walk.append ⟨p₁⟩ (p₂.val.cons ⟨⟨_,_⟩,h₄⟩ p₂.2.1.symm) rfl,
     refine ⟨pp, rfl, p₂.2.2.1, _⟩,
     have h₇ := push_eq_nil f u ⟨p₁⟩ h₆,
     simp [pp,push_append,h₇], rw [←h₂,←h₃] at huv,
-    have h₈ := push_cons_ne f ⟨_,_,h₄⟩ p₂.val p₂.2.1.symm huv, refine h₈.trans _,
+    have h₈ := push_cons_ne f ⟨⟨_,_⟩,h₄⟩ p₂.val p₂.2.1.symm huv, refine h₈.trans _,
     simp [h₂,h₃], congr, exact p₂.2.2.2 }
 end
 
@@ -293,7 +293,7 @@ begin
     have : transportable_to G' p :=
       by { rintro e he, apply hp, rw [edges_cons,finset.mem_union], right, exact he },
     specialize ih this, rcases ih with ⟨q,hq⟩, rw ←hq.1 at h,
-    exact ⟨cons ⟨_,_,hp e first_edge⟩ q h, by simp [hq]⟩ }
+    exact ⟨cons ⟨⟨_,_⟩,hp e first_edge⟩ q h, by simp [hq]⟩ }
 end
 
 -- TODO for `(X : set V)`
@@ -346,7 +346,7 @@ begin
   { intro v, exact ⟨nil v, rfl⟩ },
   { rintro e p h q,
     by_cases h' : G'.adj e.fst e.snd,
-    { rw ← q.prop at h, refine ⟨cons ⟨_,_,h'⟩ q h, rfl⟩ },
+    { rw ← q.prop at h, refine ⟨cons ⟨⟨_,_⟩,h'⟩ q h, rfl⟩ },
     { exact ⟨nil e.fst, rfl⟩ } }
 end
 
@@ -354,11 +354,11 @@ def reverse_aux (p : G.Walk) : {q : G.Walk // q.a = p.b ∧ q.b = p.a ∧ q.rang
 begin
   refine rec₀ _ _ p,
   { rintro u, refine ⟨nil u, rfl, rfl, rfl⟩ },
-  { rintro e p h ⟨q,qa,qb,qr⟩, refine ⟨q.append (step e.rev) _, _, _, _⟩,
+  { rintro e p h ⟨q,qa,qb,qr⟩, refine ⟨q.append (step e.symm) _, _, _, _⟩,
     { rw [qb,←h], refl },
     { simp [qa] },
     { simp, refl },
-    { simp [qr], rw finset.union_comm, simp [h,dart.rev] }
+    { simp [qr], rw finset.union_comm, simp [h,dart.symm] }
   }
 end
 

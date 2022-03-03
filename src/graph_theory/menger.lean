@@ -195,7 +195,7 @@ by { obtain ⟨⟨X,h₁⟩,h₂⟩ := min_cut.set G A B, rw ←h₂, exact path
 lemma bot_iff_no_edge : fintype.card G.dart = 0 ↔ G = ⊥ :=
 begin
   split; intro h,
-  { ext x y, simp, intro h₁, exact is_empty_iff.mp (fintype.card_eq_zero_iff.mp h) ⟨_,_,h₁⟩ },
+  { ext x y, simp, intro h₁, exact is_empty_iff.mp (fintype.card_eq_zero_iff.mp h) ⟨⟨_,_⟩,h₁⟩ },
   { simp_rw h, apply fintype.card_eq_zero_iff.mpr, exact (is_empty_iff.mpr dart.is_adj) }
 end
 
@@ -261,12 +261,13 @@ lemma minus_le {e : G.dart} : G-e ≤ G := λ x y h, h.1
 
 lemma minus_lt_edges {e : G.dart} : fintype.card (G-e).dart < fintype.card G.dart :=
 begin
-  let φ : (G-e).dart → G.dart := λ e, ⟨_,_,e.is_adj.1⟩,
-  have φ_inj : injective φ := by { rintro e₁ e₂ h, simp [φ] at h, exact e₁.ext e₂ h.1 h.2 },
+  let φ : (G-e).dart → G.dart := λ e, ⟨⟨_,_⟩,e.is_adj.1⟩,
+  have φ_inj : injective φ := by { rintro e₁ e₂ h, simp [φ] at h, exact e₁.ext e₂ h },
   suffices : e ∉ set.range φ, refine fintype.card_lt_of_injective_of_not_mem φ φ_inj this,
-  intro he, rw set.mem_range at he, choose e' he using he, rcases e' with ⟨x,y,he'⟩,
-  have : x = e.fst := congr_arg dart.fst he, have : y = e.snd := congr_arg dart.snd he,
-  substs x y, simp [minus] at he', simp [dart.edge,sym2] at he', apply he'.2, refl
+  intro he, rw set.mem_range at he, choose e' he using he, rcases e' with ⟨⟨x,y⟩,he'⟩,
+  replace he := (dart.ext_iff _ _).mp he, replace he := prod.ext_iff.mp he,
+  simp only at he, cases he, substs x y,
+  simp [minus] at he', simp [dart.edge,sym2] at he', apply he'.2, refl
 end
 
 lemma sep_AB_of_sep₂_AX ⦃e : G.dart⦄ (ex_in_X : e.fst ∈ X) (ey_in_X : e.snd ∈ X) :
@@ -287,7 +288,8 @@ by {
         by { rw [inter_distrib_right, union_eq_empty_iff] at h₁, intro h,
           apply not_nonempty_empty, rw ←h₁.1,
           exact ⟨e'.fst, by simp only [h, singleton_inter_of_mem, mem_singleton]⟩ },
-        intro h', rw [dart.edge,sym2.eq_iff] at h', cases h'; { rw h'.1 at this, contradiction } },
+        intro h', apply this, rw [dart.edge,sym2.mk_eq_mk_iff] at h',
+        cases h'; { rw h', assumption } },
       { exact ih h₃ e'' h₂ }
     }
   },
@@ -507,14 +509,14 @@ begin
   exact stitch X_sep_AB P hP.1 hP.2.1 Q hQ.1 hQ.2.1 hP.2.2 hQ.2.2
 end
 
-open_locale classical
-
-lemma lower_bound_aux (n : ℕ) : ∀ (G : simple_graph V) [decidable_rel G.adj], fintype.card G.dart ≤ n → is_menger G :=
+lemma lower_bound_aux (n : ℕ) : ∀ (G : simple_graph V) [decidable_rel G.adj],
+  by exactI fintype.card G.dart ≤ n → is_menger G :=
 begin
   induction n with n ih; intros G G_dec hG,
-  { simp_rw [bot_iff_no_edge.mp (nonpos_iff_eq_zero.mp hG)], exact bot_is_menger },
-  { by_cases (fintype.card G.dart = 0),
-    { apply ih, linarith },
+  { have : G = ⊥ := by { apply bot_iff_no_edge.mp, exact nat.le_zero_iff.mp hG, apply_instance },
+    simp_rw this, exact bot_is_menger },
+  { resetI, by_cases (fintype.card G.dart = 0),
+    { apply ih, rw h, linarith },
     { cases not_is_empty_iff.mp (h ∘ fintype.card_eq_zero_iff.mpr) with e, apply induction_step e,
       { exact ih _ (nat.le_of_lt_succ (nat.lt_of_lt_of_le contract_edge.fewer_edges hG)) },
       { exact ih _ (nat.le_of_lt_succ (nat.lt_of_lt_of_le minus_lt_edges hG)) } } }

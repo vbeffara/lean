@@ -10,7 +10,7 @@ structure path_embedding (G : simple_graph V) (G' : simple_graph V') :=
   (df       : Π e : G.dart, walk G' (f e.fst) (f e.snd))
   --
   (nodup    : ∀ e : G.dart, (df e).support.nodup)
-  (sym      : ∀ e : G.dart, df e.rev = (df e).reverse)
+  (sym      : ∀ e : G.dart, df e.symm = (df e).reverse)
   --
   (endpoint : ∀ {e x}, f x ∈ (df e).support → x ∈ e.edge)
   --
@@ -35,7 +35,7 @@ end
 
 @[simp] def follow : Π {x y : V}, walk G x y → walk G' (F.f x) (F.f y)
 | _ _ nil        := nil
-| _ _ (cons h p) := F.df ⟨_,_,h⟩ ++ follow p
+| _ _ (cons h p) := F.df ⟨⟨_,_⟩,h⟩ ++ follow p
 
 @[simp] lemma follow_append : follow F (p ++ p') = follow F p ++ follow F p' :=
 by { induction p, refl, simp only [cons_append,append_assoc,p_ih,follow] }
@@ -48,9 +48,9 @@ begin
   { simp only [follow, myedges, length_cons, nat.succ_pos', mem_support_append_iff,
     list.mem_cons_iff, forall_true_left], split; intro H,
     { cases H,
-      { exact ⟨⟨_,_,h⟩,or.inl rfl,H⟩ },
+      { exact ⟨⟨⟨_,_⟩,h⟩,or.inl rfl,H⟩ },
       { cases p,
-        { refine ⟨⟨_,_,h⟩,or.inl rfl,_⟩, simp only [follow,support_nil,list.mem_singleton] at H,
+        { refine ⟨⟨⟨_,_⟩,h⟩,or.inl rfl,_⟩, simp only [follow,support_nil,list.mem_singleton] at H,
           rw H, apply end_mem_support },
         { simp only [follow,length_cons,nat.succ_pos',mem_support_append_iff,forall_true_left] at ih,
           simp only [follow, mem_support_append_iff] at H,
@@ -79,8 +79,9 @@ begin
         exact sym2.mem_mk_left _ _ },
       { obtain ⟨v,_⟩ := h9, subst z, have h10 := F.endpoint h3,
         cases sym2.mem_iff.mp h10 with h10 h10,
-        { simp only at h10, subst h10, exfalso, apply h.1,
-          cases sym2.mem_iff.mp (F.endpoint h8) with h12 h12,
+        { subst h10, exfalso, apply h.1,
+          have := F.endpoint h8, rw [dart.edge] at this, rcases e with ⟨⟨ex,ey⟩,he⟩, simp at this,
+          cases this with h12 h12,
           { subst h12, exact left },
           { subst h12, exact right } },
         { rw h10 } } } }
@@ -90,7 +91,7 @@ lemma follow_rev {p : walk G x y} : follow F p.reverse = (follow F p).reverse :=
 begin
   induction p with u u v w h p ih, refl,
   simp only [ih.symm, follow, reverse_cons, follow_append, append_nil, reverse_append],
-  congr, exact F.sym ⟨_,_,h⟩
+  congr, exact F.sym ⟨⟨_,_⟩,h⟩
 end
 
 def comp (F : path_embedding G G') (F' : path_embedding G' G'') : path_embedding G G'' :=
@@ -113,7 +114,7 @@ def comp (F : path_embedding G G') (F' : path_embedding G' G'') : path_embedding
     { left, clear h4 h6, replace h3 := walk.mem_edges h3, replace h5 := walk.mem_edges h5,
       replace h5 : e1.fst ∈ (F.df e').support ∧ e1.snd ∈ (F.df e').support :=
       by { cases (dart_edge_eq_iff e1 e2).mp h7; subst e1,
-        exact h5, simp only [dart.rev], exact h5.symm },
+        exact h5, simp only [dart.symm], exact h5.symm },
       cases F.disjoint h3.1 h5.1 with h10 h10, exact h10, obtain ⟨x,h10⟩ := h10, rw h10 at h3 h5,
       cases F.disjoint h3.2 h5.2 with h11 h11, exact h11, obtain ⟨y,h11⟩ := h11, rw h11 at h3 h5,
       have h12 := F.endpoint h3.1, have h13 := F.endpoint h3.2,
@@ -123,8 +124,10 @@ def comp (F : path_embedding G G') (F' : path_embedding G' G'') : path_embedding
     { obtain ⟨y,h8⟩ := h7, subst z, replace h4 := F'.endpoint h4, replace h6 := F'.endpoint h6,
       replace h3 := walk.mem_edges h3, replace h5 := walk.mem_edges h5,
       replace h3 : y ∈ (F.df e).support, by { simp only [dart.edge, sym2.mem_iff] at h4,
+        rcases e1 with ⟨⟨e1x,e1y⟩,e1h⟩, simp at h4,
         cases h4; subst h4, exact h3.1, exact h3.2 },
       replace h5 : y ∈ (F.df e').support, by { simp only [dart.edge, sym2.mem_iff] at h6,
+        rcases e2 with ⟨⟨e2x,e2y⟩,e2h⟩, simp at h6,
         cases h6; subst h6, exact h5.1, exact h5.2 },
       cases F.disjoint h3 h5 with h9 h9,
       { left, exact h9 },
@@ -142,13 +145,14 @@ def from_hom (f : G →g G') (inj : injective f) : path_embedding G G' :=
               list.nodup_nil, and_true],
     exact G'.ne_of_adj (f.map_rel' e.is_adj) },
   sym := λ e, by {
-    simp only [dart.rev, reverse_cons, reverse_nil, nil_append, rel_hom.coe_fn_to_fun,
-              embedding.coe_fn_mk, eq_self_iff_true, heq_iff_eq, and_self] },
+    simp only [dart.symm, reverse_cons, reverse_nil, nil_append, rel_hom.coe_fn_to_fun,
+              embedding.coe_fn_mk, eq_self_iff_true, heq_iff_eq, and_self], simp },
   --
   endpoint := λ e x h, by {
     simp only [embedding.coe_fn_mk, support_cons, support_nil, rel_hom.coe_fn_to_fun,
               list.mem_cons_iff, list.mem_singleton] at h,
-    simp only [dart.edge, sym2.mem_iff], cases h, { left, exact inj h }, { right, exact inj h } },
+    simp only [dart.edge, sym2.mem_iff], rcases e with ⟨⟨ex,ey⟩,eh⟩, simp,
+    cases h, { left, exact inj h }, { right, exact inj h } },
   --
   disjoint := by { intros e e' z h₁ h₂, right, cases h₁, subst h₁, exact ⟨e.fst,rfl⟩,
     cases h₁, subst h₁, exact ⟨e.snd,rfl⟩, cases h₁ } }

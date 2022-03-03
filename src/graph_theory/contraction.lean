@@ -15,10 +15,10 @@ def adapted' (f : V → V') (G : simple_graph V) : Prop :=
 
 lemma merge_edge_adapted [decidable_eq V] {e : G.dart} : adapted' (merge_edge e) G :=
 begin
-  intros x y hxy, rcases e with ⟨u,v,e⟩, have : u ≠ v := G.ne_of_adj e,
-  have l₁ : ∀ {z}, z = u ∨ z = v → merge_edge ⟨_,_,e⟩ z = u :=
+  intros x y hxy, rcases e with ⟨⟨u,v⟩,e⟩, have : u ≠ v := G.ne_of_adj e,
+  have l₁ : ∀ {z}, z = u ∨ z = v → merge_edge ⟨⟨_,_⟩,e⟩ z = u :=
     by { intros z hz, cases hz; simp [merge_edge,hz] },
-  have l₂ : ∀ {z}, ¬(z = u ∨ z = v) → merge_edge ⟨_,_,e⟩ z = z :=
+  have l₂ : ∀ {z}, ¬(z = u ∨ z = v) → merge_edge ⟨⟨_,_⟩,e⟩ z = z :=
     by { simp [merge_edge], intros z hz h', simp [h'] at hz, contradiction },
   by_cases hx : x = u ∨ x = v; by_cases hy : y = u ∨ y = v,
   { cases hx; cases hy; substs x y,

@@ -18,7 +18,7 @@ def good (G : simple_graph V) (pred : V → Prop) : Prop := ∀ {x y}, pred x �
 
 @[simp] def myedges : Π {x y : V}, walk G x y → list G.dart
 | _ _ nil        := []
-| _ _ (cons h p) := ⟨_,_,h⟩ :: myedges p
+| _ _ (cons h p) := ⟨⟨_,_⟩,h⟩ :: myedges p
 
 lemma point_of_size_0 : p.length = 0 → x = y :=
 by { intro h, cases p, refl, contradiction }
@@ -44,7 +44,7 @@ begin
     { specialize ih h_1, clear h_1, simp only [dart.edge, sym2.mem_iff] at ih, split,
       { simp only [myedges, dart.edge, support_cons, list.mem_cons_iff, sym2.mem_iff, exists_prop],
         intro h1, cases h1,
-        { subst h1, exact ⟨⟨_,_,h⟩, or.inl rfl, or.inl rfl⟩ },
+        { subst h1, use ⟨(u,v),h⟩, simp only [eq_self_iff_true, and_self, true_or, sym2.mem_iff] },
         { obtain ⟨e,h2,h3⟩ := ih.mp h1, exact ⟨e, or.inr h2, h3⟩ } },
       { simp only [myedges, dart.edge, list.mem_cons_iff, sym2.mem_iff, support_cons,
         forall_exists_index, and_imp, forall_eq_or_imp],
