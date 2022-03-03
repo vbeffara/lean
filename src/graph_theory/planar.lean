@@ -1,37 +1,32 @@
 import tactic
-import graph_theory.minor analysis.complex.basic
+import graph_theory.minor graph_theory.product analysis.complex.basic
 
 namespace simple_graph
 
+def Z : simple_graph ℤ :=
+{ adj := λ x y, |x-y| = 1,
+  symm := λ x y h, by { rw ←h, convert abs_neg _, ring },
+  loopless := λ x, by simp only [sub_self, abs_zero, zero_ne_one, not_false_iff] }
+
 variables {V V' : Type*} {G : simple_graph V} {G' : simple_graph V'}
 
-def plane.adj : ℤ × ℤ → ℤ × ℤ → Prop
-| (x,y) (x',y') := (x = x' ∧ |y - y'| = 1) ∨ (|x-x'| = 1 ∧ y = y')
-
-lemma plane.adj_symm : symmetric plane.adj
-| (x,y) (x',y') (or.inl ⟨h1,h2⟩) := or.inl ⟨h1.symm, by { rw <-h2, convert abs_neg _, linarith }⟩
-| (x,y) (x',y') (or.inr ⟨h1,h2⟩) := or.inr ⟨by { rw <-h1, convert abs_neg _, linarith }, h2.symm⟩
-
-def plane : simple_graph (ℤ × ℤ) := -- TODO product of Z_as_graph
-⟨plane.adj,plane.adj_symm⟩
+def plane : simple_graph (ℤ × ℤ) := Z □ Z
 
 namespace plane
 variables {x x' y y' z z' : ℤ}
 open walk
 
-def flip' : ℤ × ℤ → ℤ × ℤ | (x,y) := (y,x)
-
 def flip : plane →g plane :=
-{ to_fun := flip',
+{ to_fun := prod.swap,
   map_rel' := by { rintros ⟨x,y⟩ ⟨x',y'⟩ h, cases h,
     { right, exact and.symm h },
     { left, exact and.symm h } } }
 
-def horiz_path_aux : ∀ (n : ℕ), linked plane (x,y) (x+n,y)
+lemma horiz_path_aux : ∀ (n : ℕ), linked plane (x,y) (x+n,y)
 | 0     := by simp
-| (n+1) := by { refine linked.trans (horiz_path_aux n) (linked.step (or.inr _)), simp }
+| (n+1) := by { refine linked.trans (horiz_path_aux n) (linked.step (or.inr _)), simp [Z] }
 
-def horiz_path : linked plane (x,y) ⟨x',y⟩ :=
+lemma horiz_path : linked plane (x,y) (x',y) :=
 begin
   by_cases (x'-x>=0),
   { obtain ⟨n,hn⟩ := int.eq_coe_of_zero_le h, convert horiz_path_aux n, linarith },
@@ -39,7 +34,7 @@ begin
     symmetry, convert (@horiz_path_aux x' y n), linarith }
 end
 
-def vert_path : linked plane (x,y) (x,y') :=
+lemma vert_path : linked plane (x,y) (x,y') :=
 linked.fmap flip horiz_path
 
 lemma connected_plane : connected plane :=
