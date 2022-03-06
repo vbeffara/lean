@@ -325,8 +325,8 @@ noncomputable def after (p : G.Walk) (X : finset V) (hX : (p.range ∩ X).nonemp
     q.range ⊆ p.range ∧ q.init ⊆ p.init ∧ q.tail ⊆ p.tail ∧ q.tail ∩ X = ∅} :=
 begin
   revert p, refine rec₀ _ _,
-  { rintro u hu, choose z hz using hu, simp at hz, cases hz with hz₁ hz₂, subst z,
-    refine ⟨nil u, hz₂, rfl, by refl, by refl, by refl, rfl⟩ },
+  { rintro u hu,
+    exact ⟨nil u, finset.singleton_inter_nonempty.mp hu, rfl, by refl, by refl, by refl, rfl⟩ },
   { rintro e p h₁ ih h₂, by_cases (p.range ∩ X).nonempty,
     { rcases ih h with ⟨q, hq₁, hq₂, hq₃, hq₄, hq₅, hq₆⟩,
       refine ⟨q, hq₁, hq₂, _, _, _, hq₆⟩,
