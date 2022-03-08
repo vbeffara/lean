@@ -16,7 +16,6 @@ variables {e : G.dart} {p q : G.Walk} {hep : e.snd = p.a} {hpq : p.b = q.a}
 def nil (a : V) : G.Walk := ⟨(walk.nil : G.walk a a)⟩
 
 @[simp] lemma nil_a : (nil a : G.Walk).a = a := rfl
-
 @[simp] lemma nil_b : (nil b : G.Walk).b = b := rfl
 
 def cons (e : G.dart) (p : G.Walk) (h : e.snd = p.a) : G.Walk :=
@@ -41,21 +40,22 @@ end
   @rec₀ V _ G motive h_nil h_cons (cons e p h) =
   h_cons e p h (rec₀ h_nil h_cons p) :=
 begin
-  rcases e with ⟨⟨u,v⟩,e⟩, rcases p with ⟨a,b,p⟩, simp at h, subst v, refl
+  rcases e with ⟨⟨u,v⟩,e⟩, rcases p with ⟨a,b,p⟩, dsimp only at h, subst v, refl
 end
 
 @[simp] lemma cons_a : (cons e p hep).a = e.fst := rfl
-
 @[simp] lemma cons_b : (cons e p hep).b = p.b := rfl
 
 lemma cons_p : (cons e p hep).p = by { let h' := e.is_adj, rw hep at h', exact p.p.cons h' } := rfl
 
-def range : G.Walk → finset V :=
-rec₀ (λ v, {v}) (λ e p h q, {e.fst} ∪ q)
+def range (p : G.Walk) : finset V :=
+p.p.support.to_finset
 
-@[simp] lemma range_cons : (cons e p hep).range = {e.fst} ∪ p.range := rec_cons
+@[simp] lemma range_cons : (cons e p hep).range = {e.fst} ∪ p.range :=
+by simpa only [range, cons, walk.support_cons, list.to_finset_cons]
 
-@[simp] lemma range_step : (step e).range = {e.fst, e.snd} := rfl
+@[simp] lemma range_step : (step e).range = {e.fst, e.snd} :=
+by simpa only [range, step, cons, walk.support_cons, list.to_finset_cons]
 
 @[simp] lemma range_nonempty : p.range.nonempty :=
 begin
@@ -350,23 +350,13 @@ begin
     { exact ⟨nil e.fst, rfl⟩ } }
 end
 
-def reverse_aux (p : G.Walk) : {q : G.Walk // q.a = p.b ∧ q.b = p.a ∧ q.range = p.range} :=
-begin
-  refine rec₀ _ _ p,
-  { rintro u, refine ⟨nil u, rfl, rfl, rfl⟩ },
-  { rintro e p h ⟨q,qa,qb,qr⟩, refine ⟨q.append (step e.symm) _, _, _, _⟩,
-    { rw [qb,←h], refl },
-    { simp [qa] },
-    { simp, refl },
-    { simp [qr], rw finset.union_comm, simp [h,dart.symm] }
-  }
-end
+def reverse (p : G.Walk) : G.Walk := ⟨p.p.reverse⟩
 
-def reverse (p : G.Walk) : G.Walk := (reverse_aux p).val
+@[simp] lemma reverse_a : (reverse p).a = p.b := by simp only [reverse]
+@[simp] lemma reverse_b : (reverse p).b = p.a := by simp only [reverse]
 
-@[simp] lemma reverse_a : (reverse p).a = p.b := (reverse_aux p).prop.1
-@[simp] lemma reverse_b : (reverse p).b = p.a := (reverse_aux p).prop.2.1
-@[simp] lemma reverse_range : (reverse p).range = p.range := (reverse_aux p).prop.2.2
+@[simp] lemma reverse_range : (reverse p).range = p.range :=
+by simp only [reverse, range, walk.support_reverse, list.to_finset_reverse]
 
 end Walk
 

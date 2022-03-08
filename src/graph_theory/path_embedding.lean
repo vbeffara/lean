@@ -41,11 +41,11 @@ end
 by { induction p, refl, simp only [cons_append,append_assoc,p_ih,follow] }
 
 lemma mem_follow {z} (h : 0 < length p) :
-  z ∈ (follow F p).support ↔ ∃ e ∈ myedges p, z ∈ (F.df e).support :=
+  z ∈ (follow F p).support ↔ ∃ e ∈ darts p, z ∈ (F.df e).support :=
 begin
   revert h, induction p with u u v w h p ih,
   { simp only [length_nil, nat.not_lt_zero, forall_false_left] },
-  { simp only [follow, myedges, length_cons, nat.succ_pos', mem_support_append_iff,
+  { simp only [follow, darts, length_cons, nat.succ_pos', mem_support_append_iff,
     list.mem_cons_iff, forall_true_left], split; intro H,
     { cases H,
       { exact ⟨⟨⟨_,_⟩,h⟩,or.inl rfl,H⟩ },
@@ -58,7 +58,7 @@ begin
     { obtain ⟨e,H1,H2⟩ := H, cases H1,
       { left, subst H1, exact H2 },
       { right, cases p,
-        { simp only [myedges, list.not_mem_nil] at H1, contradiction },
+        { simp only [darts, list.not_mem_nil] at H1, contradiction },
         { refine (ih _).mpr ⟨e,H1,H2⟩, simp only [length_cons, nat.succ_pos'] } } } }
 end
 

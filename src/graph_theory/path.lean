@@ -16,37 +16,39 @@ infix  ` ++ ` := append
 
 def good (G : simple_graph V) (pred : V → Prop) : Prop := ∀ {x y}, pred x → G.adj x y → pred y
 
-@[simp] def myedges : Π {x y : V}, walk G x y → list G.dart
-| _ _ nil        := []
-| _ _ (cons h p) := ⟨⟨_,_⟩,h⟩ :: myedges p
+example : p.edges = list.map dart.edge p.darts :=
+begin
+  induction p with u u v w h p ih, refl,
+  simp only [ih, darts, list.map, edges_cons, dart.edge_mk, eq_self_iff_true, and_true]
+end
 
 lemma point_of_size_0 : p.length = 0 → x = y :=
 by { intro h, cases p, refl, contradiction }
 
-lemma mem_edges : e ∈ myedges p → e.fst ∈ p.support ∧ e.snd ∈ p.support :=
+lemma mem_edges : e ∈ darts p → e.fst ∈ p.support ∧ e.snd ∈ p.support :=
 begin
   induction p with u u v w h p ih,
-  { simp only [myedges, list.not_mem_nil, forall_false_left] },
-  { simp only [myedges, list.mem_cons_iff, support_cons], intro h', cases h',
+  { simp only [darts, list.not_mem_nil, forall_false_left] },
+  { simp only [darts, list.mem_cons_iff, support_cons], intro h', cases h',
     { subst e, split, left, refl, right, exact start_mem_support _ },
     { specialize ih h', exact ⟨or.inr ih.1, or.inr ih.2⟩ } }
 end
 
-lemma mem_of_edges (h : 0 < p.length) : u ∈ p.support ↔ ∃ e ∈ myedges p, u ∈ dart.edge e :=
+lemma mem_of_edges (h : 0 < p.length) : u ∈ p.support ↔ ∃ e ∈ darts p, u ∈ dart.edge e :=
 begin
   induction p with u u v w h p ih,
   { simp only [length_nil, nat.not_lt_zero] at h, contradiction },
   { clear h, cases nat.eq_zero_or_pos (length p),
     { cases p,
-      simp only [myedges, dart.edge, support_cons, support_nil, list.mem_cons_iff,
+      simp only [darts, dart.edge, support_cons, support_nil, list.mem_cons_iff,
         list.mem_singleton, sym2.mem_iff, exists_prop, exists_eq_left],
       simp only [length_cons, nat.succ_ne_zero] at h_1, contradiction },
     { specialize ih h_1, clear h_1, simp only [dart.edge, sym2.mem_iff] at ih, split,
-      { simp only [myedges, dart.edge, support_cons, list.mem_cons_iff, sym2.mem_iff, exists_prop],
+      { simp only [darts, dart.edge, support_cons, list.mem_cons_iff, sym2.mem_iff, exists_prop],
         intro h1, cases h1,
         { subst h1, use ⟨(u,v),h⟩, simp only [eq_self_iff_true, and_self, true_or, sym2.mem_iff] },
         { obtain ⟨e,h2,h3⟩ := ih.mp h1, exact ⟨e, or.inr h2, h3⟩ } },
-      { simp only [myedges, dart.edge, list.mem_cons_iff, sym2.mem_iff, support_cons,
+      { simp only [darts, dart.edge, list.mem_cons_iff, sym2.mem_iff, support_cons,
         forall_exists_index, and_imp, forall_eq_or_imp],
         exact ⟨(λ h, or.cases_on h or.inl (λ h, by { subst h, exact or.inr (start_mem_support _) })),
         (λ e he h1, or.inr (ih.mpr ⟨e,he,h1⟩))⟩ } } }

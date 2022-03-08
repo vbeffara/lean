@@ -111,9 +111,8 @@ lemma self : separates G A B A :=
 
 lemma symm : separates G A B X → separates G B A X :=
 begin
-  rintro h ⟨p,pa,pb⟩, rcases p.reverse_aux with ⟨q,qa,qb,qr⟩,
-  let q' : AB_walk G A B := ⟨q, qa.symm ▸ pb, qb.symm ▸ pa⟩,
-  dsimp, rw ←qr, exact h q'
+  rintro h ⟨p,pa,pb⟩, let q : AB_walk G A B := by { use p.reverse; simpa only },
+  specialize h q, simp only [reverse_range] at h, exact h
 end
 
 lemma comm : separates G A B X ↔ separates G B A X :=
