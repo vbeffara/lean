@@ -27,11 +27,7 @@ def rec₀ {motive : G.Walk → Sort*} :
   (Π u, motive (Walk.nil u)) →
   (Π e p h, motive p → motive (cons e p h)) →
   Π p, motive p :=
-begin
-  rintros h_nil h_cons ⟨a,b,p⟩, induction p with a a b c adj p ih,
-  { exact h_nil a },
-  { exact h_cons ⟨⟨_,_⟩,adj⟩ ⟨p⟩ rfl ih }
-end
+λ h_nil h_cons ⟨p⟩, walk.rec_on p h_nil $ λ u v w h p, h_cons ⟨⟨_,_⟩,h⟩ ⟨p⟩ rfl
 
 @[simp] lemma rec_nil {motive h_nil h_cons} :
   @rec₀ V _ G motive h_nil h_cons (nil a) = h_nil a := rfl
@@ -45,8 +41,6 @@ end
 
 @[simp] lemma cons_a : (cons e p hep).a = e.fst := rfl
 @[simp] lemma cons_b : (cons e p hep).b = p.b := rfl
-
-lemma cons_p : (cons e p hep).p = by { let h' := e.is_adj, rw hep at h', exact p.p.cons h' } := rfl
 
 def range (p : G.Walk) : finset V :=
 p.p.support.to_finset
@@ -320,6 +314,7 @@ begin
   }
 end
 
+-- TODO for `(X : set V)`
 noncomputable def after (p : G.Walk) (X : finset V) (hX : (p.range ∩ X).nonempty) :
   {q : G.Walk // q.a ∈ X ∧ q.b = p.b ∧
     q.range ⊆ p.range ∧ q.init ⊆ p.init ∧ q.tail ⊆ p.tail ∧ q.tail ∩ X = ∅} :=

@@ -7,7 +7,7 @@ open walk
 
 structure path_embedding (G : simple_graph V) (G' : simple_graph V') :=
   (f        : V ↪ V')
-  (df       : Π e : G.dart, walk G' (f e.fst) (f e.snd))
+  (df       : Π e : G.dart, G'.walk (f e.fst) (f e.snd))
   --
   (nodup    : ∀ e : G.dart, (df e).support.nodup)
   (sym      : ∀ e : G.dart, df e.symm = (df e).reverse)
@@ -25,13 +25,10 @@ namespace path_embedding
 
 variables {G : simple_graph V} {G' : simple_graph V'} {G'' : simple_graph V''}
 variables (F : path_embedding G G')
-variables {x y z : V} {p : walk G x y} {p' : walk G y z}
+variables {x y z : V} {x' y' z' : V'} {p : walk G x y} {p' : walk G y z}
 
 lemma nop {e : G.dart} : 0 < (F.df e).length :=
-begin
-  cases nat.eq_zero_or_pos (F.df e).length, swap, exact h, exfalso,
-  exact G.ne_of_adj e.is_adj (F.f.injective (point_of_size_0 h))
-end
+pos_iff_ne_zero.mpr $ λ h, G.ne_of_adj e.is_adj $ F.f.injective $ point_of_size_0 h
 
 @[simp] def follow : Π {x y : V}, walk G x y → walk G' (F.f x) (F.f y)
 | _ _ nil        := nil
@@ -40,26 +37,17 @@ end
 @[simp] lemma follow_append : follow F (p ++ p') = follow F p ++ follow F p' :=
 by { induction p, refl, simp only [cons_append,append_assoc,p_ih,follow] }
 
-lemma mem_follow {z} (h : 0 < length p) :
-  z ∈ (follow F p).support ↔ ∃ e ∈ darts p, z ∈ (F.df e).support :=
+lemma mem_follow (h₁ : 0 < p.length) (h₂ : z' ∈ (follow F p).support) :
+  ∃ e ∈ darts p, z' ∈ (F.df e).support :=
 begin
-  revert h, induction p with u u v w h p ih,
-  { simp only [length_nil, nat.not_lt_zero, forall_false_left] },
-  { simp only [follow, darts, length_cons, nat.succ_pos', mem_support_append_iff,
-    list.mem_cons_iff, forall_true_left], split; intro H,
-    { cases H,
-      { exact ⟨⟨⟨_,_⟩,h⟩,or.inl rfl,H⟩ },
-      { cases p,
-        { refine ⟨⟨⟨_,_⟩,h⟩,or.inl rfl,_⟩, simp only [follow,support_nil,list.mem_singleton] at H,
-          rw H, apply end_mem_support },
-        { simp only [follow,length_cons,nat.succ_pos',mem_support_append_iff,forall_true_left] at ih,
-          simp only [follow, mem_support_append_iff] at H,
-          obtain ⟨e,h1,h2⟩ := ih.mp H, exact ⟨e,or.inr h1,h2⟩ } } },
-    { obtain ⟨e,H1,H2⟩ := H, cases H1,
-      { left, subst H1, exact H2 },
-      { right, cases p,
-        { simp only [darts, list.not_mem_nil] at H1, contradiction },
-        { refine (ih _).mpr ⟨e,H1,H2⟩, simp only [length_cons, nat.succ_pos'] } } } }
+  induction p with u u v w h p ih, {simp at h₁, contradiction}, clear h₁,
+  simp only [follow, mem_support_append_iff] at h₂, cases h₂,
+  { exact ⟨⟨⟨_,_⟩, h⟩, or.inl rfl, h₂⟩ },
+  { cases p,
+    { refine ⟨⟨⟨_,_⟩,h⟩, or.inl rfl, _⟩, simp only [follow, support_nil, list.mem_singleton] at h₂,
+      rw h₂, exact end_mem_support _ },
+    { specialize ih _ h₂, simp only [length_cons, nat.succ_pos'],
+      choose e h₃ h₄ using ih, exact ⟨e, or.inr h₃, h₄⟩ } }
 end
 
 lemma follow_nodup {p : walk G x y} (h : p.support.nodup) : (follow F p).support.nodup :=
@@ -73,8 +61,8 @@ begin
     { cases p,
       { simp only [follow, support_nil, list.mem_singleton] at h4, exact h4 },
       { simp only [length_cons, nat.succ_ne_zero] at h5, contradiction } },
-    { obtain ⟨e,h7,h8⟩ := (mem_follow F h5).mp h4,
-      cases mem_edges h7, cases F.disjoint h3 h8 with h9 h9,
+    { obtain ⟨e,h7,h8⟩ := mem_follow F h5 h4,
+      cases F.disjoint h3 h8 with h9 h9,
       { exfalso, apply h.1, apply (mem_of_edges h5).mpr ⟨e,h7,_⟩, rw <-h9,
         exact sym2.mem_mk_left _ _ },
       { obtain ⟨v,_⟩ := h9, subst z, have h10 := F.endpoint h3,
@@ -82,8 +70,8 @@ begin
         { subst h10, exfalso, apply h.1,
           have := F.endpoint h8, rw [dart.edge] at this, rcases e with ⟨⟨ex,ey⟩,he⟩, simp at this,
           cases this with h12 h12,
-          { subst h12, exact left },
-          { subst h12, exact right } },
+          { rw h12, exact p.dart_fst_mem_support_of_mem_darts h7 },
+          { rw h12, exact p.dart_snd_mem_support_of_mem_darts h7 } },
         { rw h10 } } } }
 end
 
@@ -102,14 +90,14 @@ def comp (F : path_embedding G G') (F' : path_embedding G' G'') : path_embedding
   sym := by { intro e, rewrite F.sym e, apply follow_rev },
   --
   endpoint := by {
-    intros e x h1, obtain ⟨e',h4,h5⟩ := (mem_follow F' (nop F)).mp h1,
+    intros e x h1, obtain ⟨e',h4,h5⟩ := mem_follow F' (nop F) h1,
     exact F.endpoint ((walk.mem_of_edges (nop _)).mpr ⟨e',h4,F'.endpoint h5⟩)
   },
   --
   disjoint := by {
     intros e e' z h1 h2,
-    replace h1 := (mem_follow _ (nop _)).mp h1, obtain ⟨e1,h3,h4⟩ := h1,
-    replace h2 := (mem_follow _ (nop _)).mp h2, obtain ⟨e2,h5,h6⟩ := h2,
+    replace h1 := mem_follow _ (nop _) h1, obtain ⟨e1,h3,h4⟩ := h1,
+    replace h2 := mem_follow _ (nop _) h2, obtain ⟨e2,h5,h6⟩ := h2,
     have h7 := F'.disjoint h4 h6, cases h7,
     { left, clear h4 h6, replace h3 := walk.mem_edges h3, replace h5 := walk.mem_edges h5,
       replace h5 : e1.fst ∈ (F.df e').support ∧ e1.snd ∈ (F.df e').support :=

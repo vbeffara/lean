@@ -14,25 +14,11 @@ namespace walk
 infixr ` :: ` := cons
 infix  ` ++ ` := append
 
-def good (G : simple_graph V) (pred : V → Prop) : Prop := ∀ {x y}, pred x → G.adj x y → pred y
-
-example : p.edges = list.map dart.edge p.darts :=
-begin
-  induction p with u u v w h p ih, refl,
-  simp only [ih, darts, list.map, edges_cons, dart.edge_mk, eq_self_iff_true, and_true]
-end
-
 lemma point_of_size_0 : p.length = 0 → x = y :=
 by { intro h, cases p, refl, contradiction }
 
-lemma mem_edges : e ∈ darts p → e.fst ∈ p.support ∧ e.snd ∈ p.support :=
-begin
-  induction p with u u v w h p ih,
-  { simp only [darts, list.not_mem_nil, forall_false_left] },
-  { simp only [darts, list.mem_cons_iff, support_cons], intro h', cases h',
-    { subst e, split, left, refl, right, exact start_mem_support _ },
-    { specialize ih h', exact ⟨or.inr ih.1, or.inr ih.2⟩ } }
-end
+lemma mem_edges (h : e ∈ darts p) : e.fst ∈ p.support ∧ e.snd ∈ p.support :=
+⟨p.dart_fst_mem_support_of_mem_darts h, p.dart_snd_mem_support_of_mem_darts h⟩
 
 lemma mem_of_edges (h : 0 < p.length) : u ∈ p.support ↔ ∃ e ∈ darts p, u ∈ dart.edge e :=
 begin
@@ -121,9 +107,6 @@ end
 
 lemma linked_of_subgraph (sub : G₁ ≤ G₂) : linked G₁ x y → linked G₂ x y :=
 refl_trans_gen.mono sub
-
-lemma extend {pred : V → Prop} (hg : good G pred) (h₁ : pred x) (h₂ : linked G x z) : pred z :=
-by { induction h₂ with a b h₂ h₃ ih, exact h₁, exact hg ih h₃ }
 
 lemma fmap (f : G →g G') : linked G x y → linked G' (f x) (f y) :=
 refl_trans_gen.lift f (λ a b, f.map_rel)
