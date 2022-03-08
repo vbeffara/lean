@@ -11,7 +11,4 @@ namespace finset
 end finset
 
 namespace simple_graph
-def walk.darts : Π {x y : V}, walk G x y → list G.dart
-| _ _ walk.nil        := []
-| _ _ (walk.cons h p) := ⟨(_,_),h⟩ :: walk.darts p
 end simple_graph
