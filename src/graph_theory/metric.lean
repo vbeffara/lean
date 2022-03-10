@@ -8,17 +8,20 @@ open walk
 def dists (G : simple_graph V) (x y : V) := set.range (length : walk G x y -> ℕ)
 
 lemma dists_ne_empty : (dists G x y).nonempty :=
-set.range_nonempty_iff_nonempty.mpr (linked.linked_iff.mp (connected_graph.conn x y))
+set.range_nonempty_iff_nonempty.mpr (connected_graph.conn x y)
 
-noncomputable def dist (G : simple_graph V) [connected_graph G] (x y : V) :=
-well_founded.min nat.lt_wf (dists G x y) dists_ne_empty
+lemma exists_dist : ∃ n : ℕ, n ∈ dists G x y :=
+by { cases dists_ne_empty with n hn, exact ⟨n, hn⟩, apply_instance }
+
+noncomputable def dist (G : simple_graph V) [connected_graph G] (x y : V) : ℕ :=
+by { classical, exact @nat.find (dists G x y) _ exists_dist }
 
 lemma upper_bound (p : walk G x y) : dist G x y <= length p :=
-not_lt.mp $ well_founded.not_lt_min _ _ _ (set.mem_range_self p)
+by { apply nat.find_le, exact ⟨p, rfl⟩ }
 
 lemma shortest_path (G : simple_graph V) [connected_graph G] (x y) :
   ∃ p : walk G x y, length p = dist G x y :=
-well_founded.min_mem _ _ dists_ne_empty
+by { apply set.mem_range.mp, apply nat.find_spec exists_dist }
 
 @[simp] lemma dist_self : dist G x x = 0 :=
 le_antisymm (upper_bound (nil : walk G x x)) (zero_le _)

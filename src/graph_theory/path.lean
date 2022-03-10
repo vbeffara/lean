@@ -58,10 +58,10 @@ begin
       refine ih.mpr ⟨h2,h3,_⟩, intros u hu h'u, exact h5 u hu h'u } }
 end
 
-def path_from_subgraph (sub : ∀ {x y}, G₁.adj x y → G₂.adj x y) :
+def walk_from_subgraph (sub : ∀ {x y}, G₁.adj x y → G₂.adj x y) :
   Π {x y : V}, walk G₁ x y → walk G₂ x y
 | _ _ nil        := nil
-| _ _ (cons h p) := walk.cons (sub h) (path_from_subgraph p)
+| _ _ (cons h p) := walk.cons (sub h) (walk_from_subgraph p)
 
 @[simp] def fmap (f : G →g G') : ∀ {x y}, walk G x y → walk G' (f x) (f y)
 | _ _ nil        := nil
@@ -72,49 +72,40 @@ by { induction p, refl, simpa }
 
 end walk
 
-def linked    (G : simple_graph V) := refl_trans_gen G.adj
-def connected (G : simple_graph V) := ∀ x y, linked G x y
+def linked    (G : simple_graph V) (x y : V) := nonempty (G.walk x y)
+def connected (G : simple_graph V)           := ∀ x y, linked G x y
 
 class connected_graph (G : simple_graph V) := (conn : connected G)
 
 namespace linked
 open walk
 
-@[refl] lemma refl : linked G x x :=
-refl_trans_gen.refl
+@[refl] lemma refl ⦃x⦄ : linked G x x := ⟨nil⟩
 
-@[symm] lemma symm : linked G x y → linked G y x :=
-λ h, refl_trans_gen.symmetric G.symm h
+@[symm] lemma symm ⦃x y⦄ : linked G x y → linked G y x :=
+nonempty.map walk.reverse
 
-@[trans] lemma trans : linked G x y → linked G y z → linked G x z :=
-λ h, h.trans
+@[trans] lemma trans ⦃x y z⦄ : linked G x y → linked G y z → linked G x z :=
+nonempty.map2 walk.append
 
 lemma step : G.adj x y → linked G x y :=
-refl_trans_gen.single
+λ h, ⟨cons h nil⟩
 
 lemma of_cons : G.adj x y → linked G y z → linked G x z :=
-λ h h', trans (step h) h'
+nonempty.map ∘ cons
 
-lemma equiv : equivalence (linked G) :=
-⟨@refl _ _, @symm _ _, @trans _ _⟩
-
-lemma linked_iff : linked G x y ↔ nonempty (walk G x y) :=
-begin
-  split; intro h₁,
-  { induction h₁ with u v h₁ h₂ h₃, use nil, cases h₃ with p, use (p ++ (cons h₂ nil)) },
-  { cases h₁ with p, induction p with a a b c h p ih, refl, exact (single h).trans ih }
-end
+lemma equiv : equivalence (linked G) := ⟨refl, symm, trans⟩
 
 lemma linked_of_subgraph (sub : G₁ ≤ G₂) : linked G₁ x y → linked G₂ x y :=
-refl_trans_gen.mono sub
+nonempty.map (walk_from_subgraph sub)
 
 lemma fmap (f : G →g G') : linked G x y → linked G' (f x) (f y) :=
-refl_trans_gen.lift f (λ a b, f.map_rel)
+nonempty.map (fmap f)
 
 lemma push {x y : V} {f : V → V'} : G.linked x y → (push f G).linked (f x) (f y) :=
 begin
-  intro h, induction h with a b h₁ h₂ ih, refl, refine ih.trans _,
-  cases push.adj f h₂, rw h, exact step h
+  rintro ⟨p⟩, induction p with u u v w h p ih, refl, refine trans _ ih,
+  cases push.adj f h with h' h', rw h', exact step h'
 end
 
 end linked

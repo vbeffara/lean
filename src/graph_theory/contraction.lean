@@ -39,10 +39,9 @@ by { rintros hf z ⟨x,hx⟩ ⟨y,rfl⟩, have := hf hx, subst this }
 lemma iff : adapted f G ↔ adapted' f G :=
 begin
   split,
-  { rintros h₁ x y h₂, specialize h₁ (f y) ⟨x,h₂⟩ ⟨y,rfl⟩, obtain ⟨p⟩ := linked.linked_iff.mp h₁,
+  { rintro h x y hxy, obtain ⟨p⟩ := h (f y) ⟨x,hxy⟩ ⟨y,rfl⟩,
     use select.pull_walk p, exact select.pull_walk_spec p },
-  { rintros h₁ z ⟨x,hx⟩ ⟨y,rfl⟩, apply linked.linked_iff.mpr,
-    specialize h₁ x y hx, obtain ⟨p,hp⟩ := h₁, use select.push_walk p hp },
+  { rintros h₁ z ⟨x,hx⟩ ⟨y,rfl⟩, obtain ⟨p,hp⟩ := h₁ x y hx, use select.push_walk p hp }
 end
 
 lemma comp_left (g_inj : injective g) : adapted f G → adapted (g ∘ f) G :=
@@ -68,8 +67,7 @@ lift_path hf p x y rfl rfl
 
 lemma connected (hf : adapted f G) : connected (push f G) → connected G :=
 begin
-  intros h₁ x y, cases (linked.linked_iff.mp (h₁ (f x) (f y))) with p,
-  apply linked.linked_iff.mpr, use lift_path' hf p,
+  intros h₁ x y, obtain ⟨p⟩ := h₁ (f x) (f y), use lift_path' hf p
 end
 
 lemma comp_push : adapted f G → adapted g (push f G) → adapted (g ∘ f) G :=

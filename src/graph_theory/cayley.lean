@@ -38,7 +38,7 @@ def shift_path : walk (Cay S) x y → walk (Cay S) (a*x) (a*y) :=
 fmap (left_shift S a)
 
 lemma shift : linked (Cay S) x y → linked (Cay S) (a*x) (a*y) :=
-by { intro h, induction h with u v h₁ h₂ ih, refl, exact tail ih (shift_adj a h₂) }
+nonempty.map (shift_path S a)
 
 lemma inv : linked (Cay S) 1 x → linked (Cay S) 1 x⁻¹ :=
 by { intro h, symmetry, convert shift S x⁻¹ h; group }
