@@ -109,62 +109,35 @@ begin
     left, exact h₂, right, exact ⟨h₂,x,y,h₁,rfl,rfl⟩ }
 end
 
-lemma right_inv (h : surjective f) : right_inverse (pull f) (push f) :=
+lemma right_inverse_of_surjective (h : surjective f) : right_inverse (pull f) (map f) :=
 begin
   intro G', ext x' y', split,
-  { rintro ⟨h₁,x,y,rfl,rfl,h₂⟩, exact h₂ },
+  { rintro ⟨-,x,y,h₂,rfl,rfl⟩, exact h₂ },
   { intro h₁, cases h x' with x, cases h y' with y, substs x' y',
-    exact ⟨G'.ne_of_adj h₁,x,y,rfl,rfl,h₁⟩ }
+    exact ⟨G'.ne_of_adj h₁,x,y,h₁,rfl,rfl⟩ }
 end
 
-lemma right_inv' (h : surjective f) : right_inverse (pull' f) (push f) :=
+lemma right_inverse_of_surjective' (h : surjective f) : right_inverse (pull' f) (map f) :=
 begin
   intro G', ext x' y', split,
-  { rintro ⟨h₁,x,y,rfl,rfl,h₂,h₃⟩, cases h₃, contradiction, exact h₃ },
+  { rintro ⟨h₁,x,y,⟨-,h₃⟩,rfl,rfl⟩, cases h₃, contradiction, exact h₃ },
   { intro h₁, cases h x' with x, cases h y' with y, substs x' y',
-    refine ⟨G'.ne_of_adj h₁,x,y,rfl,rfl, _⟩, refine ⟨_,_⟩, intro h₂,
+    refine ⟨G'.ne_of_adj h₁,x,y,_,rfl,rfl⟩, refine ⟨_,_⟩, intro h₂,
     exact G'.ne_of_adj h₁ (congr_arg f h₂), right, exact h₁ }
 end
 
-def to_iso (f : V ≃ V') (G : simple_graph V) : G ≃g push f G :=
-by { convert ← pull.to_iso f _, apply left_inv f.left_inv.injective }
+def to_iso (f : V ≃ V') (G : simple_graph V) : G ≃g map f G :=
+by { convert ← pull.to_iso f _, apply left_inverse_of_injective f.left_inv.injective }
 
-lemma from_iso (φ : G ≃g G') : G' = push φ G :=
-by { convert ← congr_arg _ (pull.from_iso φ), apply right_inv φ.right_inv.surjective }
+lemma from_iso (φ : G ≃g G') : G' = map φ G :=
+by { convert ← congr_arg _ (pull.from_iso φ),
+  apply right_inverse_of_surjective φ.right_inv.surjective }
 
-lemma mono : monotone (push f) :=
-by { rintros G₁ G₂ h₁ x' y' ⟨h₂,x,y,rfl,rfl,h₃⟩, exact ⟨h₂,x,y,rfl,rfl,h₁ h₃⟩ }
+lemma mono : monotone (map f) :=
+by { rintros G₁ G₂ h₁ x' y' ⟨h₂,x,y,h₃,rfl,rfl⟩, exact ⟨h₂,x,y,h₁ h₃,rfl,rfl⟩ }
 
-lemma le {φ : G →g G'} : push φ G ≤ G' :=
-by { rintros x' y' ⟨-,x,y,rfl,rfl,h₂⟩, exact φ.map_rel h₂ }
-
-noncomputable def lift_step_aux (e' : (push f G).dart) :
-  {e : G.dart // f e.fst = e'.fst ∧ f e.snd = e'.snd} :=
-by { choose x y h₁ h₂ h₃ using e'.is_adj.2, exact ⟨⟨⟨_,_⟩,h₃⟩,h₁,h₂⟩ }
-
-noncomputable def lift_step (e' : (push f G).dart) : G.dart :=
-(lift_step_aux e').val
-
-@[simp] lemma lift_step_x {e' : (push f G).dart} : f (lift_step e').fst = e'.fst :=
-(lift_step_aux e').2.1
-
-@[simp] lemma lift_step_y {e' : (push f G).dart} : f (lift_step e').snd = e'.snd :=
-(lift_step_aux e').2.2
-
-lemma lift_step_inj : injective (lift_step : (push f G).dart → G.dart) :=
-λ f₁ f₂ h, by { ext, rw [←lift_step_x, ←lift_step_x, h], rw [←lift_step_y, ←lift_step_y, h] }
-
-lemma lift_step_ne_of_mem {e : G.dart} :
-  e ∈ set.range (lift_step : (push f G).dart → G.dart) → f e.fst ≠ f e.snd :=
-begin
-  rintro ⟨e',h₄⟩,
-  rw [←h₄,@lift_step_x V V' f G e',@lift_step_y V V' f G e'],
-  exact (push f G).ne_of_adj e'.is_adj
-end
-
-lemma lift_step_ne_mem {e : G.dart} :
-  f e.fst = f e.snd → e ∉ set.range (lift_step : (push f G).dart → G.dart) :=
-by { contrapose, push_neg, exact lift_step_ne_of_mem }
+lemma le {φ : G →g G'} : map φ G ≤ G' :=
+by { rintros x' y' ⟨-,x,y,h₂,rfl,rfl⟩, exact φ.map_rel h₂ }
 
 end map
 
