@@ -24,7 +24,7 @@ def minimal (p : AB_walk G A B) : Prop :=
 p.to_Walk.init ∩ B = ∅ ∧ p.to_Walk.tail ∩ A = ∅
 
 noncomputable def lift (f : V → V') (hf : adapted' f G) (A B : finset V) :
-  AB_walk (push f G) (A.image f) (B.image f) → AB_walk G A B :=
+  AB_walk (map f G) (A.image f) (B.image f) → AB_walk G A B :=
 begin
   rintro ⟨p,ha,hb⟩,
   choose a h₂ h₃ using mem_image.mp ha,
@@ -34,7 +34,7 @@ begin
 end
 
 def push (f : V → V') (A B : finset V) :
-  AB_walk G A B → AB_walk (push f G) (A.image f) (B.image f) :=
+  AB_walk G A B → AB_walk (map f G) (A.image f) (B.image f) :=
 begin
   intro p, refine ⟨Walk.push_Walk f p.to_Walk, _, _⟩,
   rw Walk.push_Walk_a, exact mem_image_of_mem f p.ha,
@@ -235,7 +235,7 @@ end
 lemma bot_is_menger : is_menger (⊥ : simple_graph V) :=
 by { rintro A B, rw bot_min_cut, exact (bot_path_set A B).exists_of_subtype }
 
-lemma AB_lift_dis (P' : finset (AB_walk (push f G) (A.image f) (B.image f))) :
+lemma AB_lift_dis (P' : finset (AB_walk (map f G) (A.image f) (B.image f))) :
   pw_disjoint P' → pw_disjoint (P'.image (AB_walk.lift f hf A B)) :=
 begin
   rintro hP' ⟨γ₁,h₁⟩ ⟨γ₂,h₂⟩ h, simp at h ⊢, choose z h using h,

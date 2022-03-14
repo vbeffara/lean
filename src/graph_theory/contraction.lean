@@ -99,7 +99,7 @@ lemma of_iso : G ≃g G' → G ≼c G' :=
 @[trans] lemma trans : G ≼c G' → G' ≼c G'' → G ≼c G'' :=
 begin
   rintros ⟨φ,h₁,h₂,rfl⟩ ⟨ψ,h₄,h₅,rfl⟩,
-  exact ⟨φ ∘ ψ, h₁.comp h₄, h₅.comp_push h₂, map.comp.symm⟩,
+  exact ⟨φ ∘ ψ, h₁.comp h₄, h₅.comp_push h₂, congr_fun map.comp.symm G''⟩,
 end
 
 lemma iso_left : G ≃g G' -> G' ≼c G'' -> G ≼c G'' :=
