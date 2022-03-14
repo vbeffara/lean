@@ -51,33 +51,32 @@ begin
   { push_neg at h, rintro ⟨z,hz⟩, specialize h (f z), contradiction }
 end
 
-noncomputable def lift_path (hf : adapted f G) (p : walk (push f G) x' y') :
+noncomputable def lift_path (hf : adapted f G) (p : walk (map f G) x' y') :
   Π (x y : V), f x = x' → f y = y' → walk G x y :=
 begin
   rw adapted.iff at hf, induction p with a a b c h₁ p ih,
   { rintros x y h₁ rfl, have h₂ := hf x y h₁, exact (some h₂) },
-  { rintros x y h₂ h₃, cases h₁ with h₄ h₅, let xx := some h₅, have h₆ := some_spec h₅,
-    let yy := some h₆, have h₇ := some_spec h₆, rcases h₇ with ⟨h₇,h₈,h₉⟩,
-    have h₁₀ := hf x xx (h₂.trans h₇.symm), let p₁ := some h₁₀,
-    exact p₁.append (walk.cons h₉ (ih yy y h₈ h₃)) }
+  { rintro x y rfl rfl, cases h₁ with h₁ h₂,
+    choose xx hx using h₂, choose yy hy using hx, rcases hy with ⟨h₂,h₃,h₄⟩,
+    choose pp hp using hf x xx h₃.symm, refine pp.append (walk.cons h₂ $ ih yy y h₄ rfl) }
 end
 
-noncomputable def lift_path' (hf : adapted f G) (p : walk (push f G) (f x) (f y)) : walk G x y :=
+noncomputable def lift_path' (hf : adapted f G) (p : walk (map f G) (f x) (f y)) : walk G x y :=
 lift_path hf p x y rfl rfl
 
-lemma connected (hf : adapted f G) : connected (push f G) → connected G :=
+lemma connected (hf : adapted f G) : connected (map f G) → connected G :=
 begin
   intros h₁ x y, obtain ⟨p⟩ := h₁ (f x) (f y), use lift_path' hf p
 end
 
-lemma comp_push : adapted f G → adapted g (push f G) → adapted (g ∘ f) G :=
+lemma comp_push : adapted f G → adapted g (map f G) → adapted (g ∘ f) G :=
 begin
   intros hf hg z,
   let H := select (λ x, g (f x) = z) G,
-  let ff := select.map f (λ x', g x' = z),
+  let ff := select.fmap f (λ x', g x' = z),
   have hff : adapted ff H := -- TODO: reused below
     by { rintro ⟨z',hz'⟩, exact connected_of_iso select.level_map.symm (hf z') },
-  have hpf : (push ff H).connected :=
+  have hpf : (map ff H).connected :=
     by { dsimp only [ff,H], rw ←select.of_push, exact hg z },
   exact connected hff hpf,
 end
@@ -85,36 +84,36 @@ end
 end adapted
 
 def is_contraction (G : simple_graph V) (G' : simple_graph V') : Prop :=
-∃ φ : V' → V, surjective φ ∧ adapted φ G' ∧ G = push φ G'
+∃ φ : V' → V, surjective φ ∧ adapted φ G' ∧ G = map φ G'
 
 infix ` ≼c `:50 := is_contraction
 
 namespace is_contraction
 
 @[refl] lemma refl : G ≼c G :=
-⟨id,surjective_id,adapted.of_injective injective_id,push.push_id.symm⟩
+⟨id,surjective_id,adapted.of_injective injective_id,map.id.symm⟩
 
 lemma of_iso : G ≃g G' → G ≼c G' :=
-λ φ, let ψ := φ.symm in ⟨ψ, ψ.surjective, adapted.of_injective ψ.injective, push.from_iso ψ⟩
+λ φ, let ψ := φ.symm in ⟨ψ, ψ.surjective, adapted.of_injective ψ.injective, map.from_iso ψ⟩
 
 @[trans] lemma trans : G ≼c G' → G' ≼c G'' → G ≼c G'' :=
 begin
   rintros ⟨φ,h₁,h₂,rfl⟩ ⟨ψ,h₄,h₅,rfl⟩,
-  exact ⟨φ ∘ ψ, h₁.comp h₄, h₅.comp_push h₂, push.comp.symm⟩,
+  exact ⟨φ ∘ ψ, h₁.comp h₄, h₅.comp_push h₂, map.comp.symm⟩,
 end
 
 lemma iso_left : G ≃g G' -> G' ≼c G'' -> G ≼c G'' :=
 trans ∘ of_iso
 
-lemma le_left_aux {f : V → V'} : H' ≤ push f G → H' = push f (G ⊓ pull' f H') :=
+lemma le_left_aux {f : V → V'} : H' ≤ map f G → H' = map f (G ⊓ pull' f H') :=
 begin
   intro h₁, ext x' y', split,
-  { intro h, rcases h₁ h with ⟨h₄,x,y,rfl,rfl,h₅⟩,
-    exact ⟨h₄,x,y,rfl,rfl,h₅,h₄ ∘ congr_arg f,or.inr h⟩ },
-  { rintros ⟨h₄,x,y,rfl,rfl,-,-,h₇⟩, cases h₇, contradiction, exact h₇ }
+  { intro h, rcases h₁ h with ⟨h₄,x,y,h₅,rfl,rfl⟩,
+    exact ⟨h₄,x,y,⟨h₅,h₄ ∘ congr_arg f,or.inr h⟩,rfl,rfl⟩ },
+  { rintros ⟨h₄,x,y,⟨-,-,h₇⟩,rfl,rfl⟩, cases h₇, contradiction, exact h₇ }
 end
 
-lemma le_left_aux2 {f : V → V'} (h₁ : H' ≤ push f G) (h₂ : surjective f) (h₃ : adapted f G) :
+lemma le_left_aux2 {f : V → V'} (h₁ : H' ≤ map f G) (h₂ : surjective f) (h₃ : adapted f G) :
   H' ≼c G ⊓ pull' f H' :=
 begin
   refine ⟨f,h₂,_,le_left_aux h₁⟩, rw adapted.iff at h₃ ⊢,
@@ -134,18 +133,18 @@ by { rintros h₁ ⟨f,h₂,h₃,rfl⟩, exact ⟨G' ⊓ pull' f H, le_left_aux2
 
 lemma select_left {P : V → Prop} : G ≼c G' -> ∃ P' : V' → Prop, select P G ≼c select P' G' :=
 begin
-  rintros ⟨f,h₁,h₂,h₃⟩, use (λ x, P (f x)), refine ⟨select.map f P,_,_,_⟩,
+  rintros ⟨f,h₁,h₂,h₃⟩, use (λ x, P (f x)), refine ⟨select.fmap f P,_,_,_⟩,
   { rintro ⟨x,py⟩, cases h₁ x with x', refine ⟨⟨x',_⟩,_⟩, rwa h, ext, exact h },
   { rintros ⟨z,hz⟩, exact connected_of_iso select.level_map.symm (h₂ z) }, -- TODO: factor out
   { ext ⟨x,hx⟩ ⟨y,hy⟩, simp only [select, pull, on_fun, subtype.val_eq_coe], split,
     { intro h₄, rw h₃ at h₄, rcases h₄ with ⟨h₄,x',y',h₅,h₆,h₇⟩,
-      simp only [subtype.coe_mk] at h₅ h₆, substs h₅ h₆,
-      refine ⟨_,⟨x',hx⟩,⟨y',hy⟩,rfl,rfl,h₇⟩,
+      simp only [subtype.coe_mk] at h₆ h₇, substs h₆ h₇,
+      refine ⟨_,⟨x',hx⟩,⟨y',hy⟩,h₅,rfl,rfl⟩,
       intro h, rw subtype.ext_iff at h, contradiction },
-    { rintros ⟨h₄,⟨x',hx⟩,⟨y',hy⟩,h₅,h₆,h₇⟩, rw h₃, refine ⟨_,x',y',_,_,h₇⟩,
+    { rintros ⟨h₄,⟨x',hx⟩,⟨y',hy⟩,h₅,h₆,h₇⟩, rw h₃, refine ⟨_,x',y',h₅,_,_⟩,
       { intro h, rw ←subtype.ext_iff at h, contradiction },
-      { simp only [select.map, subtype.map] at h₅, exact h₅ },
-      { simp only [select.map, subtype.map] at h₆, exact h₆ } } }
+      { simp only [select.fmap, subtype.map] at h₆, exact h₆ },
+      { simp only [select.fmap, subtype.map] at h₇, exact h₇ } } }
 end
 
 end is_contraction
