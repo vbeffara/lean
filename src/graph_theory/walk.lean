@@ -134,14 +134,14 @@ begin
 end
 
 def push_step_aux (f : V → V') (e : G.dart) :
-  {w : (push f G).Walk // w.a = f e.fst ∧ w.b = f e.snd} :=
+  {w : (map f G).Walk // w.a = f e.fst ∧ w.b = f e.snd} :=
 begin
   by_cases f e.fst = f e.snd,
   exact ⟨Walk.nil (f e.fst), rfl, h⟩,
-  exact ⟨Walk.step ⟨⟨_,_⟩,⟨h,e.fst,e.snd,rfl,rfl,e.is_adj⟩⟩, rfl, rfl⟩
+  exact ⟨Walk.step ⟨⟨_,_⟩,⟨h,e.fst,e.snd,e.is_adj,rfl,rfl⟩⟩, rfl, rfl⟩
 end
 
-def push_step (f : V → V') (e : G.dart) : (push f G).Walk :=
+def push_step (f : V → V') (e : G.dart) : (map f G).Walk :=
 (push_step_aux f e).val
 
 @[simp] lemma push_step_a : (push_step f e).a = f e.fst :=
@@ -151,7 +151,7 @@ def push_step (f : V → V') (e : G.dart) : (push f G).Walk :=
 (push_step_aux f e).prop.2
 
 def push_Walk_aux (f : V → V') (p : G.Walk) :
-  {w : (push f G).Walk // w.a = f p.a ∧ w.b = f p.b} :=
+  {w : (map f G).Walk // w.a = f p.a ∧ w.b = f p.b} :=
 begin
   refine rec₀ _ _ p,
   { intro u, exact ⟨Walk.nil (f u), rfl, rfl⟩ },
@@ -162,7 +162,7 @@ begin
     rw [←q.2.2], exact (ee.append_aux q.1 (by { rw [q.2.1,←h], exact push_step_b })).2.2 }
 end
 
-def push_Walk (f : V → V') (p : G.Walk) : (push f G).Walk :=
+def push_Walk (f : V → V') (p : G.Walk) : (map f G).Walk :=
 (push_Walk_aux f p).val
 
 @[simp] lemma push_Walk_a : (push_Walk f p).a = f p.a :=
@@ -185,9 +185,9 @@ begin
 end
 
 lemma push_cons_ne (f : V → V') (e : G.dart) (p : G.Walk) (h : e.snd = p.a) (h' : f e.fst ≠ f e.snd) :
-  push_Walk f (p.cons e h) = Walk.cons ⟨⟨_,_⟩,⟨h',e.fst,e.snd,rfl,rfl,e.is_adj⟩⟩ (push_Walk f p) (by simp [h]) :=
+  push_Walk f (p.cons e h) = Walk.cons ⟨⟨_,_⟩,⟨h',e.fst,e.snd,e.is_adj,rfl,rfl⟩⟩ (push_Walk f p) (by simp [h]) :=
 begin
-  have : push_step f e = Walk.step ⟨⟨_,_⟩,⟨h',e.fst,e.snd,rfl,rfl,e.is_adj⟩⟩ :=
+  have : push_step f e = Walk.step ⟨⟨_,_⟩,⟨h',e.fst,e.snd,e.is_adj,rfl,rfl⟩⟩ :=
     by simp [push_step,push_step_aux,h'],
   rw [push_cons], simp [this,step]
 end
@@ -233,9 +233,9 @@ begin
     exact h' }
 end
 
-variables {hf : adapted' f G} {p' : (push f G).Walk} {hx : f x = p'.a} {hy : f y = p'.b}
+variables {hf : adapted' f G} {p' : (map f G).Walk} {hx : f x = p'.a} {hy : f y = p'.b}
 
-noncomputable def pull_Walk_aux (f : V → V') (hf : adapted' f G) (p' : (push f G).Walk) (x y : V)
+noncomputable def pull_Walk_aux (f : V → V') (hf : adapted' f G) (p' : (map f G).Walk) (x y : V)
   (hx : f x = p'.a) (hy : f y = p'.b) :
   {w : G.Walk // w.a = x ∧ w.b = y ∧ push_Walk f w = p'} :=
 begin
@@ -244,18 +244,18 @@ begin
     refine ⟨⟨p⟩,rfl,rfl,_⟩, apply push_eq_nil, exact h₃ },
   { rintros ⟨⟨u,v⟩,⟨huv,ee⟩⟩ p h ih x y hx hy,
     choose xx yy h₂ h₃ h₄ using ee, -- TODO `substs u v`
-    choose p₁ h₆ using hf x xx (hx.trans h₂.symm),
-    simp_rw [h₂] at h₆,
-    obtain p₂ := ih yy y (h₃.trans h) hy,
-    let pp := Walk.append ⟨p₁⟩ (p₂.val.cons ⟨⟨_,_⟩,h₄⟩ p₂.2.1.symm) rfl,
+    choose p₁ h₆ using hf x xx (hx.trans h₃.symm),
+    simp_rw [h₃] at h₆,
+    obtain p₂ := ih yy y (h₄.trans h) hy,
+    let pp := Walk.append ⟨p₁⟩ (p₂.val.cons ⟨⟨_,_⟩,h₂⟩ p₂.2.1.symm) rfl,
     refine ⟨pp, rfl, p₂.2.2.1, _⟩,
     have h₇ := push_eq_nil f u ⟨p₁⟩ h₆,
-    simp [pp,push_append,h₇], rw [←h₂,←h₃] at huv,
-    have h₈ := push_cons_ne f ⟨⟨_,_⟩,h₄⟩ p₂.val p₂.2.1.symm huv, refine h₈.trans _,
-    simp [h₂,h₃], congr, exact p₂.2.2.2 }
+    simp [pp,push_append,h₇], rw [←h₃,←h₄] at huv,
+    have h₈ := push_cons_ne f ⟨⟨_,_⟩,h₂⟩ p₂.val p₂.2.1.symm huv, refine h₈.trans _,
+    simp [h₃,h₄], congr, exact p₂.2.2.2 }
 end
 
-noncomputable def pull_Walk (f : V → V') (hf : adapted' f G) (p' : (push f G).Walk) (x y : V)
+noncomputable def pull_Walk (f : V → V') (hf : adapted' f G) (p' : (map f G).Walk) (x y : V)
   (hx : f x = p'.a) (hy : f y = p'.b) : G.Walk :=
 (pull_Walk_aux f hf p' x y hx hy).val
 

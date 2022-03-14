@@ -62,12 +62,6 @@ lemma mono : monotone (pull' f) :=
 by { rintros G H h x y ⟨h₁,h₂⟩, refine ⟨h₁,_⟩, cases h₂, left, exact h₂, right, exact h h₂ }
 end pull'
 
--- TODO remove
-def push (f : V → V') (G : simple_graph V) : simple_graph V' :=
-{ adj := λ x' y', x' ≠ y' ∧ ∃ x y : V, f x = x' ∧ f y = y' ∧ G.adj x y,
-  symm := λ x' y' ⟨h₀,x,y,h₁,h₂,h₃⟩, ⟨h₀.symm,y,x,h₂,h₁,h₃.symm⟩,
-  loopless := λ _ ⟨h₀,_⟩, h₀ rfl }
-
 @[ext] def map (f : V → V') (G : simple_graph V) : simple_graph V' :=
 { adj := ne ⊓ relation.map G.adj f f,
   symm := λ x y ⟨h₁,u,v,h₂,h₃,h₄⟩, ⟨h₁.symm,v,u,h₂.symm,h₄,h₃⟩,
@@ -154,7 +148,7 @@ lemma merge_edge_idempotent [decidable_eq V] {G : simple_graph V} {e : G.dart} (
 by { by_cases z = e.snd; simp [merge_edge,h] }
 
 def contract_edge (G : simple_graph V) [decidable_eq V] (e : G.dart) :=
-G.push (merge_edge e)
+G.map (merge_edge e)
 
 infix ` / ` := contract_edge
 
@@ -169,13 +163,13 @@ variables [fintype V] [decidable_eq V] [decidable_eq V'] [decidable_rel G.adj]
 {e : G.dart // f e.fst ≠ f e.snd}
 
 def proj_edge (e : G.dart) : preserved (merge_edge e) G → (G/e).dart :=
-λ ⟨⟨⟨x,y⟩,hxy⟩,h₁⟩, ⟨(merge_edge e x, merge_edge e y), ⟨h₁,x,y,rfl,rfl,hxy⟩⟩
+λ ⟨⟨⟨x,y⟩,hxy⟩,h₁⟩, ⟨(merge_edge e x, merge_edge e y), ⟨h₁,x,y,hxy,rfl,rfl⟩⟩
 
 lemma proj_edge_surj {e : G.dart} : surjective (proj_edge e) :=
 begin
-  rintro ⟨⟨x',y'⟩,⟨h₁,⟨x,y,h₂,h₃,h₄⟩⟩⟩, refine ⟨⟨⟨(x,y),h₄⟩,_⟩,_⟩,
-  { rw [h₂,h₃], exact h₁ },
-  { simp only [proj_edge, prod.mk.inj_iff], exact ⟨h₂,h₃⟩ }
+  rintro ⟨⟨x',y'⟩,⟨h₁,⟨x,y,h₂,h₃,h₄⟩⟩⟩, refine ⟨⟨⟨(x,y),h₂⟩,_⟩,_⟩,
+  { rw [h₃,h₄], exact h₁ },
+  { simp only [proj_edge, prod.mk.inj_iff], exact ⟨h₃,h₄⟩ }
 end
 
 lemma fewer_edges {e : G.dart} [decidable_rel (G/e).adj] :
@@ -200,7 +194,7 @@ variables {P : V → Prop} {P' : V' → Prop}
 lemma mono {P : V → Prop} : monotone (select P) :=
 by { apply pull.mono }
 
-def map (f : V → V') (P' : V' → Prop) : {x // P' (f x)} → {x' // P' x'} :=
+def fmap (f : V → V') (P' : V' → Prop) : {x : V // P' (f x)} → {x' : V' // P' x'} :=
 subtype.map f (λ _, id)
 
 lemma level_comp (g_inj : injective g) {z : V'} : level (g ∘ f) (g z) G ≃g level f z G :=
@@ -210,22 +204,23 @@ lemma level_comp (g_inj : injective g) {z : V'} : level (g ∘ f) (g z) G ≃g l
   right_inv := λ x, by { simp only [subtype.val_eq_coe, subtype.coe_eta] },
   map_rel_iff' := λ x y, iff.rfl }
 
-lemma level_map {hz' : P' z'} : level (map f P') ⟨z',hz'⟩ (select (P' ∘ f) G) ≃g level f z' G :=
+lemma level_map {hz' : P' z'} : level (fmap f P') ⟨z',hz'⟩ (select (P' ∘ f) G) ≃g level f z' G :=
 begin
   refine ⟨⟨_,_,_,_⟩,_⟩,
-  { rintro ⟨⟨x,p₁x⟩,p₂x⟩, simp only [map, subtype.map] at p₂x, exact ⟨x,p₂x⟩ },
-  { rintro ⟨x,px⟩, use x, rw px, exact hz', simp only [map,subtype.map], exact px },
+  { rintro ⟨⟨x,p₁x⟩,p₂x⟩, simp only [fmap, subtype.map] at p₂x, exact ⟨x,p₂x⟩ },
+  { rintro ⟨x,px⟩, use x, rw px, exact hz', simp only [fmap,subtype.map], exact px },
   { rintro ⟨⟨x,p₁x⟩,p₂x⟩, refl },
   { rintro ⟨x,px⟩, refl },
   { rintros ⟨⟨a,h₁a⟩,h₂a⟩ ⟨⟨b,h₁b⟩,h₂b⟩, simp only [level, select, pull, equiv.coe_fn_mk] }
 end
 
-lemma of_push : select P' (push f G) = push (map f P') (select (P' ∘ f) G) :=
+lemma of_push : select P' (map f G) = map (fmap f P') (select (P' ∘ f) G) :=
 begin
-  ext x' y', cases x' with x' hx', cases y' with y' hy',
-  simp [select,pull,push,on_fun,map,subtype.ext_iff], intro h₁, split,
-  { rintros ⟨x,rfl,y,rfl,h⟩, exact ⟨x,hx',y,hy',rfl,rfl,h⟩ },
-  { rintros ⟨x,hx,y,hy,rfl,rfl,h⟩, refine ⟨x,rfl,y,rfl,h⟩ }
+  ext x' y', cases x' with x' hx', cases y' with y' hy', split,
+  { rintro ⟨h₁,x,y,h₂,h₃,h₄⟩, dsimp at h₁ h₃ h₄, substs h₃ h₄,
+    refine ⟨_,⟨x,hx'⟩,⟨y,hy'⟩,h₂,rfl,rfl⟩, exact subtype.ne_of_val_ne h₁ },
+  { rintro ⟨h₁,⟨u,hu⟩,⟨v,hv⟩,h₂,h₃,h₄⟩, simp only [fmap, subtype.map, subtype.coe_mk] at h₃ h₄,
+    refine ⟨_,u,v,h₂,h₃,h₄⟩, simp only, simp only [ne.def] at h₁, exact h₁ }
 end
 
 def push_walk (p : walk G x y) (hp : ∀ z ∈ p.support, P z) :
@@ -258,10 +253,9 @@ in ⟨⟨g,λ a b,h₁⟩,h₂.comp subtype.val_injective⟩
 end is_smaller
 
 def embed (f : V → V') : simple_graph V → simple_graph (range f) :=
-select (range f) ∘ push f
+select (range f) ∘ map f
 
 namespace embed
-
 -- TODO : computable version of this taking a left inverse of f?
 noncomputable def iso (f_inj : injective f) : G ≃g embed f G :=
 let φ : V → range f := λ x, ⟨f x, x, rfl⟩,
@@ -271,8 +265,8 @@ let φ : V → range f := λ x, ⟨f x, x, rfl⟩,
   left_inv := λ x, f_inj (some_spec (subtype.prop (φ x))),
   right_inv := λ y, subtype.ext (some_spec y.prop),
   map_rel_iff' := λ a b, by { dsimp only [φ], split,
-  { rintros ⟨h₁,x,y,h₂,h₃,h₄⟩, rwa [←f_inj h₂, ←f_inj h₃] },
-  { intro h₁, refine ⟨f_inj.ne (G.ne_of_adj h₁),a,b,rfl,rfl,h₁⟩ } } }
+  { rintros ⟨-,x,y,h₂,h₃,h₄⟩, rwa [←f_inj h₃, ←f_inj h₄] },
+  { intro h₁, refine ⟨f_inj.ne (G.ne_of_adj h₁),a,b,h₁,rfl,rfl⟩ } } }
 
 lemma le_select {f : G →g G'} (f_inj : injective f) : embed f G ≤ select (range f) G' :=
 select.mono map.le

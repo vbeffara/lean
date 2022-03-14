@@ -102,10 +102,10 @@ nonempty.map (walk_from_subgraph sub)
 lemma fmap (f : G →g G') : linked G x y → linked G' (f x) (f y) :=
 nonempty.map (fmap f)
 
-lemma push {x y : V} {f : V → V'} : G.linked x y → (push f G).linked (f x) (f y) :=
+lemma push {x y : V} {f : V → V'} : G.linked x y → (map f G).linked (f x) (f y) :=
 begin
   rintro ⟨p⟩, induction p with u u v w h p ih, refl, refine trans _ ih,
-  cases push.adj f h with h' h', rw h', exact step h'
+  cases map.adj f h with h' h', rw h', exact step h'
 end
 
 end linked
