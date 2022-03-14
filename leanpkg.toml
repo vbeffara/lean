@@ -1,8 +1,8 @@
 [package]
 name = "graphs"
 version = "0.1"
-lean_version = "leanprover-community/lean:3.40.0"
+lean_version = "leanprover-community/lean:3.41.0"
 path = "src"
 
 [dependencies]
-mathlib = {git = "https://github.com/leanprover-community/mathlib", rev = "115f8c7ab221914bc38d7abaa327aefc980127a0"}
+mathlib = {git = "https://github.com/leanprover-community/mathlib", rev = "174f1da1d78ef317a64e56a6340a30e540cf35fd"}

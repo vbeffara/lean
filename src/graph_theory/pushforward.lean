@@ -13,7 +13,7 @@ def pull (f : V → V') (G' : simple_graph V') : simple_graph V :=
   loopless := λ _, G'.loopless _ }
 
 namespace pull
-lemma comp : pull (g ∘ f) G'' = pull f (pull g G'') :=
+lemma comp : pull (g ∘ f) = pull f ∘ pull g :=
 by { ext x y, exact iff.rfl }
 
 def to_iso (f : V ≃ V') (G' : simple_graph V') : pull f G' ≃g G' :=
@@ -34,9 +34,9 @@ def pull' (f : V → V') (G' : simple_graph V') : simple_graph V :=
   loopless := λ x, by { push_neg, intro, contradiction } }
 
 namespace pull'
-lemma comp : pull' (g ∘ f) G'' = pull' f (pull' g G'') :=
+lemma comp : pull' (g ∘ f) = pull' f ∘ pull' g :=
 begin
-  ext x y, split,
+  ext G'' x y, split,
   { rintros ⟨h₁,h₂⟩, refine ⟨h₁,_⟩, by_cases f x = f y,
     { left, exact h },
     { right, exact ⟨h,h₂⟩ } },
@@ -62,46 +62,51 @@ lemma mono : monotone (pull' f) :=
 by { rintros G H h x y ⟨h₁,h₂⟩, refine ⟨h₁,_⟩, cases h₂, left, exact h₂, right, exact h h₂ }
 end pull'
 
--- TODO relation.map
+-- TODO remove
 def push (f : V → V') (G : simple_graph V) : simple_graph V' :=
 { adj := λ x' y', x' ≠ y' ∧ ∃ x y : V, f x = x' ∧ f y = y' ∧ G.adj x y,
   symm := λ x' y' ⟨h₀,x,y,h₁,h₂,h₃⟩, ⟨h₀.symm,y,x,h₂,h₁,h₃.symm⟩,
   loopless := λ _ ⟨h₀,_⟩, h₀ rfl }
 
-namespace push
-noncomputable instance : decidable_rel (push f G).adj := by { classical, apply_instance }
+@[ext] def map (f : V → V') (G : simple_graph V) : simple_graph V' :=
+{ adj := ne ⊓ relation.map G.adj f f,
+  symm := λ x y ⟨h₁,u,v,h₂,h₃,h₄⟩, ⟨h₁.symm,v,u,h₂.symm,h₄,h₃⟩,
+  loopless := λ _ ⟨h,_⟩, h rfl }
 
-@[simp] lemma push_id : push id G = G :=
+namespace map
+noncomputable instance : decidable_rel (map f G).adj := by { classical, apply_instance }
+
+@[simp] lemma id : map id G = G :=
 begin
-  ext x y, split,
-  { rintros ⟨-,x',y',rfl,rfl,h₂⟩, exact h₂ },
-  { intro h, exact ⟨G.ne_of_adj h,x,y,rfl,rfl,h⟩ }
+  ext : 1,
+  simp only [map, relation.map, id.def, exists_eq_right_right, exists_eq_right, inf_eq_right],
+  apply ne_of_adj,
 end
 
-lemma adj (f : V → V') : G.adj x y → f x = f y ∨ (push f G).adj (f x) (f y) :=
-by { intro h₁, by_cases f x = f y, left, exact h, right, exact ⟨h,x,y,rfl,rfl,h₁⟩ }
+lemma adj (f : V → V') : G.adj x y → f x = f y ∨ (map f G).adj (f x) (f y) :=
+by { intro h₁, by_cases f x = f y, left, exact h, right, refine ⟨h,x,y,h₁,rfl,rfl⟩ }
 
-lemma comp : push (g ∘ f) G = push g (push f G) :=
+lemma comp : map (g ∘ f) = map g ∘ map f :=
 begin
-  ext x'' y'', split,
-  { rintro ⟨h₁,x,y,rfl,rfl,h₄⟩, exact ⟨h₁,f x,f y,rfl,rfl,ne_of_apply_ne g h₁,x,y,rfl,rfl,h₄⟩ },
-  { rintro ⟨h₁,-,-,rfl,rfl,-,x,y,rfl,rfl,h₇⟩, exact ⟨h₁,x,y,rfl,rfl,h₇⟩ }
+  ext G x'' y'', split,
+  { rintro ⟨h₁,u,v,h₂,rfl,rfl⟩, exact ⟨h₁,f u,f v,⟨ne_of_apply_ne _ h₁,u,v,h₂,rfl,rfl⟩,rfl,rfl⟩ },
+  { rintro ⟨h₁,x',y',⟨h₂,x,y,h₃,rfl,rfl⟩,rfl,rfl⟩, exact ⟨h₁,x,y,h₃,rfl,rfl⟩ }
 end
 
-lemma left_inv (h : injective f) : left_inverse (pull f) (push f) :=
+lemma left_inverse_of_injective (h : injective f) : left_inverse (pull f) (map f) :=
 begin
   intro G, ext x y, split,
-  { rintro ⟨-,xx,yy,h₂,h₃,h₄⟩, rw [←h h₂,←h h₃], exact h₄ },
-  { intro h₁, exact ⟨h.ne (G.ne_of_adj h₁),x,y,rfl,rfl,h₁⟩ }
+  { rintro ⟨h₁,u,v,h₂,h₃,h₄⟩, rw [←h h₃, ←h h₄], exact h₂ },
+  { intro h₁, exact ⟨h.ne (G.ne_of_adj h₁),x,y,h₁,rfl,rfl⟩ }
 end
 
-lemma left_inv' (h : injective f) : left_inverse (pull' f) (push f) :=
+lemma left_inverse_of_injective' (h : injective f) : left_inverse (pull' f) (map f) :=
 begin
   intro G, ext x y, split,
   { rintro ⟨h₁,h₂⟩, cases h₂, have := h h₂, contradiction,
-    rcases h₂ with ⟨h₂,x',y',h₃,h₄,h₅⟩, rwa [←h h₃, ←h h₄] },
+    rcases h₂ with ⟨h₂,x',y',h₃,h₄,h₅⟩, rwa [←h h₄, ←h h₅] },
   { intro h₁, refine ⟨G.ne_of_adj h₁, _⟩, by_cases h₂ : f x = f y,
-    left, exact h₂, right, refine ⟨h₂,x,y,rfl,rfl,h₁⟩ }
+    left, exact h₂, right, exact ⟨h₂,x,y,h₁,rfl,rfl⟩ }
 end
 
 lemma right_inv (h : surjective f) : right_inverse (pull f) (push f) :=
@@ -161,7 +166,7 @@ lemma lift_step_ne_mem {e : G.dart} :
   f e.fst = f e.snd → e ∉ set.range (lift_step : (push f G).dart → G.dart) :=
 by { contrapose, push_neg, exact lift_step_ne_of_mem }
 
-end push
+end map
 
 -- TODO remove
 def merge [decidable_eq V] (P : V → Prop) [decidable_pred P] : V → {z // ¬ (P z)} ⊕ unit :=
@@ -297,7 +302,7 @@ let φ : V → range f := λ x, ⟨f x, x, rfl⟩,
   { intro h₁, refine ⟨f_inj.ne (G.ne_of_adj h₁),a,b,rfl,rfl,h₁⟩ } } }
 
 lemma le_select {f : G →g G'} (f_inj : injective f) : embed f G ≤ select (range f) G' :=
-select.mono push.le
+select.mono map.le
 
 end embed
 end simple_graph
