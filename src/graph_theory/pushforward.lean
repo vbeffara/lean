@@ -135,17 +135,8 @@ by { rintros x' y' ⟨-,x,y,h₂,rfl,rfl⟩, exact φ.map_rel h₂ }
 
 end map
 
--- TODO remove
-def merge [decidable_eq V] (P : V → Prop) [decidable_pred P] : V → {z // ¬ (P z)} ⊕ unit :=
-λ z, dite (P z) (λ _, sum.inr unit.star) (λ h, sum.inl ⟨z,h⟩)
-
--- TODO function.update
 def merge_edge [decidable_eq V] {G : simple_graph V} (e : G.dart) : V → V :=
-λ z, ite (z = e.snd) e.fst z
-
-lemma merge_edge_idempotent [decidable_eq V] {G : simple_graph V} {e : G.dart} (z : V) :
-  merge_edge e (merge_edge e z) = merge_edge e z :=
-by { by_cases z = e.snd; simp [merge_edge,h] }
+update id e.snd e.fst
 
 def contract_edge (G : simple_graph V) [decidable_eq V] (e : G.dart) :=
 G.map (merge_edge e)
@@ -178,7 +169,7 @@ calc fintype.card (G/e).dart ≤ fintype.card (preserved (merge_edge e) G) :
   fintype.card_le_of_surjective _ proj_edge_surj
                         ...  < fintype.card (G.dart) :
   by { apply fintype.card_lt_of_injective_of_not_mem _ subtype.coe_injective,
-    swap, exact e, simp [merge,merge_edge] }
+    swap, exact e, simp [merge_edge,update] }
 
 end contract_edge
 
@@ -195,7 +186,7 @@ lemma mono {P : V → Prop} : monotone (select P) :=
 by { apply pull.mono }
 
 def fmap (f : V → V') (P' : V' → Prop) : {x : V // P' (f x)} → {x' : V' // P' x'} :=
-subtype.map f (λ _, id)
+λ x, ⟨f x, x.prop⟩
 
 lemma level_comp (g_inj : injective g) {z : V'} : level (g ∘ f) (g z) G ≃g level f z G :=
 { to_fun := λ x, ⟨x.val, g_inj x.prop⟩,

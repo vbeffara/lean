@@ -17,9 +17,9 @@ lemma merge_edge_adapted [decidable_eq V] {e : G.dart} : adapted' (merge_edge e)
 begin
   intros x y hxy, rcases e with ⟨⟨u,v⟩,e⟩, have : u ≠ v := G.ne_of_adj e,
   have l₁ : ∀ {z}, z = u ∨ z = v → merge_edge ⟨⟨_,_⟩,e⟩ z = u :=
-    by { intros z hz, cases hz; simp [merge_edge,hz] },
+    by { intros z hz, cases hz; simp [merge_edge,update,hz] },
   have l₂ : ∀ {z}, ¬(z = u ∨ z = v) → merge_edge ⟨⟨_,_⟩,e⟩ z = z :=
-    by { simp [merge_edge], intros z hz h', simp [h'] at hz, contradiction },
+    by { simp [merge_edge,update], intros z hz h', simp [h'] at hz, contradiction },
   by_cases hx : x = u ∨ x = v; by_cases hy : y = u ∨ y = v,
   { cases hx; cases hy; substs x y,
     { use walk.nil, intros z hz, simp at hz, rw hz },
@@ -69,16 +69,16 @@ begin
   intros h₁ x y, obtain ⟨p⟩ := h₁ (f x) (f y), use lift_path' hf p
 end
 
+lemma fmap (hf : adapted f G) {P} : adapted (select.fmap f P) (select (P ∘ f) G) :=
+by { rintro ⟨z',hz'⟩, exact connected_of_iso select.level_map.symm (hf z') }
+
 lemma comp_push : adapted f G → adapted g (map f G) → adapted (g ∘ f) G :=
 begin
   intros hf hg z,
   let H := select (λ x, g (f x) = z) G,
   let ff := select.fmap f (λ x', g x' = z),
-  have hff : adapted ff H := -- TODO: reused below
-    by { rintro ⟨z',hz'⟩, exact connected_of_iso select.level_map.symm (hf z') },
-  have hpf : (map ff H).connected :=
-    by { dsimp only [ff,H], rw ←select.of_push, exact hg z },
-  exact connected hff hpf,
+  have hff : adapted ff H := hf.fmap,
+  apply connected hff, rw ←select.of_push, exact hg z
 end
 
 end adapted
@@ -133,9 +133,8 @@ by { rintros h₁ ⟨f,h₂,h₃,rfl⟩, exact ⟨G' ⊓ pull' f H, le_left_aux2
 
 lemma select_left {P : V → Prop} : G ≼c G' -> ∃ P' : V' → Prop, select P G ≼c select P' G' :=
 begin
-  rintros ⟨f,h₁,h₂,h₃⟩, use (λ x, P (f x)), refine ⟨select.fmap f P,_,_,_⟩,
+  rintros ⟨f,h₁,h₂,h₃⟩, use (λ x, P (f x)), refine ⟨select.fmap f P, _, h₂.fmap, _⟩,
   { rintro ⟨x,py⟩, cases h₁ x with x', refine ⟨⟨x',_⟩,_⟩, rwa h, ext, exact h },
-  { rintros ⟨z,hz⟩, exact connected_of_iso select.level_map.symm (h₂ z) }, -- TODO: factor out
   { ext ⟨x,hx⟩ ⟨y,hy⟩, simp only [select, pull, on_fun, subtype.val_eq_coe], split,
     { intro h₄, rw h₃ at h₄, rcases h₄ with ⟨h₄,x',y',h₅,h₆,h₇⟩,
       simp only [subtype.coe_mk] at h₆ h₇, substs h₆ h₇,
