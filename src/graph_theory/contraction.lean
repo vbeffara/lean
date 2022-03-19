@@ -47,41 +47,56 @@ begin
   { rintros h₁ z ⟨x,hx⟩ ⟨y,rfl⟩, obtain ⟨p,hp⟩ := h₁ x y hx, use select.push_walk p hp }
 end
 
-noncomputable def lift_path (hf : adapted' f G) (p : walk (map f G) x' y') :
-  Π (x y : V), f x = x' → f y = y' → walk G x y :=
+noncomputable def lift_path_aux (hf : adapted' f G) (p : walk (map f G) x' y') :
+  Π (x y : V), f x = x' → f y = y' → {q : walk G x y // ∀ z ∈ q.support, f z ∈ p.support} :=
 begin
   induction p with a a b c h₁ p ih,
-  { rintros x y h₁ rfl, have h₂ := hf x y h₁, exact (some h₂) },
+  { rintros x y h₁ rfl, choose p hp using hf x y h₁,
+    refine ⟨p, λ z hz, _⟩, rw hp z hz, apply walk.start_mem_support },
   { rintro x y rfl rfl, cases h₁ with h₁ h₂,
     choose xx hx using h₂, choose yy hy using hx, rcases hy with ⟨h₂,h₃,h₄⟩,
-    choose pp hp using hf x xx h₃.symm, refine pp.append (walk.cons h₂ $ ih yy y h₄ rfl) }
+    choose pp hp using hf x xx h₃.symm, use pp.append (walk.cons h₂ $ ih yy y h₄ rfl),
+    rintro z hz, rw [walk.support_append, list.mem_append] at hz, cases hz,
+    { left, rw hp z hz, exact h₃ },
+    { rw [walk.support_cons, list.tail_cons] at hz, right, exact (ih yy y h₄ rfl).prop z hz } }
 end
+
+noncomputable def lift_path (hf : adapted' f G) (p : walk (map f G) x' y') :
+  Π (x y : V), f x = x' → f y = y' → walk G x y :=
+λ x y hx hy, (lift_path_aux hf p x y hx hy).val
+
+lemma mem_lift_path {hf : adapted' f G} {p : (map f G).walk x' y'} {hx : f x = x'} {hy : f y = y'} :
+  z ∈ (lift_path hf p x y hx hy).support → f z ∈ p.support :=
+(lift_path_aux hf p x y hx hy).prop z
 
 noncomputable def lift_path' (hf : adapted' f G) (p : walk (map f G) (f x) (f y)) : walk G x y :=
 lift_path hf p x y rfl rfl
+
+lemma mem_lift_path' {hf : adapted' f G} {p : (map f G).walk (f x) (f y)} :
+  z ∈ (lift_path' hf p).support → f z ∈ p.support :=
+mem_lift_path
 
 lemma connected (hf : adapted' f G) : connected (map f G) → connected G :=
 begin
   intros h₁ x y, obtain ⟨p⟩ := h₁ (f x) (f y), use lift_path' hf p
 end
 
-lemma fmap (hf : adapted f G) {P} : adapted (select.fmap f P) (select (P ∘ f) G) :=
-by { rintro ⟨z',hz'⟩, exact connected_of_iso select.level_map.symm (hf z') }
-
 end adapted
 
 namespace adapted'
 lemma fmap (hf : adapted' f G) {P} : adapted' (select.fmap f P) (select (P ∘ f) G) :=
-by { simp_rw [adapted.iff.symm] at hf ⊢, exact hf.fmap } -- TODO direct proof
+begin
+  rintro ⟨x,hx⟩ ⟨y,hy⟩ hxy, simp only [select.fmap, subtype.coe_mk] at hxy,
+  obtain ⟨p,hp⟩ := hf x y hxy, refine ⟨select.push_walk p _, _⟩,
+  { rintro z hz, rw ← hp z hz at hy, exact hy },
+  rintro ⟨z,hz⟩ h, simp only [select.fmap, subtype.coe_mk],
+  exact hp z (select.mem_push_walk.mp h)
+end
 
 lemma comp_push : adapted' f G → adapted' g (map f G) → adapted' (g ∘ f) G :=
 begin
-  simp_rw [adapted.iff.symm],
-  intros hf hg z,
-  let H := select (λ x, g (f x) = z) G,
-  let ff := select.fmap f (λ x', g x' = z),
-  have hff : adapted' ff H := adapted.iff.mp hf.fmap,
-  apply adapted.connected hff, rw ←select.of_push, exact hg z
+  rintro hf hg x y hxy, obtain ⟨p, hp⟩ := hg (f x) (f y) hxy,
+  exact ⟨adapted.lift_path' hf p, λ z hz, hp (f z) (adapted.mem_lift_path' hz)⟩,
 end
 end adapted'
 

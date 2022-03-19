@@ -222,6 +222,16 @@ begin
   refine walk.cons _ (ih hp'), exact h₁
 end
 
+lemma mem_push_walk {p : G.walk x y} {hp : ∀ z ∈ p.support, P z} {z' : subtype P} :
+  z' ∈ (push_walk p hp).support ↔ z'.val ∈ p.support :=
+begin
+  induction p with a a b c h₁ p ih,
+  { simp [push_walk, subtype.ext_iff, subtype.coe_mk] },
+  { split,
+    { rintro (h|h), left, subst h, right, exact ih.mp h },
+    { rintro (h|h), left, subst h, simp, right, exact ih.mpr h } }
+end
+
 def pull_walk {x y} (p : walk (select P G) x y) : walk G x.val y.val :=
 by { induction p with a a b c h₁ p ih, refl, refine walk.cons h₁ ih }
 
