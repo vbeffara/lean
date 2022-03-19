@@ -233,9 +233,9 @@ begin
     exact h' }
 end
 
-variables {hf : adapted' f G} {p' : (map f G).Walk} {hx : f x = p'.a} {hy : f y = p'.b}
+variables {hf : adapted f G} {p' : (map f G).Walk} {hx : f x = p'.a} {hy : f y = p'.b}
 
-noncomputable def pull_Walk_aux (f : V → V') (hf : adapted' f G) (p' : (map f G).Walk) (x y : V)
+noncomputable def pull_Walk_aux (f : V → V') (hf : adapted f G) (p' : (map f G).Walk) (x y : V)
   (hx : f x = p'.a) (hy : f y = p'.b) :
   {w : G.Walk // w.a = x ∧ w.b = y ∧ push_Walk f w = p'} :=
 begin
@@ -255,7 +255,7 @@ begin
     simp [h₃,h₄], congr, exact p₂.2.2.2 }
 end
 
-noncomputable def pull_Walk (f : V → V') (hf : adapted' f G) (p' : (map f G).Walk) (x y : V)
+noncomputable def pull_Walk (f : V → V') (hf : adapted f G) (p' : (map f G).Walk) (x y : V)
   (hx : f x = p'.a) (hy : f y = p'.b) : G.Walk :=
 (pull_Walk_aux f hf p' x y hx hy).val
 

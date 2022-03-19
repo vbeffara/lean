@@ -6,7 +6,7 @@ variables {V V' : Type*} [fintype V] [decidable_eq V] [fintype V'] [decidable_eq
 variables {G G₁ G₂ : simple_graph V}
 variables [decidable_rel G.adj] [decidable_rel G₁.adj] [decidable_rel G₂.adj]
 variables {a : V} {A B X Y Z : finset V} {e : G.dart}
-variables {f : V → V'} {hf : G.adapted' f}
+variables {f : V → V'} {hf : G.adapted f}
 
 namespace simple_graph
 namespace menger
@@ -23,7 +23,7 @@ namespace AB_walk
 def minimal (p : AB_walk G A B) : Prop :=
 p.to_Walk.init ∩ B = ∅ ∧ p.to_Walk.tail ∩ A = ∅
 
-noncomputable def lift (f : V → V') (hf : adapted' f G) (A B : finset V) :
+noncomputable def lift (f : V → V') (hf : adapted f G) (A B : finset V) :
   AB_walk (map f G) (A.image f) (B.image f) → AB_walk G A B :=
 begin
   rintro ⟨p,ha,hb⟩,

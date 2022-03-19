@@ -188,32 +188,6 @@ by { apply pull.mono }
 def fmap (f : V → V') (P' : V' → Prop) : {x : V // P' (f x)} → {x' : V' // P' x'} :=
 λ x, ⟨f x, x.prop⟩
 
-lemma level_comp (g_inj : injective g) {z : V'} : level (g ∘ f) (g z) G ≃g level f z G :=
-{ to_fun := λ x, ⟨x.val, g_inj x.prop⟩,
-  inv_fun := λ x, ⟨x.val, congr_arg g x.prop⟩,
-  left_inv := λ x, by { simp only [subtype.val_eq_coe, subtype.coe_eta] },
-  right_inv := λ x, by { simp only [subtype.val_eq_coe, subtype.coe_eta] },
-  map_rel_iff' := λ x y, iff.rfl }
-
-lemma level_map {hz' : P' z'} : level (fmap f P') ⟨z',hz'⟩ (select (P' ∘ f) G) ≃g level f z' G :=
-begin
-  refine ⟨⟨_,_,_,_⟩,_⟩,
-  { rintro ⟨⟨x,p₁x⟩,p₂x⟩, simp only [fmap, subtype.map] at p₂x, exact ⟨x,p₂x⟩ },
-  { rintro ⟨x,px⟩, use x, rw px, exact hz', simp only [fmap,subtype.map], exact px },
-  { rintro ⟨⟨x,p₁x⟩,p₂x⟩, refl },
-  { rintro ⟨x,px⟩, refl },
-  { rintros ⟨⟨a,h₁a⟩,h₂a⟩ ⟨⟨b,h₁b⟩,h₂b⟩, simp only [level, select, pull, equiv.coe_fn_mk] }
-end
-
-lemma of_push : select P' (map f G) = map (fmap f P') (select (P' ∘ f) G) :=
-begin
-  ext x' y', cases x' with x' hx', cases y' with y' hy', split,
-  { rintro ⟨h₁,x,y,h₂,h₃,h₄⟩, dsimp at h₁ h₃ h₄, substs h₃ h₄,
-    refine ⟨_,⟨x,hx'⟩,⟨y,hy'⟩,h₂,rfl,rfl⟩, exact subtype.ne_of_val_ne h₁ },
-  { rintro ⟨h₁,⟨u,hu⟩,⟨v,hv⟩,h₂,h₃,h₄⟩, simp only [fmap, subtype.map, subtype.coe_mk] at h₃ h₄,
-    refine ⟨_,u,v,h₂,h₃,h₄⟩, simp only, simp only [ne.def] at h₁, exact h₁ }
-end
-
 def push_walk (p : walk G x y) (hp : ∀ z ∈ p.support, P z) :
   walk (select P G) ⟨x, hp x (walk.start_mem_support p)⟩ ⟨y, hp y (walk.end_mem_support p)⟩ :=
 begin

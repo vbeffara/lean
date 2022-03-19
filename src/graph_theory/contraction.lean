@@ -8,12 +8,9 @@ variables {G H : simple_graph V} {G' H' : simple_graph V'} {G'' : simple_graph V
 namespace simple_graph
 
 def adapted (f : V → V') (G : simple_graph V) : Prop :=
-∀ (z : V'), connected (level f z G)
-
-def adapted' (f : V → V') (G : simple_graph V) : Prop :=
 ∀ (x y : V), f x = f y → ∃ p : walk G x y, ∀ z ∈ p.support, f z = f y
 
-lemma merge_edge_adapted [decidable_eq V] {e : G.dart} : adapted' (merge_edge e) G :=
+lemma merge_edge_adapted [decidable_eq V] {e : G.dart} : adapted (merge_edge e) G :=
 begin
   intros x y hxy, rcases e with ⟨⟨u,v⟩,e⟩, have : u ≠ v := G.ne_of_adj e,
   have l₁ : ∀ {z}, z = u ∨ z = v → merge_edge ⟨⟨_,_⟩,e⟩ z = u :=
@@ -33,21 +30,13 @@ end
 
 namespace adapted
 
-lemma of_injective : injective f → adapted' f G :=
+lemma of_injective : injective f → adapted f G :=
 begin
   rintro hf x y h, have := hf h, subst this, use walk.nil,
   rintro z, simp only [walk.support_nil, list.mem_singleton], exact congr_arg f
 end
 
-lemma iff : adapted f G ↔ adapted' f G :=
-begin
-  split,
-  { rintro h x y hxy, obtain ⟨p⟩ := h (f y) ⟨x,hxy⟩ ⟨y,rfl⟩,
-    use select.pull_walk p, exact select.pull_walk_spec p },
-  { rintros h₁ z ⟨x,hx⟩ ⟨y,rfl⟩, obtain ⟨p,hp⟩ := h₁ x y hx, use select.push_walk p hp }
-end
-
-noncomputable def lift_path_aux (hf : adapted' f G) (p : walk (map f G) x' y') :
+noncomputable def lift_path_aux (hf : adapted f G) (p : walk (map f G) x' y') :
   Π (x y : V), f x = x' → f y = y' → {q : walk G x y // ∀ z ∈ q.support, f z ∈ p.support} :=
 begin
   induction p with a a b c h₁ p ih,
@@ -61,30 +50,27 @@ begin
     { rw [walk.support_cons, list.tail_cons] at hz, right, exact (ih yy y h₄ rfl).prop z hz } }
 end
 
-noncomputable def lift_path (hf : adapted' f G) (p : walk (map f G) x' y') :
+noncomputable def lift_path (hf : adapted f G) (p : walk (map f G) x' y') :
   Π (x y : V), f x = x' → f y = y' → walk G x y :=
 λ x y hx hy, (lift_path_aux hf p x y hx hy).val
 
-lemma mem_lift_path {hf : adapted' f G} {p : (map f G).walk x' y'} {hx : f x = x'} {hy : f y = y'} :
+lemma mem_lift_path {hf : adapted f G} {p : (map f G).walk x' y'} {hx : f x = x'} {hy : f y = y'} :
   z ∈ (lift_path hf p x y hx hy).support → f z ∈ p.support :=
 (lift_path_aux hf p x y hx hy).prop z
 
-noncomputable def lift_path' (hf : adapted' f G) (p : walk (map f G) (f x) (f y)) : walk G x y :=
+noncomputable def lift_path' (hf : adapted f G) (p : walk (map f G) (f x) (f y)) : walk G x y :=
 lift_path hf p x y rfl rfl
 
-lemma mem_lift_path' {hf : adapted' f G} {p : (map f G).walk (f x) (f y)} :
+lemma mem_lift_path' {hf : adapted f G} {p : (map f G).walk (f x) (f y)} :
   z ∈ (lift_path' hf p).support → f z ∈ p.support :=
 mem_lift_path
 
-lemma connected (hf : adapted' f G) : connected (map f G) → connected G :=
+lemma connected (hf : adapted f G) : connected (map f G) → connected G :=
 begin
   intros h₁ x y, obtain ⟨p⟩ := h₁ (f x) (f y), use lift_path' hf p
 end
 
-end adapted
-
-namespace adapted'
-lemma fmap (hf : adapted' f G) {P} : adapted' (select.fmap f P) (select (P ∘ f) G) :=
+lemma fmap (hf : adapted f G) {P} : adapted (select.fmap f P) (select (P ∘ f) G) :=
 begin
   rintro ⟨x,hx⟩ ⟨y,hy⟩ hxy, simp only [select.fmap, subtype.coe_mk] at hxy,
   obtain ⟨p,hp⟩ := hf x y hxy, refine ⟨select.push_walk p _, _⟩,
@@ -93,15 +79,15 @@ begin
   exact hp z (select.mem_push_walk.mp h)
 end
 
-lemma comp_push : adapted' f G → adapted' g (map f G) → adapted' (g ∘ f) G :=
+lemma comp_push : adapted f G → adapted g (map f G) → adapted (g ∘ f) G :=
 begin
   rintro hf hg x y hxy, obtain ⟨p, hp⟩ := hg (f x) (f y) hxy,
   exact ⟨adapted.lift_path' hf p, λ z hz, hp (f z) (adapted.mem_lift_path' hz)⟩,
 end
-end adapted'
+end adapted
 
 def is_contraction (G : simple_graph V) (G' : simple_graph V') : Prop :=
-∃ φ : V' → V, surjective φ ∧ adapted' φ G' ∧ G = map φ G'
+∃ φ : V' → V, surjective φ ∧ adapted φ G' ∧ G = map φ G'
 
 infix ` ≼c `:50 := is_contraction
 
@@ -130,7 +116,7 @@ begin
   { rintros ⟨h₄,x,y,⟨-,-,h₇⟩,rfl,rfl⟩, cases h₇, contradiction, exact h₇ }
 end
 
-lemma le_left_aux2 {f : V → V'} (h₁ : H' ≤ map f G) (h₂ : surjective f) (h₃ : adapted' f G) :
+lemma le_left_aux2 {f : V → V'} (h₁ : H' ≤ map f G) (h₂ : surjective f) (h₃ : adapted f G) :
   H' ≼c G ⊓ pull' f H' :=
 begin
   refine ⟨f,h₂,_,le_left_aux h₁⟩,
