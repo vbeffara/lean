@@ -8,7 +8,7 @@ variables {G H : simple_graph V} {G' H' : simple_graph V'} {G'' : simple_graph V
 namespace simple_graph
 
 def adapted (f : V → V') (G : simple_graph V) : Prop :=
-∀ (x y : V), f x = f y → ∃ p : walk G x y, ∀ z ∈ p.support, f z = f y
+∀ ⦃x y : V⦄, f x = f y → ∃ p : walk G x y, ∀ z ∈ p.support, f z = f y
 
 lemma merge_edge_adapted [decidable_eq V] {e : G.dart} : adapted (merge_edge e) G :=
 begin
@@ -40,11 +40,11 @@ noncomputable def lift_path_aux (hf : adapted f G) (p : walk (map f G) x' y') :
   Π (x y : V), f x = x' → f y = y' → {q : walk G x y // ∀ z ∈ q.support, f z ∈ p.support} :=
 begin
   induction p with a a b c h₁ p ih,
-  { rintros x y h₁ rfl, choose p hp using hf x y h₁,
+  { rintros x y h₁ rfl, choose p hp using hf h₁,
     refine ⟨p, λ z hz, _⟩, rw hp z hz, apply walk.start_mem_support },
   { rintro x y rfl rfl, cases h₁ with h₁ h₂,
     choose xx hx using h₂, choose yy hy using hx, rcases hy with ⟨h₂,h₃,h₄⟩,
-    choose pp hp using hf x xx h₃.symm, use pp.append (walk.cons h₂ $ ih yy y h₄ rfl),
+    choose pp hp using hf h₃.symm, use pp.append (walk.cons h₂ $ ih yy y h₄ rfl),
     rintro z hz, rw [walk.support_append, list.mem_append] at hz, cases hz,
     { left, rw hp z hz, exact h₃ },
     { rw [walk.support_cons, list.tail_cons] at hz, right, exact (ih yy y h₄ rfl).prop z hz } }
@@ -73,7 +73,7 @@ end
 lemma fmap (hf : adapted f G) {P} : adapted (select.fmap f P) (select (P ∘ f) G) :=
 begin
   rintro ⟨x,hx⟩ ⟨y,hy⟩ hxy, simp only [select.fmap, subtype.coe_mk] at hxy,
-  obtain ⟨p,hp⟩ := hf x y hxy, refine ⟨select.push_walk p _, _⟩,
+  obtain ⟨p,hp⟩ := hf hxy, refine ⟨select.push_walk p _, _⟩,
   { rintro z hz, rw ← hp z hz at hy, exact hy },
   rintro ⟨z,hz⟩ h, simp only [select.fmap, subtype.coe_mk],
   exact hp z (select.mem_push_walk.mp h)
@@ -81,7 +81,7 @@ end
 
 lemma comp_push : adapted f G → adapted g (map f G) → adapted (g ∘ f) G :=
 begin
-  rintro hf hg x y hxy, obtain ⟨p, hp⟩ := hg (f x) (f y) hxy,
+  rintro hf hg x y hxy, obtain ⟨p, hp⟩ := hg hxy,
   exact ⟨adapted.lift_path' hf p, λ z hz, hp (f z) (adapted.mem_lift_path' hz)⟩,
 end
 end adapted
@@ -120,7 +120,7 @@ lemma le_left_aux2 {f : V → V'} (h₁ : H' ≤ map f G) (h₂ : surjective f) 
   H' ≼c G ⊓ pull' f H' :=
 begin
   refine ⟨f,h₂,_,le_left_aux h₁⟩,
-  intros x' y' h₄, specialize h₃ x' y' h₄,
+  intros x' y' h₄, specialize h₃ h₄,
   cases h₃ with p hp, induction p with a a b c h₅ p ih,
   { use walk.nil, exact hp },
   { have h₆ : f b = f c := by { apply hp, right, exact walk.start_mem_support p },

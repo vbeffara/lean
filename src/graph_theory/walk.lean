@@ -240,11 +240,11 @@ noncomputable def pull_Walk_aux (f : V → V') (hf : adapted f G) (p' : (map f G
   {w : G.Walk // w.a = x ∧ w.b = y ∧ push_Walk f w = p'} :=
 begin
   revert p' x y, refine rec₀ _ _,
-  { rintros u x y hx hy, simp at hx hy, subst hy, choose p h₃ using hf x y hx,
+  { rintros u x y hx hy, simp at hx hy, subst hy, choose p h₃ using hf hx,
     refine ⟨⟨p⟩,rfl,rfl,_⟩, apply push_eq_nil, exact h₃ },
   { rintros ⟨⟨u,v⟩,⟨huv,ee⟩⟩ p h ih x y hx hy,
     choose xx yy h₂ h₃ h₄ using ee, -- TODO `substs u v`
-    choose p₁ h₆ using hf x xx (hx.trans h₃.symm),
+    choose p₁ h₆ using hf (hx.trans h₃.symm),
     simp_rw [h₃] at h₆,
     obtain p₂ := ih yy y (h₄.trans h) hy,
     let pp := Walk.append ⟨p₁⟩ (p₂.val.cons ⟨⟨_,_⟩,h₂⟩ p₂.2.1.symm) rfl,
