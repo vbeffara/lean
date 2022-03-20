@@ -243,16 +243,14 @@ begin
   { rintros u x y hx hy, simp at hx hy, subst hy, choose p h₃ using hf hx,
     refine ⟨⟨p⟩,rfl,rfl,_⟩, apply push_eq_nil, exact h₃ },
   { rintros ⟨⟨u,v⟩,⟨huv,ee⟩⟩ p h ih x y hx hy,
-    choose xx yy h₂ h₃ h₄ using ee, -- TODO `substs u v`
-    choose p₁ h₆ using hf (hx.trans h₃.symm),
-    simp_rw [h₃] at h₆,
-    obtain p₂ := ih yy y (h₄.trans h) hy,
+    choose xx yy h₂ h₃ h₄ using ee, substs h₃ h₄, choose p₁ h₆ using hf hx,
+    obtain p₂ := ih yy y (h) hy,
     let pp := Walk.append ⟨p₁⟩ (p₂.val.cons ⟨⟨_,_⟩,h₂⟩ p₂.2.1.symm) rfl,
     refine ⟨pp, rfl, p₂.2.2.1, _⟩,
-    have h₇ := push_eq_nil f u ⟨p₁⟩ h₆,
-    simp [pp,push_append,h₇], rw [←h₃,←h₄] at huv,
+    have h₇ := push_eq_nil f (f xx) ⟨p₁⟩ h₆,
+    simp [pp,push_append,h₇],
     have h₈ := push_cons_ne f ⟨⟨_,_⟩,h₂⟩ p₂.val p₂.2.1.symm huv, refine h₈.trans _,
-    simp [h₃,h₄], congr, exact p₂.2.2.2 }
+    congr, exact p₂.2.2.2 }
 end
 
 noncomputable def pull_Walk (f : V → V') (hf : adapted f G) (p' : (map f G).Walk) (x y : V)
@@ -290,7 +288,6 @@ begin
     exact ⟨cons ⟨⟨_,_⟩,hp e first_edge⟩ q h, by simp [hq]⟩ }
 end
 
--- TODO for `(X : set V)`
 noncomputable def until (p : G.Walk) (X : finset V) (hX : (p.range ∩ X).nonempty) :
   {q : G.Walk // q.a = p.a ∧ q.b ∈ X ∧
     q.range ⊆ p.range ∧ q.init ∩ X = ∅ ∧ q.init ⊆ p.init ∧ q.tail ⊆ p.tail} :=
@@ -314,7 +311,6 @@ begin
   }
 end
 
--- TODO for `(X : set V)`
 noncomputable def after (p : G.Walk) (X : finset V) (hX : (p.range ∩ X).nonempty) :
   {q : G.Walk // q.a ∈ X ∧ q.b = p.b ∧
     q.range ⊆ p.range ∧ q.init ⊆ p.init ∧ q.tail ⊆ p.tail ∧ q.tail ∩ X = ∅} :=

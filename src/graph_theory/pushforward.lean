@@ -231,7 +231,6 @@ def embed (f : V → V') : simple_graph V → simple_graph (range f) :=
 select (range f) ∘ map f
 
 namespace embed
--- TODO : computable version of this taking a left inverse of f?
 noncomputable def iso (f_inj : injective f) : G ≃g embed f G :=
 let φ : V → range f := λ x, ⟨f x, x, rfl⟩,
     ψ : range f → V := λ y, some y.prop in
