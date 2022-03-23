@@ -176,9 +176,6 @@ end contract_edge
 def select (P : V → Prop) (G : simple_graph V) : simple_graph (subtype P) :=
 pull subtype.val G
 
-def level (f : V → V') (z : V') (G : simple_graph V) : simple_graph {x // f x = z} :=
-select (λ x, f x = z) G
-
 namespace select
 variables {P : V → Prop} {P' : V' → Prop}
 
