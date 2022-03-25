@@ -64,6 +64,10 @@ instance : connected_graph (Cay S) := ⟨connected S⟩
 
 noncomputable def word_dist : G → G → ℕ := (Cay S).dist
 
+-- TODO this should use the simple_graph.metric API instead
+def dists {V : Type*} (G : simple_graph V) (x y : V) : set ℕ :=
+set.range (length : walk G x y -> ℕ)
+
 lemma covariant : (Cay S).dist (a*x) (a*y) = (Cay S).dist x y :=
 begin
   unfold simple_graph.dist, congr' 1, funext ℓ, rw [eq_iff_iff],
@@ -88,11 +92,11 @@ end
 
 lemma lipschitz : (Cay S2).dist x y <= (distorsion S1 S2) * (Cay S1).dist x y :=
 begin
-  obtain ⟨p,hp⟩ := simple_graph.shortest_path (Cay S1) x y, rw <-hp, clear hp,
+  obtain ⟨p,hp⟩ := (connected S1).exists_walk_of_dist x y, rw <-hp, clear hp,
   induction p with u u v w h p ih,
   { simp only [dist_self, walk.length_nil, mul_zero] },
   { simp only [walk.length_cons], transitivity (Cay S2).dist u v + (Cay S2).dist v w,
-    apply simple_graph.dist_triangle, rw [mul_add,mul_one,add_comm],
+    apply (connected S2).dist_triangle, rw [mul_add,mul_one,add_comm],
     apply add_le_add ih, apply distorsion_le, exact h }
 end
 
