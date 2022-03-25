@@ -64,15 +64,14 @@ end
 def dists {V : Type*} (G : simple_graph V) (x y : V) : set ℕ :=
 set.range (length : walk G x y -> ℕ)
 
-lemma covariant : (Cay S).dist (a*x) (a*y) = (Cay S).dist x y :=
+lemma covariant' : (Cay S).dist (a*x) (a*y) ≤ (Cay S).dist x y :=
 begin
-  unfold simple_graph.dist, congr' 1, funext ℓ, rw [eq_iff_iff],
-  set dists := dists (Cay S),
-  have h2 : ∀ x y a ℓ, ℓ ∈ dists x y → ℓ ∈ dists (a*x) (a*y) :=
-  by { intros x y a ℓ h, cases h with p, use shift_path S a p, simpa [shift_path] },
-  exact ⟨λ h, inv_mul_cancel_left a x ▸ inv_mul_cancel_left a y ▸ h2 (a*x) (a*y) a⁻¹ ℓ h,
-    h2 x y a ℓ⟩
+  obtain ⟨p,hp⟩ := (connected S).exists_walk_of_dist x y, rw ←hp, clear hp,
+  rw ←walk.length_map, exact dist_le (shift_path S a p)
 end
+
+lemma covariant : (Cay S).dist (a*x) (a*y) = (Cay S).dist x y :=
+by { apply le_antisymm (covariant' S a), convert covariant' S a⁻¹; group }
 
 noncomputable def distorsion (S1 S2 : genset G) :=
 some (max_of_nonempty (S1.nem.image ((Cay S2).dist 1)))
