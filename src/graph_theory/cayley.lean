@@ -3,7 +3,6 @@ import graph_theory.path
 
 namespace simple_graph
 namespace cayley
-open walk relation.refl_trans_gen classical finset
 
 structure genset (G : Type*) [group G] :=
   (els : finset G)
@@ -12,16 +11,16 @@ structure genset (G : Type*) [group G] :=
   (nem : els.nonempty)
   (irr : (1:G) ∉ els)
 
-variables {G : Type*} [group G] {S S1 S2 : genset G} (a : G) {x y z : G}
+variables {G : Type*} [group G] {S S1 S2 : genset G} {a x y z : G}
 
 instance : has_mem G (genset G) := ⟨λ a s, a ∈ s.els⟩
 
 def genset.adj (S : genset G) (x y : G) := x⁻¹ * y ∈ S
 
-lemma shift_adj (h : S.adj x y) : S.adj (a*x) (a*y) :=
+lemma shift_adj ⦃x y⦄ (h : S.adj x y) : S.adj (a*x) (a*y) :=
 by { unfold genset.adj, convert h using 1, group }
 
-@[symm] lemma adj_symm (x y) (h : S.adj x y) : S.adj y x
+@[symm] lemma adj_symm ⦃x y⦄ (h : S.adj x y) : S.adj y x
 := by { unfold genset.adj, convert S.sym h, group }
 
 def Cay (S : genset G) : simple_graph G :=
@@ -29,65 +28,50 @@ def Cay (S : genset G) : simple_graph G :=
   symm := adj_symm,
   loopless := λ x h, S.irr (by { convert h, group }) }
 
-def left_shift : Cay S →g Cay S :=
-⟨(*) a, λ x y, shift_adj a⟩
-
-def shift_path (p : walk (Cay S) x y) : walk (Cay S) (a*x) (a*y) :=
-p.map (left_shift a)
+def left_shift (a : G) : Cay S →g Cay S := ⟨(*) a, shift_adj⟩
 
 lemma shift : reachable (Cay S) x y → reachable (Cay S) (a*x) (a*y) :=
-nonempty.map (shift_path a)
+nonempty.map (walk.map (left_shift a))
 
-lemma inv : reachable (Cay S) 1 x → reachable (Cay S) 1 x⁻¹ :=
-by { intro h, symmetry, convert shift x⁻¹ h; group }
+lemma inv {h : reachable (Cay S) 1 x} : reachable (Cay S) 1 x⁻¹ :=
+by { symmetry, convert @shift _ _ _ x⁻¹ _ _ h; group }
 
 lemma reachable_mp : reachable (Cay S) 1 x :=
 begin
   apply subgroup.closure_induction,
   { rw S.gen, trivial },
-  { intros y h, apply reachable.step, simp only [Cay,genset.adj], convert h, group },
+  { intros y h, apply reachable.step, simpa only [Cay,genset.adj,one_inv,one_mul] },
   { refl },
-  { intros u v h1 h2, refine reachable.trans h1 _, convert shift u h2, group },
+  { intros u v h1 h2, refine reachable.trans h1 _, convert shift h2, group },
   { intros y h, apply inv, exact h }
 end
 
 theorem Cay.connected : connected (Cay S) :=
-begin
-  split,
-  { intros x y, transitivity (1:G), symmetry, apply reachable_mp, apply reachable_mp },
-  { use 1 }
-end
-
--- TODO this should use the simple_graph.metric API instead
-def dists {V : Type*} (G : simple_graph V) (x y : V) : set ℕ :=
-set.range (length : walk G x y -> ℕ)
-
-lemma covariant' : (Cay S).dist (a*x) (a*y) ≤ (Cay S).dist x y :=
-begin
-  obtain ⟨p,hp⟩ := Cay.connected.exists_walk_of_dist x y,
-  rw [←hp,←walk.length_map], exact dist_le (shift_path a p)
-end
+⟨λ x y, reachable_mp.symm.trans reachable_mp, ⟨1⟩⟩
 
 lemma covariant : (Cay S).dist (a*x) (a*y) = (Cay S).dist x y :=
-by { apply le_antisymm (covariant' a), convert covariant' a⁻¹; group }
+begin
+  have lem : ∀ a {x y}, (Cay S).dist (a*x) (a*y) ≤ (Cay S).dist x y :=
+  by { intros a x y, obtain ⟨p,hp⟩ := Cay.connected.exists_walk_of_dist x y,
+    rw [←hp,←walk.length_map], exact dist_le (p.map (left_shift a)) },
+  apply le_antisymm (lem a), convert lem a⁻¹, group
+end
 
 noncomputable def distorsion (S1 S2 : genset G) :=
-some (max_of_nonempty (S1.nem.image ((Cay S2).dist 1)))
+classical.some (finset.max_of_nonempty (S1.nem.image ((Cay S2).dist 1)))
 
-lemma distorsion_spec : distorsion S1 S2 ∈ (image ((Cay S2).dist 1) S1.els).max :=
-some_spec (max_of_nonempty (S1.nem.image ((Cay S2).dist 1)))
+lemma distorsion_spec : distorsion S1 S2 ∈ (finset.image ((Cay S2).dist 1) S1.els).max :=
+classical.some_spec (finset.max_of_nonempty (S1.nem.image ((Cay S2).dist 1)))
 
 lemma distorsion_le {h : (Cay S1).adj x y} : (Cay S2).dist x y ≤ distorsion S1 S2 :=
 begin
   refine finset.le_max_of_mem _ distorsion_spec,
-  rw [finset.mem_image], refine ⟨x⁻¹ * y, h, _⟩, convert covariant x⁻¹, group
+  rw [finset.mem_image], refine ⟨x⁻¹ * y, h, _⟩, convert covariant, group
 end
 
 lemma lipschitz : (Cay S2).dist x y <= (distorsion S1 S2) * (Cay S1).dist x y :=
 begin
-  have : ∃ (p : (Cay S1).walk x y), p.length = (Cay S1).dist x y :=
-    Cay.connected.exists_walk_of_dist x y,
-  obtain ⟨p,hp⟩ := this, rw <-hp, clear hp,
+  obtain ⟨p,hp⟩ := (@Cay.connected _ _ S1).exists_walk_of_dist x y, rw <-hp, clear hp,
   induction p with u u v w h p ih,
   { simp only [dist_self, walk.length_nil, mul_zero] },
   { simp only [walk.length_cons], transitivity (Cay S2).dist u v + (Cay S2).dist v w,
