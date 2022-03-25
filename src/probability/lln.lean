@@ -1,5 +1,6 @@
 import probability.independence
 import probability.notation
+import probability.integration
 import measure_theory.constructions.borel_space
 import measure_theory.measure.finite_measure_weak_convergence
 import measure_theory.function.convergence_in_measure
@@ -8,35 +9,29 @@ open measure_theory probability_theory
 open_locale big_operators measure_theory probability_theory
 noncomputable theory
 
-variables {Ω : Type*} [measure_space Ω] {X : ℕ → Ω → ℝ} {n : ℕ} {μ : probability_measure ℝ}
-
-def is_independent (X : ℕ → Ω → ℝ) : Prop :=
-Indep_fun (λ _, real.measurable_space) X volume
-
-def is_identically_distributed (μ : probability_measure ℝ) (X : ℕ → Ω → ℝ) : Prop :=
-∀ n, measure.map (X n) volume = μ
+variables {Ω : Type*} [measure_space Ω] [is_probability_measure (volume : measure Ω)]
+variables {X : ℕ → Ω → ℝ} {n : ℕ} {μ : probability_measure ℝ}
 
 def is_iid (μ : probability_measure ℝ) (X : ℕ → Ω → ℝ) : Prop :=
-is_independent X ∧ is_identically_distributed μ X
-
-def is_l1_seq (X : ℕ → Ω → ℝ) : Prop := ∀ n, has_finite_integral (X n)
+  Indep_fun (λ _, real.measurable_space) X volume ∧
+  ∀ n, measure.map (X n) volume = μ
 
 def has_first_moment (μ : probability_measure ℝ) : Prop :=
 @has_finite_integral ℝ ℝ _ (by apply_instance) id μ.val
 
-lemma avg_add {X Y : Ω → ℝ} {hX : integrable X} {hY : integrable Y} : 𝔼[X + Y] = 𝔼[X] + 𝔼[Y] :=
-begin
-  apply integral_add; assumption
-end
-
 def recenter (X : Ω → ℝ) (ω : Ω) : ℝ := X ω - 𝔼[X]
 
-lemma avg_recenter {X : Ω → ℝ} {hX : integrable X} : 𝔼[recenter X] = 0 := sorry
+lemma avg_recenter {X : Ω → ℝ} {hX : integrable X} :
+𝔼[recenter X] = 0 :=
+begin
+  simp_rw [recenter, integral_sub hX (integrable_const (integral volume X)), integral_const],
+  rw [measure_univ, ennreal.one_to_real, algebra.id.smul_eq_mul, one_mul, sub_self]
+end
 
 lemma recenter_add {X Y : Ω → ℝ} {hX : integrable X} {hY : integrable Y} :
   recenter (X + Y) = recenter X + recenter Y :=
 begin
-  ext ω, simp [recenter], rw integral_add, ring, exact hX, exact hY
+  ext ω, simp only [recenter, pi.add_apply], rw integral_add hX hY, ring
 end
 
 def shift (a : ℝ) (x : ℝ) : ℝ := x + a
@@ -57,7 +52,7 @@ begin
 end
 
 lemma indep_recenter {X Y : Ω → ℝ} (h : indep_fun X Y) : indep_fun (recenter X) (recenter Y) :=
-by rwa [indep_fun,recenter_comap,recenter_comap]
+by rwa [indep_fun, recenter_comap, recenter_comap]
 
 def cov (X Y : Ω → ℝ) : ℝ := 𝔼[recenter X * recenter Y]
 
@@ -71,23 +66,70 @@ lemma indep_fun_of_indep_sets {F1 F2 : set (set Ω)} (hindep : indep_sets F1 F2)
 lemma integral_mul_of_indep_sets {F1 F2 : set (set Ω)} (hindep : indep_sets F1 F2) {X Y : Ω → ℝ}
   {hXm : measurable' F1 X} {hXi : integrable X}
   {hYm : measurable' F2 Y} {hYi : integrable Y} :
-integral volume (X * Y) = integral volume X * integral volume Y := sorry
+𝔼[X * Y] = 𝔼[X] * 𝔼[Y] := sorry
 
-lemma integral_indep {X Y : Ω → ℝ} {hX : integrable X} {hY : integrable Y} {h : indep_fun X Y} :
-  ∫ ω, (X * Y) ω = (∫ ω, X ω) * (∫ ω, Y ω) :=
+def pos_part (x : ℝ) := max x 0
+def neg_part (x : ℝ) := max (-x) 0
+lemma eq_pos_sub_neg (X : Ω → ℝ) : X = pos_part ∘ X - neg_part ∘ X :=
 begin
-  apply integrable.induction (λ X : Ω → ℝ, ∫ ω, (X * Y) ω = (∫ ω, X ω) * (∫ ω, Y ω)),
-  { simp, sorry },
-  { simp, intros f g h1 h2 h3 h4 h5, simp_rw [add_mul], rw [integral_add,integral_add,h4,h5],
-    simp [*], ring, exact h2, exact h3, sorry, sorry },
-  { simp, sorry },
+  symmetry, ext ω, simp, apply max_zero_sub_max_neg_zero_eq_self
+end
+
+lemma integral_indep_of_pos {X Y : Ω → ℝ} {hX : 0 ≤ X} {hY : 0 ≤ Y} {h : indep_fun X Y} :
+  𝔼[X * Y] = 𝔼[X] * 𝔼[Y] := sorry
+
+lemma integral_indep {X Y : Ω → ℝ} {hX : integrable X} {hY : integrable Y}
+  {hXY : integrable (X * Y)} {h : indep_fun X Y} : 𝔼[X * Y] = 𝔼[X] * 𝔼[Y] :=
+begin
+  have hXpm := eq_pos_sub_neg X, set Xp := pos_part ∘ X, set Xm := neg_part ∘ X,
+  have hYpm := eq_pos_sub_neg Y, set Yp := pos_part ∘ Y, set Ym := neg_part ∘ Y,
+  simp_rw [pi.mul_apply, hXpm, hYpm, pi.sub_apply, mul_sub, sub_mul, ← pi.mul_apply],
+  rw [integral_sub, integral_sub, integral_sub, integral_sub', integral_sub', sub_mul, mul_sub, mul_sub],
+  rw [integral_indep_of_pos, integral_indep_of_pos, integral_indep_of_pos, integral_indep_of_pos],
+  ring,
+
+  { intro x, simp [Xm,neg_part] },
+  { intro x, simp [Ym,neg_part] },
   { sorry },
-  assumption
+  { intro x, simp [Xp,pos_part] },
+  { intro x, simp [Ym,neg_part] },
+  { sorry },
+  { intro x, simp [Xm,neg_part] },
+  { intro x, simp [Yp,pos_part] },
+  { sorry },
+  { intro x, simp [Xp,pos_part] },
+  { intro x, simp [Yp,pos_part] },
+  { sorry },
+  { sorry },
+  { sorry },
+  { sorry },
+  { sorry },
+  { sorry },
+  { sorry },
+  { sorry },
+  { sorry },
+  { sorry },
+  { sorry }
+
+  -- simp [integral_sub],
+  -- have := @lintegral_mul_eq_lintegral_mul_lintegral_of_indep_fun Ω _ volume,
+  -- have := integral_eq_lintegral_pos_part_sub_lintegral_neg_part hX,
+  -- have := integral_eq_lintegral_pos_part_sub_lintegral_neg_part hY,
+  -- have := integral_eq_lintegral_pos_part_sub_lintegral_neg_part hXY,
+
+  -- apply integrable.induction (λ X : Ω → ℝ, ∫ ω, (X * Y) ω = (∫ ω, X ω) * (∫ ω, Y ω)),
+  -- { simp, sorry },
+  -- { simp, intros f g h1 h2 h3 h4 h5, simp_rw [add_mul], rw [integral_add,integral_add,h4,h5],
+  --   simp [*], ring, exact h2, exact h3, sorry, sorry },
+  -- { simp, sorry },
+  -- { sorry },
+  -- assumption
 end
 
 lemma cov_indep {X Y : Ω → ℝ} {hX : integrable X} : indep_fun X Y → cov X Y = 0 :=
 begin
-  intro h, rw [cov,integral_indep,avg_recenter], ring, exact hX, sorry, sorry, exact indep_recenter h
+  intro h, rw [cov,integral_indep,avg_recenter], ring, exact hX, sorry, sorry, sorry,
+  exact indep_recenter h
 end
 
 noncomputable def avg' (μ : probability_measure ℝ) : ℝ :=
