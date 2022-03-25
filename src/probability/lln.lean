@@ -75,8 +75,42 @@ begin
   symmetry, ext ω, simp, apply max_zero_sub_max_neg_zero_eq_self
 end
 
-lemma integral_indep_of_pos {X Y : Ω → ℝ} {hX : 0 ≤ X} {hY : 0 ≤ Y} {h : indep_fun X Y} :
-  𝔼[X * Y] = 𝔼[X] * 𝔼[Y] := sorry
+lemma integral_indep_of_pos {X Y : Ω → ℝ} {hXYind : indep_fun X Y}
+  {hXpos : 0 ≤ X} {hXmes : measurable X} {hYpos : 0 ≤ Y} {hYmes : measurable Y}:
+  𝔼[X * Y] = 𝔼[X] * 𝔼[Y] :=
+begin
+  rw integral_eq_lintegral_of_nonneg_ae,
+  rw integral_eq_lintegral_of_nonneg_ae,
+  rw integral_eq_lintegral_of_nonneg_ae,
+
+  let f : Ω → ennreal := ennreal.of_real ∘ X,
+  let g : Ω → ennreal := ennreal.of_real ∘ Y,
+  have := @lintegral_mul_eq_lintegral_mul_lintegral_of_indep_fun Ω _ volume f g _ _ _,
+  have := congr_arg ennreal.to_real this,
+  convert this,
+  { funext, simp [f,g], apply ennreal.of_real_mul, apply hXpos },
+  { exact ennreal.to_real_mul.symm },
+  { exact measurable.ennreal_of_real hXmes },
+  { exact measurable.ennreal_of_real hYmes },
+  { rintro _ _ ⟨A,hA,rfl⟩ ⟨B,hB,rfl⟩, simp [f,g],
+    rw @set.preimage_comp _ _ _ X ennreal.of_real _, set A' := ennreal.of_real ⁻¹' A,
+    rw @set.preimage_comp _ _ _ Y ennreal.of_real _, set B' := ennreal.of_real ⁻¹' B,
+    apply hXYind,
+    { simp,
+      apply @measurable_set_preimage _ _ _ _ real.measurable_space,
+      { apply measurable.of_comap_le, simp },
+      { apply measurable_set_preimage ennreal.measurable_of_real hA } },
+    { simp,
+      apply @measurable_set_preimage _ _ _ _ real.measurable_space,
+      { apply measurable.of_comap_le, simp },
+      { apply measurable_set_preimage ennreal.measurable_of_real hB } }, },
+  { apply filter.eventually_of_forall, intro ω, apply hYpos },
+  { exact hYmes.ae_measurable },
+  { apply filter.eventually_of_forall, intro ω, apply hXpos },
+  { exact hXmes.ae_measurable },
+  { apply filter.eventually_of_forall, intro ω, apply mul_nonneg, apply hXpos, apply hYpos },
+  { apply measurable.ae_measurable, exact measurable.mul hXmes hYmes }
+end
 
 lemma integral_indep {X Y : Ω → ℝ} {hX : integrable X} {hY : integrable Y}
   {hXY : integrable (X * Y)} {h : indep_fun X Y} : 𝔼[X * Y] = 𝔼[X] * 𝔼[Y] :=
