@@ -65,9 +65,9 @@ lemma mem_lift_path' {hf : adapted f G} {p : (map f G).walk (f x) (f y)} :
   z ∈ (lift_path' hf p).support → f z ∈ p.support :=
 mem_lift_path
 
-lemma connected (hf : adapted f G) : connected (map f G) → connected G :=
+lemma connected (hf : adapted f G) (hc : connected (map f G)) : preconnected G :=
 begin
-  intros h₁ x y, obtain ⟨p⟩ := h₁ (f x) (f y), use lift_path' hf p
+  intros x y, obtain ⟨p⟩ := hc (f x) (f y), use lift_path' hf p
 end
 
 lemma fmap (hf : adapted f G) {P} : adapted (select.fmap f P) (select (P ∘ f) G) :=

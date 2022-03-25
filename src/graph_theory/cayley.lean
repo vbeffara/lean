@@ -37,24 +37,28 @@ def left_shift : (Cay S) →g (Cay S) :=
 def shift_path : walk (Cay S) x y → walk (Cay S) (a*x) (a*y) :=
 fmap (left_shift S a)
 
-lemma shift : linked (Cay S) x y → linked (Cay S) (a*x) (a*y) :=
+lemma shift : reachable (Cay S) x y → reachable (Cay S) (a*x) (a*y) :=
 nonempty.map (shift_path S a)
 
-lemma inv : linked (Cay S) 1 x → linked (Cay S) 1 x⁻¹ :=
+lemma inv : reachable (Cay S) 1 x → reachable (Cay S) 1 x⁻¹ :=
 by { intro h, symmetry, convert shift S x⁻¹ h; group }
 
-lemma linked_mp : linked (Cay S) 1 x :=
+lemma reachable_mp : reachable (Cay S) 1 x :=
 begin
   apply subgroup.closure_induction,
   { rw S.gen, trivial },
-  { intros y h, apply linked.step, simp only [Cay,adj], convert h, group },
+  { intros y h, apply reachable.step, simp only [Cay,adj], convert h, group },
   { refl },
-  { intros u v h1 h2, refine linked.trans h1 _, convert shift _ u h2, group },
+  { intros u v h1 h2, refine reachable.trans h1 _, convert shift _ u h2, group },
   { intros y h, apply inv, exact h }
 end
 
 theorem connected : connected (Cay S) :=
-by { intros x y, transitivity (1:G), symmetry, apply linked_mp, apply linked_mp }
+begin
+  split,
+  { intros x y, transitivity (1:G), symmetry, apply reachable_mp, apply reachable_mp },
+  { use 1 }
+end
 
 instance : connected_graph (Cay S) := ⟨connected S⟩
 

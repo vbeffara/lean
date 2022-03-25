@@ -13,7 +13,7 @@ namespace simple_graph
             def support (S : setup G) : Type := V
 
             instance setoid (S : setup G) : setoid S.support
-                := ⟨S.g.linked,simple_graph.linked.equiv⟩
+                := ⟨S.g.reachable,simple_graph.reachable.equiv⟩
 
             def clusters (S : setup G) := _root_.quotient S.setoid
 
@@ -51,15 +51,15 @@ namespace simple_graph
             { exact (left_inverse.right_inverse h₁).surjective.comp quotient.surjective_quotient_mk' },
             { intro z, intros x y, rcases x with ⟨x,hx⟩, rcases y with ⟨y,rfl⟩, simp [φ] at hx,
                 replace hx := h₂.left_inverse.injective hx, replace hx := quotient.eq.mp hx,
-                replace hx := linked.linked_iff.mp hx, cases hx with p,
+                replace hx := reachable.reachable_iff.mp hx, cases hx with p,
                 suffices : ∀ z ∈ p.support, φ z = φ y, by {
-                    apply linked.linked_of_subgraph (select.mono S.sub),
-                    apply linked.linked_iff.mpr,
+                    apply reachable.reachable_of_subgraph (select.mono S.sub),
+                    apply reachable.reachable_iff.mpr,
                     use select.push_walk p this },
                 induction p with a a b c hi p ih,
                 { intros z h, cases h, rw h, cases h },
                 { intros z h, cases h, rwa h, suffices : φ a = φ b, rw this at hx, exact ih hx z h,
-                    simp [φ], apply congr_arg, apply quotient.eq.mpr, apply linked.step, exact hi }
+                    simp [φ], apply congr_arg, apply quotient.eq.mpr, apply reachable.step, exact hi }
             },
             { ext a b, rw <-h₃, split,
                 { rintros ⟨p₁,x,y,p₂,p₃,p₄⟩, refine ⟨ne_of_apply_ne f p₁,x,y,_,_,p₄⟩,
@@ -77,10 +77,10 @@ namespace simple_graph
             have p₂ : ∀ x, f (preimage x) = x := λ x, classical.some_spec (h₁ x),
             let F : V → S.clusters := λ x, ⟦preimage x⟧,
             let F' : S.clusters → V := λ x, f x.out,
-            have p₃ : ∀ {x y}, S.g.linked x y ↔ f x = f y := by {
+            have p₃ : ∀ {x y}, S.g.reachable x y ↔ f x = f y := by {
                 intros x y, split,
                 { intro h, induction h with a b h₁ h₂ h₃, refl, exact h₃.trans h₂.1 },
-                { intro h, rw adapted.iff at h₂, specialize h₂ x y h, cases h₂ with p hp, apply linked.linked_iff.mpr, refine ⟨_⟩,
+                { intro h, rw adapted.iff at h₂, specialize h₂ x y h, cases h₂ with p hp, apply reachable.reachable_iff.mpr, refine ⟨_⟩,
                     induction p with a a b c h₃ p ih, refl,
                     have h₄ : f b = f c := by { apply hp, right, apply walk.start_mem_support },
                     refine walk.cons ⟨h.trans h₄.symm,h₃⟩ _, apply ih h₄, intros z hz, apply hp, right, exact hz }
@@ -110,7 +110,7 @@ namespace simple_graph
         open walk quotient relation.refl_trans_gen
 
         namespace setup
-            def linked (S : setup G) (x y : S.clusters) : Prop := (G/S).linked x y
+            def reachable (S : setup G) (x y : S.clusters) : Prop := (G/S).reachable x y
 
             def comp (S : setup G) (S' : setup (G/S)) : setup G
                 := {
@@ -123,32 +123,32 @@ namespace simple_graph
                 }
 
             namespace comp
-                lemma linked_mp : (S.comp S').g.linked x y -> S'.g.linked ⟦x⟧ ⟦y⟧
+                lemma reachable_mp : (S.comp S').g.reachable x y -> S'.g.reachable ⟦x⟧ ⟦y⟧
                     := by { intro h, induction h with a b h₁ h₂ ih, refl, refine ih.trans _, cases h₂.2 with h₂ h₂,
                             { rw (@quotient.eq S.support _ a b).mpr (tail refl h₂) },
                             { exact tail refl h₂.2 } }
 
-                lemma linked_mpr_aux : ⟦x⟧ = ⟦y⟧ -> (S.comp S').g.linked x y
-                    | h := linked.linked_of_subgraph (λ x y ha, ⟨S.g.ne_of_adj ha, or.inl ha⟩) (quotient.eq.mp h)
+                lemma reachable_mpr_aux : ⟦x⟧ = ⟦y⟧ -> (S.comp S').g.reachable x y
+                    | h := reachable.reachable_of_subgraph (λ x y ha, ⟨S.g.ne_of_adj ha, or.inl ha⟩) (quotient.eq.mp h)
 
-                lemma linked_mpr_aux' : S'.g.adj ⟦x⟧ ⟦y⟧ -> (S.comp S').g.linked x y
+                lemma reachable_mpr_aux' : S'.g.adj ⟦x⟧ ⟦y⟧ -> (S.comp S').g.reachable x y
                     | h := by { rcases S'.sub h with ⟨h1,x',y',hx,hy,h2⟩, rw [<-hx,<-hy] at h,
-                        transitivity x', exact linked_mpr_aux hx.symm,
-                        transitivity y', swap, exact linked_mpr_aux hy,
-                        exact linked.step ⟨G.ne_of_adj h2, or.inr ⟨h2,h⟩⟩ }
+                        transitivity x', exact reachable_mpr_aux hx.symm,
+                        transitivity y', swap, exact reachable_mpr_aux hy,
+                        exact reachable.step ⟨G.ne_of_adj h2, or.inr ⟨h2,h⟩⟩ }
 
-                lemma linked_mpr : S'.g.linked xx yy -> (S.comp S').g.linked xx.out yy.out
+                lemma reachable_mpr : S'.g.reachable xx yy -> (S.comp S').g.reachable xx.out yy.out
                     := by { intro h, induction h with a b h₁ h₂ ih, refl, refine ih.trans _,
-                        apply linked_mpr_aux', convert h₂; apply out_eq }
+                        apply reachable_mpr_aux', convert h₂; apply out_eq }
 
-                lemma linked : (S.comp S').g.linked x y <-> S'.g.linked ⟦x⟧ ⟦y⟧
+                lemma reachable : (S.comp S').g.reachable x y <-> S'.g.reachable ⟦x⟧ ⟦y⟧
                     := by { split,
-                        { exact linked_mp },
-                        { intro h, transitivity ⟦x⟧.out, apply linked_mpr_aux, symmetry, apply out_eq,
-                            transitivity ⟦y⟧.out, exact linked_mpr h, apply linked_mpr_aux, apply out_eq } }
+                        { exact reachable_mp },
+                        { intro h, transitivity ⟦x⟧.out, apply reachable_mpr_aux, symmetry, apply out_eq,
+                            transitivity ⟦y⟧.out, exact reachable_mpr h, apply reachable_mpr_aux, apply out_eq } }
 
-                lemma linked' : (S.comp S').proj x = (S.comp S').proj y <-> S'.proj (S.proj x) = S'.proj (S.proj y)
-                    := by { simp only [proj,quotient.eq], exact linked }
+                lemma reachable' : (S.comp S').proj x = (S.comp S').proj y <-> S'.proj (S.proj x) = S'.proj (S.proj y)
+                    := by { simp only [proj,quotient.eq], exact reachable }
 
                 noncomputable def iso {S : setup G} (S' : setup (G/S)) : G/comp S S' ≃g G/S/S'
                     := by {
@@ -162,18 +162,18 @@ namespace simple_graph
                         let φ : (comp S S').clusters ≃ S'.clusters := {
                             to_fun := λ x, g (f (γ x)),
                             inv_fun := h ∘ S.out ∘ S'.out,
-                            left_inv := λ _, eq.trans (linked'.mpr (by { rw [fα,gβ] })) hγ,
-                            right_inv := λ _, eq.trans (linked'.mp hγ) (by { rw [fα,gβ] })
+                            left_inv := λ _, eq.trans (reachable'.mpr (by { rw [fα,gβ] })) hγ,
+                            right_inv := λ _, eq.trans (reachable'.mp hγ) (by { rw [fα,gβ] })
                         },
 
                         use φ, intros a b, split,
                         { rintro ⟨h1,xx,yy,h2,h3,h4,u,v,h5,h6,h7⟩, substs xx yy, split,
                             { exact h1 ∘ (congr_arg (g ∘ f ∘ γ)) },
-                            { exact ⟨u,v,(linked'.mpr h2).trans hγ,(linked'.mpr h3).trans hγ,h7⟩ } },
+                            { exact ⟨u,v,(reachable'.mpr h2).trans hγ,(reachable'.mpr h3).trans hγ,h7⟩ } },
                         { rintro ⟨h1,x,y,h2,h3,h4⟩, split,
-                            { simpa [linked'.symm,hγ] },
-                            { refine ⟨_,_,linked'.mp (h2.trans hγ.symm),linked'.mp (h3.trans hγ.symm),_,x,y,rfl,rfl,h4⟩,
-                                intro h, substs a b, exact h1 (linked'.mpr (congr_arg g h)) } }
+                            { simpa [reachable'.symm,hγ] },
+                            { refine ⟨_,_,reachable'.mp (h2.trans hγ.symm),reachable'.mp (h3.trans hγ.symm),_,x,y,rfl,rfl,h4⟩,
+                                intro h, substs a b, exact h1 (reachable'.mpr (congr_arg g h)) } }
                     }
             end comp
 
@@ -192,13 +192,13 @@ namespace simple_graph
                         { rw [fmap_isom] at h, convert h; symmetry; exact rel_iso.symm_apply_apply _ _ },
                         { rw [fmap_isom,fmap_isom], simp only [on_fun], convert h; exact rel_iso.symm_apply_apply _ _ } }
 
-                lemma linked : S.g.linked x y -> (S.fmap_isom f).g.linked (f x) (f y)
+                lemma reachable : S.g.reachable x y -> (S.fmap_isom f).g.reachable (f x) (f y)
                     := by { intro h, induction h with a b h₁ h₂ ih, refl,
                         refine ih.trans (tail refl _), simp only [fmap_isom,on_fun], convert h₂; exact rel_iso.symm_apply_apply _ _ }
 
-                lemma linked_iff : S.g.linked x y <-> (S.fmap_isom f).g.linked (f x) (f y)
-                    := by { split, exact linked, intro h,
-                        replace h := @linked V' V G' G (S.fmap_isom f) (f x) (f y) f.symm h,
+                lemma reachable_iff : S.g.reachable x y <-> (S.fmap_isom f).g.reachable (f x) (f y)
+                    := by { split, exact reachable, intro h,
+                        replace h := @reachable V' V G' G (S.fmap_isom f) (f x) (f y) f.symm h,
                         simp only [inv,rel_iso.symm_apply_apply] at h, exact h }
             end fmap_isom
         end setup
@@ -215,7 +215,7 @@ namespace simple_graph
                 have f₂g₂ : ∀ {x}, f₂ (g₂ x) = x := λ _, (S.fmap_isom f).out_eq,
 
                 have eqv : ∀ {x y}, f₁ x = f₁ y <-> f₂ (f x) = f₂ (f y),
-                    by { intros, rw [quotient.eq,quotient.eq], exact setup.fmap_isom.linked_iff },
+                    by { intros, rw [quotient.eq,quotient.eq], exact setup.fmap_isom.reachable_iff },
 
                 let φ : S.clusters ≃ (S.fmap_isom f).clusters := {
                     to_fun := f₂ ∘ f ∘ g₁,
@@ -242,32 +242,32 @@ namespace simple_graph
         lemma proj_adj : G.adj x y -> ⟦x⟧ = ⟦y⟧ ∨ (G/S).adj ⟦x⟧ ⟦y⟧
             | h := dite (⟦x⟧ = ⟦y⟧) or.inl (λ h', or.inr ⟨h',x,y,rfl,rfl,h⟩)
 
-        lemma linked_of_adj : (G/S).adj ⟦x⟧ ⟦y⟧ -> linked G x y
+        lemma reachable_of_adj : (G/S).adj ⟦x⟧ ⟦y⟧ -> reachable G x y
             | ⟨h₁,a,b,h₂,h₃,h₄⟩ := by { transitivity b, transitivity a,
-                exact linked.linked_of_subgraph S.sub (quotient.eq.mp h₂.symm),
-                exact linked.step h₄,
-                exact linked.linked_of_subgraph S.sub (quotient.eq.mp h₃) }
+                exact reachable.reachable_of_subgraph S.sub (quotient.eq.mp h₂.symm),
+                exact reachable.step h₄,
+                exact reachable.reachable_of_subgraph S.sub (quotient.eq.mp h₃) }
 
-        lemma project_linked : linked G x y -> linked (G/S) ⟦x⟧ ⟦y⟧
+        lemma project_reachable : reachable G x y -> reachable (G/S) ⟦x⟧ ⟦y⟧
             := by { intro h, induction h with u v h₁ h₂ ih, refl, letI : setoid V := S.setoid,
-                refine ih.trans _, by_cases (⟦u⟧ = ⟦v⟧), rw h, apply linked.step, refine ⟨h,u,v,rfl,rfl,h₂⟩ }
+                refine ih.trans _, by_cases (⟦u⟧ = ⟦v⟧), rw h, apply reachable.step, refine ⟨h,u,v,rfl,rfl,h₂⟩ }
 
-        lemma lift_linked' : linked (G/S) xx yy ->
-                ∀ (x y : V) (hx : ⟦x⟧ = xx) (hy : ⟦y⟧ = yy), linked G x y
+        lemma lift_reachable' : reachable (G/S) xx yy ->
+                ∀ (x y : V) (hx : ⟦x⟧ = xx) (hy : ⟦y⟧ = yy), reachable G x y
             := by { intro h, induction h with aa b h₁ h₂ ih; intros x y hx hy,
-                { subst hy, exact linked.linked_of_subgraph S.sub (quotient.eq.mp hx) },
+                { subst hy, exact reachable.reachable_of_subgraph S.sub (quotient.eq.mp hx) },
                 { obtain ⟨a, ha : ⟦a⟧ = aa⟩ := quot.exists_rep aa, substs ha hx hy,
-                    specialize ih x a rfl rfl, refine ih.trans _, exact linked_of_adj h₂ } }
+                    specialize ih x a rfl rfl, refine ih.trans _, exact reachable_of_adj h₂ } }
 
-        lemma lift_linked (h : linked (G/S) ⟦x⟧ ⟦y⟧) : linked G x y
-            := lift_linked' h _ _ rfl rfl
+        lemma lift_reachable (h : reachable (G/S) ⟦x⟧ ⟦y⟧) : reachable G x y
+            := lift_reachable' h _ _ rfl rfl
 
         lemma contraction_connected_iff : connected G <-> connected (G/S)
             := { mp := λ h xx yy, by {
                     obtain ⟨x, hx : ⟦x⟧ = xx⟩ := quot.exists_rep xx, subst hx,
                     obtain ⟨y, hy : ⟦y⟧ = yy⟩ := quot.exists_rep yy, subst hy,
-                    exact project_linked (h x y) },
-                mpr := λ h x y, lift_linked (h ⟦x⟧ ⟦y⟧) }
+                    exact project_reachable (h x y) },
+                mpr := λ h x y, lift_reachable (h ⟦x⟧ ⟦y⟧) }
 
         lemma proj_bot_inj {x y : (@setup.bot V G).support} : ⟦x⟧ = ⟦y⟧ -> x = y
             := by { intro h, cases quotient.eq.mp h with p, refl, exfalso, assumption }

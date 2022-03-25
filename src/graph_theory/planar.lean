@@ -22,11 +22,11 @@ def flip : plane →g plane :=
     { right, exact and.symm h },
     { left, exact and.symm h } } }
 
-lemma horiz_path_aux : ∀ (n : ℕ), linked plane (x,y) (x+n,y)
+lemma horiz_path_aux : ∀ (n : ℕ), reachable plane (x,y) (x+n,y)
 | 0     := by simp
-| (n+1) := by { refine linked.trans (horiz_path_aux n) (linked.step (or.inr _)), simp [Z] }
+| (n+1) := by { refine reachable.trans (horiz_path_aux n) (reachable.step (or.inr _)), simp [Z] }
 
-lemma horiz_path : linked plane (x,y) (x',y) :=
+lemma horiz_path : reachable plane (x,y) (x',y) :=
 begin
   by_cases (x'-x>=0),
   { obtain ⟨n,hn⟩ := int.eq_coe_of_zero_le h, convert horiz_path_aux n, linarith },
@@ -34,11 +34,11 @@ begin
     symmetry, convert (@horiz_path_aux x' y n), linarith }
 end
 
-lemma vert_path : linked plane (x,y) (x,y') :=
-linked.fmap flip horiz_path
+lemma vert_path : reachable plane (x,y) (x,y') :=
+reachable.fmap flip horiz_path
 
 lemma connected_plane : connected plane :=
-λ ⟨x,y⟩ ⟨x',y'⟩, linked.trans horiz_path vert_path
+⟨λ ⟨x,y⟩ ⟨x',y'⟩, reachable.trans horiz_path vert_path, ⟨(0,0)⟩⟩
 
 end plane
 
