@@ -11,4 +11,6 @@ namespace finset
 end finset
 
 namespace simple_graph
+lemma reachable.step {x y : V} : G.adj x y → reachable G x y :=
+λ h, ⟨walk.cons h walk.nil⟩
 end simple_graph

@@ -40,9 +40,6 @@ begin
         (λ e he h1, or.inr (ih.mpr ⟨e,he,h1⟩))⟩ } } }
 end
 
-lemma nodup_rev : p.support.nodup → p.reverse.support.nodup :=
-by { rw (support_reverse p), exact list.nodup_reverse.mpr }
-
 lemma nodup_concat : (append p p').support.nodup ↔
   p.support.nodup ∧ p'.support.nodup ∧ (∀ u, u ∈ p.support → u ∈ p'.support → u = y) :=
 begin
@@ -58,52 +55,12 @@ begin
       refine ih.mpr ⟨h2,h3,_⟩, intros u hu h'u, exact h5 u hu h'u } }
 end
 
-def walk_from_subgraph (sub : ∀ {x y}, G₁.adj x y → G₂.adj x y) :
-  Π {x y : V}, walk G₁ x y → walk G₂ x y
+@[simp] def map (f : G →g G') : ∀ {x y}, walk G x y → walk G' (f x) (f y)
 | _ _ nil        := nil
-| _ _ (cons h p) := walk.cons (sub h) (walk_from_subgraph p)
+| _ _ (cons h p) := cons (f.map_rel' h) (map p)
 
-@[simp] def fmap (f : G →g G') : ∀ {x y}, walk G x y → walk G' (f x) (f y)
-| _ _ nil        := nil
-| _ _ (cons h p) := cons (f.map_rel' h) (fmap p)
-
-@[simp] lemma length_map {f : G →g G'} : length (fmap f p) = length p :=
+@[simp] lemma length_map {f : G →g G'} : length (map f p) = length p :=
 by { induction p, refl, simpa }
 
 end walk
-
-class connected_graph (G : simple_graph V) := (conn : connected G)
-
-namespace reachable
-open walk
-
-lemma step : G.adj x y → reachable G x y :=
-λ h, ⟨cons h nil⟩
-
-lemma of_cons : G.adj x y → reachable G y z → reachable G x z :=
-nonempty.map ∘ cons
-
-lemma reachable_of_subgraph (sub : G₁ ≤ G₂) : reachable G₁ x y → reachable G₂ x y :=
-nonempty.map (walk_from_subgraph sub)
-
-lemma fmap (f : G →g G') : reachable G x y → reachable G' (f x) (f y) :=
-nonempty.map (fmap f)
-
-lemma push {x y : V} {f : V → V'} : G.reachable x y → (map f G).reachable (f x) (f y) :=
-begin
-  rintro ⟨p⟩, induction p with u u v w h p ih, refl,
-  transitivity f v, swap, exact ih,
-  cases map.adj f h with h' h', rw h', exact step h'
-end
-
-end reachable
-
-lemma connected_of_iso (φ : G ≃g G') (hG : G.connected) : G'.connected :=
-begin
-  split,
-  { intros x' y', have := hG.1 (φ.symm x') (φ.symm y'),
-    convert ←reachable.fmap φ.to_hom this; apply φ.right_inv },
-  { obtain ⟨v⟩ := hG.2, use φ v }
-end
-
 end simple_graph

@@ -35,7 +35,7 @@ begin
 end
 
 lemma vert_path : reachable plane (x,y) (x,y') :=
-reachable.fmap flip horiz_path
+by { obtain ⟨p⟩ := horiz_path, use p.map flip }
 
 lemma connected_plane : connected plane :=
 ⟨λ ⟨x,y⟩ ⟨x',y'⟩, reachable.trans horiz_path vert_path, ⟨(0,0)⟩⟩
@@ -45,5 +45,5 @@ end plane
 def K5 := complete_graph (finset.range 5)
 def K33 := complete_bipartite_graph (finset.range 3) (finset.range 3)
 
--- theorem kuratowski [fintype V] : G ≼ plane <→ K5 ⋠ G ∧ K33 ⋠ G
+-- theorem kuratowski [fintype V] : G ≼ plane ↔ K5 ⋠ G ∧ K33 ⋠ G
 end simple_graph

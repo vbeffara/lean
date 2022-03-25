@@ -34,8 +34,8 @@ def Cay (S : genset G) : simple_graph G :=
 def left_shift : (Cay S) →g (Cay S) :=
 ⟨(*) a, λ x y, shift_adj a⟩
 
-def shift_path : walk (Cay S) x y → walk (Cay S) (a*x) (a*y) :=
-fmap (left_shift S a)
+def shift_path (p : walk (Cay S) x y) : walk (Cay S) (a*x) (a*y) :=
+p.map (left_shift S a)
 
 lemma shift : reachable (Cay S) x y → reachable (Cay S) (a*x) (a*y) :=
 nonempty.map (shift_path S a)
@@ -59,10 +59,6 @@ begin
   { intros x y, transitivity (1:G), symmetry, apply reachable_mp, apply reachable_mp },
   { use 1 }
 end
-
-instance : connected_graph (Cay S) := ⟨connected S⟩
-
-noncomputable def word_dist : G → G → ℕ := (Cay S).dist
 
 -- TODO this should use the simple_graph.metric API instead
 def dists {V : Type*} (G : simple_graph V) (x y : V) : set ℕ :=
