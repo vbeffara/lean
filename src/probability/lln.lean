@@ -89,27 +89,22 @@ begin
   rw @integral_eq_lintegral_of_nonneg_ae _ _ _ Y (filter.eventually_of_forall hYpos)
     hYmes.ae_measurable,
 
-  let f : Ω → ennreal := ennreal.of_real ∘ X,
-  let g : Ω → ennreal := ennreal.of_real ∘ Y,
-  have := @lintegral_mul_eq_lintegral_mul_lintegral_of_indep_fun Ω _ volume f g _ _ _,
-  have := congr_arg ennreal.to_real this,
-  convert this,
-  { funext, simp [f,g], apply ennreal.of_real_mul, apply hXpos },
-  { exact ennreal.to_real_mul.symm },
-  { exact measurable.ennreal_of_real hXmes },
-  { exact measurable.ennreal_of_real hYmes },
-  { rintro _ _ ⟨A,hA,rfl⟩ ⟨B,hB,rfl⟩, simp [f,g],
-    rw @set.preimage_comp _ _ _ X ennreal.of_real _, set A' := ennreal.of_real ⁻¹' A,
-    rw @set.preimage_comp _ _ _ Y ennreal.of_real _, set B' := ennreal.of_real ⁻¹' B,
-    apply hXYind,
-    { simp,
-      apply @measurable_set_preimage _ _ _ _ real.measurable_space,
-      { apply measurable.of_comap_le, simp },
-      { apply measurable_set_preimage ennreal.measurable_of_real hA } },
-    { simp,
-      apply @measurable_set_preimage _ _ _ _ real.measurable_space,
-      { apply measurable.of_comap_le, simp },
-      { apply measurable_set_preimage ennreal.measurable_of_real hB } }, },
+  simp_rw [←ennreal.to_real_mul, pi.mul_apply, ennreal.of_real_mul (hXpos _)],
+  congr, apply lintegral_mul_eq_lintegral_mul_lintegral_of_indep_fun
+    hXmes.ennreal_of_real hYmes.ennreal_of_real,
+
+  rintro _ _ ⟨A,hA,rfl⟩ ⟨B,hB,rfl⟩,
+  rw @set.preimage_comp _ _ _ X ennreal.of_real _, set A' := ennreal.of_real ⁻¹' A,
+  rw @set.preimage_comp _ _ _ Y ennreal.of_real _, set B' := ennreal.of_real ⁻¹' B,
+  apply hXYind,
+  { simp,
+    apply @measurable_set_preimage _ _ _ _ real.measurable_space,
+    { apply measurable.of_comap_le, simp },
+    { apply measurable_set_preimage ennreal.measurable_of_real hA } },
+  { simp,
+    apply @measurable_set_preimage _ _ _ _ real.measurable_space,
+    { apply measurable.of_comap_le, simp },
+    { apply measurable_set_preimage ennreal.measurable_of_real hB } }
 end
 
 lemma integral_indep {X Y : Ω → ℝ} {hX : integrable X} {hY : integrable Y}
