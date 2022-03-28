@@ -75,10 +75,10 @@ begin
   symmetry, ext ω, simp, apply max_zero_sub_max_neg_zero_eq_self
 end
 
-lemma indep_fun_comp_of_indep_fun {α β β' γ γ' : Type*} [measure_space α]
+lemma indep_fun_comp_of_indep_fun {β β' γ γ' : Type*}
   [measurable_space β] [measurable_space β'] [measurable_space γ] [measurable_space γ']
-  {f : α → β} {g : α → β'} {φ : β → γ} {hφ : measurable φ} {ψ : β' → γ'} {hψ : measurable ψ} :
-indep_fun f g → indep_fun (φ ∘ f) (ψ ∘ g) :=
+  {f : Ω → β} {g : Ω → β'} {φ : β → γ} {hφ : measurable φ} {ψ : β' → γ'} {hψ : measurable ψ} :
+  indep_fun f g → indep_fun (φ ∘ f) (ψ ∘ g) :=
 begin
   rintro h _ _ ⟨A,hA,rfl⟩ ⟨B,hB,rfl⟩,
   exact h _ _ ⟨φ ⁻¹' A, hφ hA, set.preimage_comp.symm⟩ ⟨ψ ⁻¹' B, hψ hB, set.preimage_comp.symm⟩,
@@ -88,25 +88,23 @@ lemma integral_indep_of_pos {X Y : Ω → ℝ} {hXYind : indep_fun X Y}
   {hXpos : 0 ≤ X} {hXmes : measurable X} {hYpos : 0 ≤ Y} {hYmes : measurable Y}:
   𝔼[X * Y] = 𝔼[X] * 𝔼[Y] :=
 begin
-  rw @integral_eq_lintegral_of_nonneg_ae _ _ _ (X * Y)
-    (filter.eventually_of_forall (λ ω, mul_nonneg (hXpos ω) (hYpos ω)))
-    (hXmes.mul hYmes).ae_measurable,
-
-  rw @integral_eq_lintegral_of_nonneg_ae _ _ _ X (filter.eventually_of_forall hXpos)
-    hXmes.ae_measurable,
-
-  rw @integral_eq_lintegral_of_nonneg_ae _ _ _ Y (filter.eventually_of_forall hYpos)
-    hYmes.ae_measurable,
-
+  rw [@integral_eq_lintegral_of_nonneg_ae _ _ _ (X * Y)
+      (filter.eventually_of_forall (λ ω, mul_nonneg (hXpos ω) (hYpos ω)))
+      (hXmes.mul hYmes).ae_measurable,
+    integral_eq_lintegral_of_nonneg_ae (filter.eventually_of_forall hXpos) hXmes.ae_measurable,
+    integral_eq_lintegral_of_nonneg_ae (filter.eventually_of_forall hYpos) hYmes.ae_measurable],
   simp_rw [←ennreal.to_real_mul, pi.mul_apply, ennreal.of_real_mul (hXpos _)],
-  congr, apply lintegral_mul_eq_lintegral_mul_lintegral_of_indep_fun
-    hXmes.ennreal_of_real hYmes.ennreal_of_real,
-
-  apply indep_fun_comp_of_indep_fun hXYind; exact ennreal.measurable_of_real
+  congr,
+  apply lintegral_mul_eq_lintegral_mul_lintegral_of_indep_fun
+    hXmes.ennreal_of_real hYmes.ennreal_of_real (indep_fun_comp_of_indep_fun hXYind);
+  exact ennreal.measurable_of_real
 end
 
-lemma integral_indep {X Y : Ω → ℝ} {hX : integrable X} {hY : integrable Y}
-  {hXY : integrable (X * Y)} {h : indep_fun X Y} : 𝔼[X * Y] = 𝔼[X] * 𝔼[Y] :=
+lemma integral_indep
+  {X : Ω → ℝ} {hXm : measurable X} {hX : integrable X}
+  {Y : Ω → ℝ} {hYm : measurable Y} {hY : integrable Y}
+  {hXY : integrable (X * Y)} {h : indep_fun X Y} :
+  𝔼[X * Y] = 𝔼[X] * 𝔼[Y] :=
 begin
   have hXpm := eq_pos_sub_neg X, set Xp := pos_part ∘ X, set Xm := neg_part ∘ X,
   have hYpm := eq_pos_sub_neg Y, set Yp := pos_part ∘ Y, set Ym := neg_part ∘ Y,
@@ -115,17 +113,27 @@ begin
   rw [integral_indep_of_pos, integral_indep_of_pos, integral_indep_of_pos, integral_indep_of_pos],
   ring,
 
-  { intro x, simp [Xm,neg_part] },
-  { intro x, simp [Ym,neg_part] },
+  { apply indep_fun_comp_of_indep_fun h; apply measurable.max, measurability },
+  { intro ω, simp [Xm,neg_part] },
+  { exact hXm.neg.max measurable_const },
+  { intro ω, simp [Ym,neg_part] },
+  { exact hYm.neg.max measurable_const },
+  { apply indep_fun_comp_of_indep_fun h; apply measurable.max, measurability },
+  { intro ω, simp [Xp,pos_part] },
+  { exact hXm.max measurable_const },
+  { intro ω, simp [Ym,neg_part] },
+  { exact hYm.neg.max measurable_const },
+  { apply indep_fun_comp_of_indep_fun h; apply measurable.max, measurability },
+  { intro ω, simp [Xm,neg_part] },
+  { exact hXm.neg.max measurable_const },
+  { intro ω, simp [Yp,pos_part] },
+  { exact hYm.max measurable_const },
+  { apply indep_fun_comp_of_indep_fun h; apply measurable.max, measurability },
+  { intro ω, simp [Xp,pos_part] },
+  { exact hXm.max measurable_const },
+  { intro ω, simp [Yp,pos_part] },
+  { exact hYm.max measurable_const },
   { sorry },
-  { intro x, simp [Xp,pos_part] },
-  { intro x, simp [Ym,neg_part] },
-  { sorry },
-  { intro x, simp [Xm,neg_part] },
-  { intro x, simp [Yp,pos_part] },
-  { sorry },
-  { intro x, simp [Xp,pos_part] },
-  { intro x, simp [Yp,pos_part] },
   { sorry },
   { sorry },
   { sorry },
@@ -135,22 +143,6 @@ begin
   { sorry },
   { sorry },
   { sorry },
-  { sorry },
-  { sorry }
-
-  -- simp [integral_sub],
-  -- have := @lintegral_mul_eq_lintegral_mul_lintegral_of_indep_fun Ω _ volume,
-  -- have := integral_eq_lintegral_pos_part_sub_lintegral_neg_part hX,
-  -- have := integral_eq_lintegral_pos_part_sub_lintegral_neg_part hY,
-  -- have := integral_eq_lintegral_pos_part_sub_lintegral_neg_part hXY,
-
-  -- apply integrable.induction (λ X : Ω → ℝ, ∫ ω, (X * Y) ω = (∫ ω, X ω) * (∫ ω, Y ω)),
-  -- { simp, sorry },
-  -- { simp, intros f g h1 h2 h3 h4 h5, simp_rw [add_mul], rw [integral_add,integral_add,h4,h5],
-  --   simp [*], ring, exact h2, exact h3, sorry, sorry },
-  -- { simp, sorry },
-  -- { sorry },
-  -- assumption
 end
 
 lemma cov_indep {X Y : Ω → ℝ} {hX : integrable X} : indep_fun X Y → cov X Y = 0 :=
