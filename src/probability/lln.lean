@@ -84,6 +84,7 @@ begin
   exact h _ _ ⟨φ ⁻¹' A, hφ hA, set.preimage_comp.symm⟩ ⟨ψ ⁻¹' B, hψ hB, set.preimage_comp.symm⟩,
 end
 
+-- TODO: should work on `ae_measurable`
 lemma integral_indep_of_pos {X Y : Ω → ℝ} {hXYind : indep_fun X Y}
   {hXpos : 0 ≤ X} {hXmes : measurable X} {hYpos : 0 ≤ Y} {hYmes : measurable Y}:
   𝔼[X * Y] = 𝔼[X] * 𝔼[Y] :=
@@ -98,6 +99,20 @@ begin
   apply lintegral_mul_eq_lintegral_mul_lintegral_of_indep_fun
     hXmes.ennreal_of_real hYmes.ennreal_of_real (indep_fun_comp_of_indep_fun hXYind);
   exact ennreal.measurable_of_real
+end
+
+lemma integrable_mul_of_integrable_of_indep_fun {X Y : Ω → ℝ} {h : indep_fun X Y}
+  {hXm : measurable X} {hYm : measurable Y}:
+  integrable X → integrable Y → integrable (X * Y) :=
+begin
+  rintro hX hY,
+  refine ⟨hX.1.mul hY.1, _⟩,
+  simp only [has_finite_integral, pi.mul_apply, nnnorm_mul, ennreal.coe_mul],
+  have := @lintegral_mul_eq_lintegral_mul_lintegral_of_indep_fun Ω _ volume
+    (λ a, ↑∥X a∥₊) (λ a, ↑∥Y a∥₊) _ _ _, simp at this, rw this,
+  exact ennreal.mul_lt_top_iff.mpr (or.inl ⟨hX.2, hY.2⟩), { measurability }, { measurability },
+  apply indep_fun_comp_of_indep_fun, { measurability }, { measurability },
+  apply indep_fun_comp_of_indep_fun h, measurability
 end
 
 lemma integral_indep
