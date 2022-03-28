@@ -79,9 +79,15 @@ lemma integral_indep_of_pos {X Y : Ω → ℝ} {hXYind : indep_fun X Y}
   {hXpos : 0 ≤ X} {hXmes : measurable X} {hYpos : 0 ≤ Y} {hYmes : measurable Y}:
   𝔼[X * Y] = 𝔼[X] * 𝔼[Y] :=
 begin
-  rw integral_eq_lintegral_of_nonneg_ae,
-  rw integral_eq_lintegral_of_nonneg_ae,
-  rw integral_eq_lintegral_of_nonneg_ae,
+  rw @integral_eq_lintegral_of_nonneg_ae _ _ _ (X * Y)
+    (filter.eventually_of_forall (λ ω, mul_nonneg (hXpos ω) (hYpos ω)))
+    (hXmes.mul hYmes).ae_measurable,
+
+  rw @integral_eq_lintegral_of_nonneg_ae _ _ _ X (filter.eventually_of_forall hXpos)
+    hXmes.ae_measurable,
+
+  rw @integral_eq_lintegral_of_nonneg_ae _ _ _ Y (filter.eventually_of_forall hYpos)
+    hYmes.ae_measurable,
 
   let f : Ω → ennreal := ennreal.of_real ∘ X,
   let g : Ω → ennreal := ennreal.of_real ∘ Y,
@@ -104,12 +110,6 @@ begin
       apply @measurable_set_preimage _ _ _ _ real.measurable_space,
       { apply measurable.of_comap_le, simp },
       { apply measurable_set_preimage ennreal.measurable_of_real hB } }, },
-  { apply filter.eventually_of_forall, intro ω, apply hYpos },
-  { exact hYmes.ae_measurable },
-  { apply filter.eventually_of_forall, intro ω, apply hXpos },
-  { exact hXmes.ae_measurable },
-  { apply filter.eventually_of_forall, intro ω, apply mul_nonneg, apply hXpos, apply hYpos },
-  { apply measurable.ae_measurable, exact measurable.mul hXmes hYmes }
 end
 
 lemma integral_indep {X Y : Ω → ℝ} {hX : integrable X} {hY : integrable Y}
