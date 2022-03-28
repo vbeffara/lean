@@ -75,6 +75,15 @@ begin
   symmetry, ext ω, simp, apply max_zero_sub_max_neg_zero_eq_self
 end
 
+lemma indep_fun_comp_of_indep_fun {α β β' γ γ' : Type*} [measure_space α]
+  [measurable_space β] [measurable_space β'] [measurable_space γ] [measurable_space γ']
+  {f : α → β} {g : α → β'} {φ : β → γ} {hφ : measurable φ} {ψ : β' → γ'} {hψ : measurable ψ} :
+indep_fun f g → indep_fun (φ ∘ f) (ψ ∘ g) :=
+begin
+  rintro h _ _ ⟨A,hA,rfl⟩ ⟨B,hB,rfl⟩,
+  exact h _ _ ⟨φ ⁻¹' A, hφ hA, set.preimage_comp.symm⟩ ⟨ψ ⁻¹' B, hψ hB, set.preimage_comp.symm⟩,
+end
+
 lemma integral_indep_of_pos {X Y : Ω → ℝ} {hXYind : indep_fun X Y}
   {hXpos : 0 ≤ X} {hXmes : measurable X} {hYpos : 0 ≤ Y} {hYmes : measurable Y}:
   𝔼[X * Y] = 𝔼[X] * 𝔼[Y] :=
@@ -93,18 +102,7 @@ begin
   congr, apply lintegral_mul_eq_lintegral_mul_lintegral_of_indep_fun
     hXmes.ennreal_of_real hYmes.ennreal_of_real,
 
-  rintro _ _ ⟨A,hA,rfl⟩ ⟨B,hB,rfl⟩,
-  rw @set.preimage_comp _ _ _ X ennreal.of_real _, set A' := ennreal.of_real ⁻¹' A,
-  rw @set.preimage_comp _ _ _ Y ennreal.of_real _, set B' := ennreal.of_real ⁻¹' B,
-  apply hXYind,
-  { simp,
-    apply @measurable_set_preimage _ _ _ _ real.measurable_space,
-    { apply measurable.of_comap_le, simp },
-    { apply measurable_set_preimage ennreal.measurable_of_real hA } },
-  { simp,
-    apply @measurable_set_preimage _ _ _ _ real.measurable_space,
-    { apply measurable.of_comap_le, simp },
-    { apply measurable_set_preimage ennreal.measurable_of_real hB } }
+  apply indep_fun_comp_of_indep_fun hXYind; exact ennreal.measurable_of_real
 end
 
 lemma integral_indep {X Y : Ω → ℝ} {hX : integrable X} {hY : integrable Y}
