@@ -10,13 +10,15 @@ variables {Ω : Type*} [measure_space Ω] [is_probability_measure (volume : meas
 
 namespace probability_theory
 
-lemma indep_fun_comp_of_indep_fun {β β' γ γ' : Type*}
-  [measurable_space β] [measurable_space β'] [measurable_space γ] [measurable_space γ']
-  {f : Ω → β} {g : Ω → β'} {φ : β → γ} {hφ : measurable φ} {ψ : β' → γ'} {hψ : measurable ψ} :
-  indep_fun f g → indep_fun (φ ∘ f) (ψ ∘ g) :=
+lemma indep_fun_comp_of_indep_fun {α α' β β' : Type*}
+  [measurable_space α] [measurable_space α'] [measurable_space β] [measurable_space β']
+  {f : Ω → α} {g : Ω → α'} (hfg : indep_fun f g)
+  {φ : α → β} {ψ : α' → β'} {hφ : measurable φ} {hψ : measurable ψ} :
+indep_fun (φ ∘ f) (ψ ∘ g) :=
 begin
-  rintro h _ _ ⟨A,hA,rfl⟩ ⟨B,hB,rfl⟩,
-  exact h _ _ ⟨φ ⁻¹' A, hφ hA, set.preimage_comp.symm⟩ ⟨ψ ⁻¹' B, hψ hB, set.preimage_comp.symm⟩,
+  rintro _ _ ⟨A,hA,rfl⟩ ⟨B,hB,rfl⟩, apply hfg,
+  exact ⟨φ ⁻¹' A, hφ hA, set.preimage_comp.symm⟩,
+  exact ⟨ψ ⁻¹' B, hψ hB, set.preimage_comp.symm⟩
 end
 
 def pos_part (x : ℝ) := max x 0
@@ -27,17 +29,19 @@ begin
 end
 
 lemma integrable_mul_of_integrable_of_indep_fun {X Y : Ω → ℝ} {h : indep_fun X Y}
-  {hXm : measurable X} {hYm : measurable Y}:
-  integrable X → integrable Y → integrable (X * Y) :=
+  {hXm : measurable X} {hXi : integrable X} {hYm : measurable Y} {hYi : integrable Y} :
+integrable (X * Y) :=
 begin
-  rintro hX hY,
-  refine ⟨hX.1.mul hY.1, _⟩,
-  simp only [has_finite_integral, pi.mul_apply, nnnorm_mul, ennreal.coe_mul],
-  have := @lintegral_mul_eq_lintegral_mul_lintegral_of_indep_fun Ω _ volume
-    (λ a, ↑∥X a∥₊) (λ a, ↑∥Y a∥₊) _ _ _, simp at this, rw this,
-  exact ennreal.mul_lt_top_iff.mpr (or.inl ⟨hX.2, hY.2⟩), { measurability }, { measurability },
-  apply indep_fun_comp_of_indep_fun, { measurability }, { measurability },
-  apply indep_fun_comp_of_indep_fun h, measurability
+  have hXpm : measurable (λ a, ∥X a∥₊ : Ω → ennreal) := hXm.nnnorm.coe_nnreal_ennreal,
+  have hYpm : measurable (λ a, ∥Y a∥₊ : Ω → ennreal) := hYm.nnnorm.coe_nnreal_ennreal,
+
+  refine ⟨hXi.1.mul hYi.1, _⟩,
+  simp_rw [has_finite_integral, pi.mul_apply, nnnorm_mul, ennreal.coe_mul],
+  have := lintegral_mul_eq_lintegral_mul_lintegral_of_indep_fun hXpm hYpm _,
+  simp only [pi.mul_apply] at this, rw this, clear this,
+  exact ennreal.mul_lt_top_iff.mpr (or.inl ⟨hXi.2, hYi.2⟩),
+  apply indep_fun_comp_of_indep_fun; try { exact measurable_coe_nnreal_ennreal },
+  apply indep_fun_comp_of_indep_fun h; exact measurable_nnnorm
 end
 
 -- TODO: should work on `ae_measurable`
