@@ -82,21 +82,21 @@ begin
   apply indep_fun_comp_of_indep_fun h; exact measurable_nnnorm
 end
 
--- TODO: should work on `ae_measurable`
 lemma integral_indep_of_pos {X Y : Ω → ℝ} {hXYind : indep_fun X Y}
-  {hXpos : 0 ≤ X} {hXmes : measurable X} {hYpos : 0 ≤ Y} {hYmes : measurable Y}:
+  {hXpos : 0 ≤ X} {hXmes : ae_measurable X} {hYpos : 0 ≤ Y} {hYmes : ae_measurable Y}:
   𝔼[X * Y] = 𝔼[X] * 𝔼[Y] :=
 begin
   rw [@integral_eq_lintegral_of_nonneg_ae _ _ _ (X * Y)
       (filter.eventually_of_forall (λ ω, mul_nonneg (hXpos ω) (hYpos ω)))
-      (hXmes.mul hYmes).ae_measurable,
-    integral_eq_lintegral_of_nonneg_ae (filter.eventually_of_forall hXpos) hXmes.ae_measurable,
-    integral_eq_lintegral_of_nonneg_ae (filter.eventually_of_forall hYpos) hYmes.ae_measurable],
+      (hXmes.mul hYmes),
+    integral_eq_lintegral_of_nonneg_ae (filter.eventually_of_forall hXpos) hXmes,
+    integral_eq_lintegral_of_nonneg_ae (filter.eventually_of_forall hYpos) hYmes],
   simp_rw [←ennreal.to_real_mul, pi.mul_apply, ennreal.of_real_mul (hXpos _)],
   congr,
-  apply lintegral_mul_eq_lintegral_mul_lintegral_of_indep_fun
-    hXmes.ennreal_of_real hYmes.ennreal_of_real (indep_fun_comp_of_indep_fun hXYind);
-  exact ennreal.measurable_of_real
+  apply lintegral_mul_eq_lintegral_mul_lintegral_of_indep_fun',
+  { exact ennreal.measurable_of_real.comp_ae_measurable hXmes },
+  { exact ennreal.measurable_of_real.comp_ae_measurable hYmes },
+  { apply indep_fun_comp_of_indep_fun hXYind; exact ennreal.measurable_of_real }
 end
 
 lemma integral_indep {X Y : Ω → ℝ} {h : indep_fun X Y}
@@ -117,9 +117,13 @@ begin
   have hp4 : 0 ≤ Yp := λ ω, le_max_right _ _,
 
   have hm1 : measurable Xm := hXm.neg.max measurable_const,
+  have hm1' : ae_measurable Xm := hX.1.neg.max ae_measurable_const,
   have hm2 : measurable Xp := hXm.max measurable_const,
+  have hm2' : ae_measurable Xp := hX.1.max ae_measurable_const,
   have hm3 : measurable Ym := hYm.neg.max measurable_const,
+  have hm3' : ae_measurable Ym := hY.1.neg.max ae_measurable_const,
   have hm4 : measurable Yp := hYm.max measurable_const,
+  have hm4' : ae_measurable Yp := hY.1.max ae_measurable_const,
 
   have hv1 : integrable Xm := hX.neg.max_zero,
   have hv1 : integrable Xp := hX.max_zero,
