@@ -18,18 +18,16 @@ begin
   apply hfg, exact ⟨_,hA,rfl⟩, exact ⟨_,hB,rfl⟩
 end
 
-lemma lintegral_mul_eq_lintegral_mul_lintegral_of_indep_fun'
-  {f g : α → ennreal} (h_meas_f : ae_measurable f μ) (h_meas_g : ae_measurable g μ)
-  (h_indep_fun : indep_fun f g μ) :
+lemma lintegral_mul_eq_lintegral_mul_lintegral_of_indep_fun' {f g : α → ennreal}
+  (h_meas_f : ae_measurable f μ) (h_meas_g : ae_measurable g μ) (h_indep_fun : indep_fun f g μ) :
   ∫⁻ a, (f * g) a ∂μ = ∫⁻ a, f a ∂μ * ∫⁻ a, g a ∂μ :=
 begin
   rcases h_meas_f with ⟨f',f'_meas,f'_ae⟩,
   rcases h_meas_g with ⟨g',g'_meas,g'_ae⟩,
-  have := indep_fun_of_indep_fun_of_ae_eq h_indep_fun f'_ae g'_ae,
-  have := lintegral_mul_eq_lintegral_mul_lintegral_of_indep_fun f'_meas g'_meas this,
-  convert this using 1,
-  { apply lintegral_congr_ae, exact f'_ae.mul g'_ae },
-  { rw [lintegral_congr_ae f'_ae, lintegral_congr_ae g'_ae] }
+  have fg_ae : f * g =ᵐ[μ] f' * g' := f'_ae.mul g'_ae,
+  rw [lintegral_congr_ae f'_ae, lintegral_congr_ae g'_ae, lintegral_congr_ae fg_ae],
+  apply lintegral_mul_eq_lintegral_mul_lintegral_of_indep_fun f'_meas g'_meas,
+  exact indep_fun_of_indep_fun_of_ae_eq h_indep_fun f'_ae g'_ae
 end
 
 lemma indep_fun_comp_of_indep_fun {α α' β β' : Type*} {μ : measure Ω}
