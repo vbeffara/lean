@@ -1,18 +1,15 @@
-import probability.independence
 import probability.integration
 import probability.notation
-
 open measure_theory probability_theory
 open_locale measure_theory probability_theory
-noncomputable theory
 
-variables {Ω : Type*} [measure_space Ω] [is_probability_measure (volume : measure Ω)]
+variables {Ω α β : Type*} [measurable_space Ω] [measurable_space α] [measurable_space β]
+variables {μ : measure α}
 
 namespace probability_theory
 
-lemma indep_fun_of_indep_fun_of_ae_eq {α β : Type*} [measurable_space α] [measurable_space β]
-  {f g f' g' : α → β} {μ : measure α} (hfg : indep_fun f g μ) (hf : f =ᵐ[μ] f') (hg : g =ᵐ[μ] g') :
-indep_fun f' g' μ :=
+lemma indep_fun_of_indep_fun_of_ae_eq {f g f' g' : α → β} (hfg : indep_fun f g μ)
+  (hf : f =ᵐ[μ] f') (hg : g =ᵐ[μ] g') : indep_fun f' g' μ :=
 begin
   rintro _ _ ⟨A,hA,rfl⟩ ⟨B,hB,rfl⟩,
   have h1 : f ⁻¹' A =ᵐ[μ] f' ⁻¹' A := hf.fun_comp A,
@@ -22,7 +19,6 @@ begin
 end
 
 lemma lintegral_mul_eq_lintegral_mul_lintegral_of_indep_fun'
-  {α : Type*} [measurable_space α] {μ : measure α}
   {f g : α → ennreal} (h_meas_f : ae_measurable f μ) (h_meas_g : ae_measurable g μ)
   (h_indep_fun : indep_fun f g μ) :
   ∫⁻ a, (f * g) a ∂μ = ∫⁻ a, f a ∂μ * ∫⁻ a, g a ∂μ :=
@@ -36,22 +32,22 @@ begin
   { rw [lintegral_congr_ae f'_ae, lintegral_congr_ae g'_ae] }
 end
 
-lemma indep_fun_comp_of_indep_fun {α α' β β' : Type*}
+lemma indep_fun_comp_of_indep_fun {α α' β β' : Type*} {μ : measure Ω}
   [measurable_space α] [measurable_space α'] [measurable_space β] [measurable_space β']
-  {f : Ω → α} {g : Ω → α'} (hfg : indep_fun f g)
+  {f : Ω → α} {g : Ω → α'} (hfg : indep_fun f g μ)
   {φ : α → β} {ψ : α' → β'} {hφ : measurable φ} {hψ : measurable ψ} :
-indep_fun (φ ∘ f) (ψ ∘ g) :=
+indep_fun (φ ∘ f) (ψ ∘ g) μ :=
 begin
   rintro _ _ ⟨A,hA,rfl⟩ ⟨B,hB,rfl⟩, apply hfg,
   exact ⟨φ ⁻¹' A, hφ hA, set.preimage_comp.symm⟩,
   exact ⟨ψ ⁻¹' B, hψ hB, set.preimage_comp.symm⟩
 end
 
-lemma integrable_mul_of_integrable_of_indep_fun {X Y : Ω → ℝ} {h : indep_fun X Y}
-  {hX : integrable X} {hY : integrable Y} : integrable (X * Y) :=
+lemma integrable_mul_of_integrable_of_indep_fun {X Y : Ω → ℝ} {μ : measure Ω} {h : indep_fun X Y μ}
+  {hX : integrable X μ} {hY : integrable Y μ} : integrable (X * Y) μ :=
 begin
-  have h1 : ae_measurable (λ a, ∥X a∥₊ : Ω → ennreal) volume := hX.1.nnnorm.coe_nnreal_ennreal,
-  have h2 : ae_measurable (λ a, ∥Y a∥₊ : Ω → ennreal) volume := hY.1.nnnorm.coe_nnreal_ennreal,
+  have h1 : ae_measurable (λ a, ∥X a∥₊ : Ω → ennreal) μ := hX.1.nnnorm.coe_nnreal_ennreal,
+  have h2 : ae_measurable (λ a, ∥Y a∥₊ : Ω → ennreal) μ := hY.1.nnnorm.coe_nnreal_ennreal,
 
   refine ⟨hX.1.mul hY.1, _⟩,
   simp_rw [has_finite_integral, pi.mul_apply, nnnorm_mul, ennreal.coe_mul],
@@ -62,19 +58,19 @@ begin
   apply indep_fun_comp_of_indep_fun h; exact measurable_nnnorm
 end
 
-lemma integral_indep_of_pos {X Y : Ω → ℝ} {hXYind : indep_fun X Y}
-  {hXpos : 0 ≤ X} {hXmes : ae_measurable X} {hYpos : 0 ≤ Y} {hYmes : ae_measurable Y}:
-  𝔼[X * Y] = 𝔼[X] * 𝔼[Y] :=
+lemma integral_indep_of_pos {X Y : Ω → ℝ} {μ : measure Ω} {hXYind : indep_fun X Y μ}
+  {hXpos : 0 ≤ X} {hXmes : ae_measurable X μ} {hYpos : 0 ≤ Y} {hYmes : ae_measurable Y μ} :
+  integral μ (X * Y) = integral μ X * integral μ Y :=
 begin
-  have h1 : ae_measurable (λ a, ennreal.of_real (X a)) :=
+  have h1 : ae_measurable (λ a, ennreal.of_real (X a)) μ :=
     ennreal.measurable_of_real.comp_ae_measurable hXmes,
-  have h2 : ae_measurable (λ a, ennreal.of_real (Y a)) :=
+  have h2 : ae_measurable (λ a, ennreal.of_real (Y a)) μ :=
     ennreal.measurable_of_real.comp_ae_measurable hYmes,
-  have h3 : ae_measurable (X * Y) := hXmes.mul hYmes,
+  have h3 : ae_measurable (X * Y) μ := hXmes.mul hYmes,
 
-  have h4 : 0 ≤ᵐ[volume] X := ae_of_all _ hXpos,
-  have h5 : 0 ≤ᵐ[volume] Y := ae_of_all _ hYpos,
-  have h6 : 0 ≤ᵐ[volume] (X * Y) := ae_of_all _ (λ ω, mul_nonneg (hXpos ω) (hYpos ω)),
+  have h4 : 0 ≤ᵐ[μ] X := ae_of_all _ hXpos,
+  have h5 : 0 ≤ᵐ[μ] Y := ae_of_all _ hYpos,
+  have h6 : 0 ≤ᵐ[μ] (X * Y) := ae_of_all _ (λ ω, mul_nonneg (hXpos ω) (hYpos ω)),
 
   repeat { rw integral_eq_lintegral_of_nonneg_ae },
   simp_rw [←ennreal.to_real_mul, pi.mul_apply, ennreal.of_real_mul (hXpos _)],
@@ -84,8 +80,8 @@ begin
   apply indep_fun_comp_of_indep_fun hXYind; exact ennreal.measurable_of_real
 end
 
-lemma integral_indep {X Y : Ω → ℝ} {h : indep_fun X Y} {hX : integrable X} {hY : integrable Y} :
-  𝔼[X * Y] = 𝔼[X] * 𝔼[Y] :=
+lemma integral_indep {X Y : Ω → ℝ} {μ : measure Ω} {hX : integrable X μ} {hY : integrable Y μ}
+  {h : indep_fun X Y μ} : integral μ (X * Y) = integral μ X * integral μ Y :=
 begin
   set Xp := (λ x : ℝ, max x 0) ∘ X, -- `X⁺` would be better but it makes `simp_rw` fail
   set Xm := (λ x : ℝ, max (-x) 0) ∘ X,
@@ -100,36 +96,36 @@ begin
   have hp3 : 0 ≤ Ym := λ ω, le_max_right _ _,
   have hp4 : 0 ≤ Yp := λ ω, le_max_right _ _,
 
-  have hm1 : ae_measurable Xm := hX.1.neg.max ae_measurable_const,
-  have hm2 : ae_measurable Xp := hX.1.max ae_measurable_const,
-  have hm3 : ae_measurable Ym := hY.1.neg.max ae_measurable_const,
-  have hm4 : ae_measurable Yp := hY.1.max ae_measurable_const,
+  have hm1 : ae_measurable Xm μ := hX.1.neg.max ae_measurable_const,
+  have hm2 : ae_measurable Xp μ := hX.1.max ae_measurable_const,
+  have hm3 : ae_measurable Ym μ := hY.1.neg.max ae_measurable_const,
+  have hm4 : ae_measurable Yp μ := hY.1.max ae_measurable_const,
 
-  have hv1 : integrable Xm := hX.neg.max_zero,
-  have hv1 : integrable Xp := hX.max_zero,
-  have hv1 : integrable Ym := hY.neg.max_zero,
-  have hv1 : integrable Yp := hY.max_zero,
+  have hv1 : integrable Xm μ := hX.neg.max_zero,
+  have hv1 : integrable Xp μ := hX.max_zero,
+  have hv1 : integrable Ym μ := hY.neg.max_zero,
+  have hv1 : integrable Yp μ := hY.max_zero,
 
-  have hi1 : indep_fun Xm Ym :=
+  have hi1 : indep_fun Xm Ym μ :=
     by { apply indep_fun_comp_of_indep_fun h; apply measurable.max, measurability },
-  have hi2 : indep_fun Xp Ym :=
+  have hi2 : indep_fun Xp Ym μ :=
     by { apply indep_fun_comp_of_indep_fun h; apply measurable.max, measurability },
-  have hi3 : indep_fun Xm Yp :=
+  have hi3 : indep_fun Xm Yp μ :=
     by { apply indep_fun_comp_of_indep_fun h; apply measurable.max, measurability },
-  have hi4 : indep_fun Xp Yp :=
+  have hi4 : indep_fun Xp Yp μ :=
     by { apply indep_fun_comp_of_indep_fun h; apply measurable.max, measurability },
 
-  have hl1 : integrable (Xm * Ym) :=
+  have hl1 : integrable (Xm * Ym) μ :=
     by { apply integrable_mul_of_integrable_of_indep_fun; assumption },
-  have hl2 : integrable (Xp * Ym) :=
+  have hl2 : integrable (Xp * Ym) μ :=
     by { apply integrable_mul_of_integrable_of_indep_fun; assumption },
-  have hl3 : integrable (Xm * Yp) :=
+  have hl3 : integrable (Xm * Yp) μ :=
     by { apply integrable_mul_of_integrable_of_indep_fun; assumption },
-  have hl4 : integrable (Xp * Yp) :=
+  have hl4 : integrable (Xp * Yp) μ :=
     by { apply integrable_mul_of_integrable_of_indep_fun; assumption },
 
-  have hl5 : integrable (Xp * Yp - Xm * Yp) := by { apply integrable.sub; assumption },
-  have hl5 : integrable (Xp * Ym - Xm * Ym) := by { apply integrable.sub; assumption },
+  have hl5 : integrable (Xp * Yp - Xm * Yp) μ := by { apply integrable.sub; assumption },
+  have hl5 : integrable (Xp * Ym - Xm * Ym) μ := by { apply integrable.sub; assumption },
 
   simp_rw [hXpm, hYpm, mul_sub, sub_mul],
   repeat { rw [integral_sub'] },
