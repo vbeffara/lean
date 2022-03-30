@@ -23,10 +23,6 @@ end
 
 def pos_part (x : ℝ) := max x 0
 def neg_part (x : ℝ) := max (-x) 0
-lemma eq_pos_sub_neg (X : Ω → ℝ) : X = pos_part ∘ X - neg_part ∘ X :=
-begin
-  symmetry, ext ω, simp, apply max_zero_sub_max_neg_zero_eq_self
-end
 
 lemma integrable_mul_of_integrable_of_indep_fun {X Y : Ω → ℝ} {h : indep_fun X Y}
   {hXm : measurable X} {hXi : integrable X} {hYm : measurable Y} {hYi : integrable Y} :
@@ -61,14 +57,19 @@ begin
   exact ennreal.measurable_of_real
 end
 
-lemma integral_indep
-  {X : Ω → ℝ} {hXm : measurable X} {hX : integrable X}
-  {Y : Ω → ℝ} {hYm : measurable Y} {hY : integrable Y}
-  {hXY : integrable (X * Y)} {h : indep_fun X Y} :
-  𝔼[X * Y] = 𝔼[X] * 𝔼[Y] :=
+example (x : ℝ) : pos_part x = x⁺ := rfl
+
+lemma integral_indep {X Y : Ω → ℝ} {h : indep_fun X Y}
+  {hXm : measurable X} {hX : integrable X} {hYm : measurable Y} {hY : integrable Y} :
+𝔼[X * Y] = 𝔼[X] * 𝔼[Y] :=
 begin
-  have hXpm := eq_pos_sub_neg X, have hYpm := eq_pos_sub_neg Y,
-  set Xp := pos_part ∘ X, set Xm := neg_part ∘ X, set Yp := pos_part ∘ Y, set Ym := neg_part ∘ Y,
+  set Xp := pos_part ∘ X,
+  set Xm := neg_part ∘ X,
+  set Yp := pos_part ∘ Y,
+  set Ym := neg_part ∘ Y,
+
+  have hXpm : X = Xp - Xm := funext (λ ω, (max_zero_sub_max_neg_zero_eq_self (X ω)).symm),
+  have hYpm : Y = Yp - Ym := funext (λ ω, (max_zero_sub_max_neg_zero_eq_self (Y ω)).symm),
 
   have hp1 : 0 ≤ Xm := λ ω, le_max_right _ _,
   have hp2 : 0 ≤ Xp := λ ω, le_max_right _ _,
@@ -95,12 +96,14 @@ begin
   have hl3 : integrable (Xm * Yp) := by { apply integrable_mul_of_integrable_of_indep_fun; assumption },
   have hl4 : integrable (Xp * Yp) := by { apply integrable_mul_of_integrable_of_indep_fun; assumption },
 
-  simp_rw [pi.mul_apply, hXpm, hYpm, pi.sub_apply, mul_sub, sub_mul, ← pi.mul_apply],
-  rw [integral_sub, integral_sub, integral_sub, integral_sub', integral_sub', sub_mul, mul_sub, mul_sub],
-  rw [integral_indep_of_pos, integral_indep_of_pos, integral_indep_of_pos, integral_indep_of_pos],
-  ring, all_goals { try { assumption } },
-  { apply integrable.sub; assumption },
-  { apply integrable.sub; assumption },
+  have hl5 : integrable (Xp * Yp - Xm * Yp) := by { apply integrable.sub; assumption },
+  have hl5 : integrable (Xp * Ym - Xm * Ym) := by { apply integrable.sub; assumption },
+
+  simp_rw [hXpm, hYpm, mul_sub, sub_mul],
+  repeat { rw [integral_sub'] },
+  repeat { rw [integral_indep_of_pos] },
+  ring,
+  assumption'
 end
 
 end probability_theory
