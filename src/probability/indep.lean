@@ -3,31 +3,12 @@ import probability.integration
 import probability.notation
 
 open measure_theory probability_theory
-open_locale big_operators measure_theory probability_theory
+open_locale measure_theory probability_theory
 noncomputable theory
 
 variables {Ω : Type*} [measure_space Ω] [is_probability_measure (volume : measure Ω)]
 
 namespace probability_theory
-
-lemma lintegral_mul_indicator_eq_lintegral_mul_lintegral_indicator'
-  {α : Type*} {Mf : measurable_space α} [M : measurable_space α] (μ : measure α) (hMf : Mf ≤ M)
-  (c : ennreal) {T : set α} (h_meas_T : measurable_set T)
-  (h_ind : @indep_sets α M Mf.measurable_set' {T} μ)
-  {f : α → ennreal} (h_meas_f : ae_measurable' Mf f μ) :
-  ∫⁻ a, f a * T.indicator (λ _, c) a ∂μ = ∫⁻ a, f a ∂μ * ∫⁻ a, T.indicator (λ _, c) a ∂μ :=
-begin
-  rcases h_meas_f with ⟨g,g_meas,g_ae⟩,
-  rw lintegral_congr_ae g_ae,
-  convert @lintegral_mul_indicator_eq_lintegral_mul_lintegral_indicator
-    α Mf M μ hMf c T h_meas_T h_ind g g_meas using 1,
-  apply lintegral_congr_ae, apply g_ae.mul, apply ae_of_all, intro, refl
-end
-
-lemma preimage_ae_eq_of_ae_eq {α β : Type*} [measurable_space α] [measurable_space β]
-  {f g : α → β} {μ : measure α} (hfg : f =ᵐ[μ] g) {B : set β} :
-f ⁻¹' B =ᵐ[μ] g ⁻¹' B :=
-hfg.fun_comp B
 
 lemma indep_fun_of_indep_fun_of_ae_eq {α β : Type*} [measurable_space α] [measurable_space β]
   {f g f' g' : α → β} {μ : measure α} (hfg : indep_fun f g μ) (hf : f =ᵐ[μ] f') (hg : g =ᵐ[μ] g') :
@@ -67,17 +48,16 @@ begin
 end
 
 lemma integrable_mul_of_integrable_of_indep_fun {X Y : Ω → ℝ} {h : indep_fun X Y}
-  {hXi : integrable X} {hYi : integrable Y} :
-integrable (X * Y) :=
+  {hX : integrable X} {hY : integrable Y} : integrable (X * Y) :=
 begin
-  have h1 : ae_measurable (λ a, ∥X a∥₊ : Ω → ennreal) volume := hXi.1.nnnorm.coe_nnreal_ennreal,
-  have h2 : ae_measurable (λ a, ∥Y a∥₊ : Ω → ennreal) volume := hYi.1.nnnorm.coe_nnreal_ennreal,
+  have h1 : ae_measurable (λ a, ∥X a∥₊ : Ω → ennreal) volume := hX.1.nnnorm.coe_nnreal_ennreal,
+  have h2 : ae_measurable (λ a, ∥Y a∥₊ : Ω → ennreal) volume := hY.1.nnnorm.coe_nnreal_ennreal,
 
-  refine ⟨hXi.1.mul hYi.1, _⟩,
+  refine ⟨hX.1.mul hY.1, _⟩,
   simp_rw [has_finite_integral, pi.mul_apply, nnnorm_mul, ennreal.coe_mul],
   have := lintegral_mul_eq_lintegral_mul_lintegral_of_indep_fun' h1 h2 _,
   simp only [pi.mul_apply] at this, rw this, clear this,
-  exact ennreal.mul_lt_top_iff.mpr (or.inl ⟨hXi.2, hYi.2⟩),
+  exact ennreal.mul_lt_top_iff.mpr (or.inl ⟨hX.2, hY.2⟩),
   apply indep_fun_comp_of_indep_fun; try { exact measurable_coe_nnreal_ennreal },
   apply indep_fun_comp_of_indep_fun h; exact measurable_nnnorm
 end
@@ -86,17 +66,22 @@ lemma integral_indep_of_pos {X Y : Ω → ℝ} {hXYind : indep_fun X Y}
   {hXpos : 0 ≤ X} {hXmes : ae_measurable X} {hYpos : 0 ≤ Y} {hYmes : ae_measurable Y}:
   𝔼[X * Y] = 𝔼[X] * 𝔼[Y] :=
 begin
-  rw [@integral_eq_lintegral_of_nonneg_ae _ _ _ (X * Y)
-      (filter.eventually_of_forall (λ ω, mul_nonneg (hXpos ω) (hYpos ω)))
-      (hXmes.mul hYmes),
-    integral_eq_lintegral_of_nonneg_ae (filter.eventually_of_forall hXpos) hXmes,
-    integral_eq_lintegral_of_nonneg_ae (filter.eventually_of_forall hYpos) hYmes],
+  have h1 : ae_measurable (λ a, ennreal.of_real (X a)) :=
+    ennreal.measurable_of_real.comp_ae_measurable hXmes,
+  have h2 : ae_measurable (λ a, ennreal.of_real (Y a)) :=
+    ennreal.measurable_of_real.comp_ae_measurable hYmes,
+  have h3 : ae_measurable (X * Y) := hXmes.mul hYmes,
+
+  have h4 : 0 ≤ᵐ[volume] X := ae_of_all _ hXpos,
+  have h5 : 0 ≤ᵐ[volume] Y := ae_of_all _ hYpos,
+  have h6 : 0 ≤ᵐ[volume] (X * Y) := ae_of_all _ (λ ω, mul_nonneg (hXpos ω) (hYpos ω)),
+
+  repeat { rw integral_eq_lintegral_of_nonneg_ae },
   simp_rw [←ennreal.to_real_mul, pi.mul_apply, ennreal.of_real_mul (hXpos _)],
   congr,
   apply lintegral_mul_eq_lintegral_mul_lintegral_of_indep_fun',
-  { exact ennreal.measurable_of_real.comp_ae_measurable hXmes },
-  { exact ennreal.measurable_of_real.comp_ae_measurable hYmes },
-  { apply indep_fun_comp_of_indep_fun hXYind; exact ennreal.measurable_of_real }
+  assumption',
+  apply indep_fun_comp_of_indep_fun hXYind; exact ennreal.measurable_of_real
 end
 
 lemma integral_indep {X Y : Ω → ℝ} {h : indep_fun X Y} {hX : integrable X} {hY : integrable Y} :
