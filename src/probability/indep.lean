@@ -132,4 +132,8 @@ begin
   assumption'
 end
 
+example {Ω : Type*} [measure_space Ω] {X Y : Ω → ℝ} {hX : integrable X} {hY : integrable Y}
+  (h : indep_fun X Y) : 𝔼[X*Y] = 𝔼[X] * 𝔼[Y] :=
+by { apply integral_indep; assumption }
+
 end probability_theory
