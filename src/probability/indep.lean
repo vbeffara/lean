@@ -21,9 +21,6 @@ begin
   exact ⟨ψ ⁻¹' B, hψ hB, set.preimage_comp.symm⟩
 end
 
-def pos_part (x : ℝ) := max x 0
-def neg_part (x : ℝ) := max (-x) 0
-
 lemma integrable_mul_of_integrable_of_indep_fun {X Y : Ω → ℝ} {h : indep_fun X Y}
   {hXm : measurable X} {hXi : integrable X} {hYm : measurable Y} {hYi : integrable Y} :
 integrable (X * Y) :=
@@ -57,16 +54,17 @@ begin
   exact ennreal.measurable_of_real
 end
 
-example (x : ℝ) : pos_part x = x⁺ := rfl
+example {X : Ω → ℝ} : measurable X → measurable (X⁺) :=
+λ h, measurable.sup_const h 0
 
 lemma integral_indep {X Y : Ω → ℝ} {h : indep_fun X Y}
   {hXm : measurable X} {hX : integrable X} {hYm : measurable Y} {hY : integrable Y} :
 𝔼[X * Y] = 𝔼[X] * 𝔼[Y] :=
 begin
-  set Xp := pos_part ∘ X,
-  set Xm := neg_part ∘ X,
-  set Yp := pos_part ∘ Y,
-  set Ym := neg_part ∘ Y,
+  set Xp := (λ x : ℝ, max x 0) ∘ X, -- `X⁺` would be better but it makes `simp_rw` fail
+  set Xm := (λ x : ℝ, max (-x) 0) ∘ X,
+  set Yp := (λ x : ℝ, max x 0) ∘ Y,
+  set Ym := (λ x : ℝ, max (-x) 0) ∘ Y,
 
   have hXpm : X = Xp - Xm := funext (λ ω, (max_zero_sub_max_neg_zero_eq_self (X ω)).symm),
   have hYpm : Y = Yp - Ym := funext (λ ω, (max_zero_sub_max_neg_zero_eq_self (Y ω)).symm),
