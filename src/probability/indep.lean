@@ -70,10 +70,10 @@ begin
   have hXpm := eq_pos_sub_neg X, have hYpm := eq_pos_sub_neg Y,
   set Xp := pos_part ∘ X, set Xm := neg_part ∘ X, set Yp := pos_part ∘ Y, set Ym := neg_part ∘ Y,
 
-  have hp1 : 0 ≤ Xm := by { intro ω, simp [Xm,neg_part] },
-  have hp2 : 0 ≤ Xp := by { intro ω, simp [Xp,pos_part] },
-  have hp3 : 0 ≤ Ym := by { intro ω, simp [Ym,neg_part] },
-  have hp4 : 0 ≤ Yp := by { intro ω, simp [Yp,pos_part] },
+  have hp1 : 0 ≤ Xm := λ ω, le_max_right _ _,
+  have hp2 : 0 ≤ Xp := λ ω, le_max_right _ _,
+  have hp3 : 0 ≤ Ym := λ ω, le_max_right _ _,
+  have hp4 : 0 ≤ Yp := λ ω, le_max_right _ _,
 
   have hm1 : measurable Xm := hXm.neg.max measurable_const,
   have hm2 : measurable Xp := hXm.max measurable_const,
