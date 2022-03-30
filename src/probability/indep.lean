@@ -3,8 +3,9 @@ import probability.notation
 open measure_theory probability_theory
 open_locale measure_theory probability_theory
 
-variables {Ω α β : Type*} [measurable_space Ω] [measurable_space α] [measurable_space β]
-variables {μ : measure α}
+variables {α : Type*} [measurable_space α] {μ : measure α}
+variables {β β' : Type*} [measurable_space β] [measurable_space β']
+variables {γ γ' : Type*} [measurable_space γ] [measurable_space γ']
 
 namespace probability_theory
 
@@ -30,24 +31,23 @@ begin
   exact indep_fun_of_indep_fun_of_ae_eq h_indep_fun f'_ae g'_ae
 end
 
-lemma indep_fun_comp_of_indep_fun {α α' β β' : Type*} {μ : measure Ω}
-  [measurable_space α] [measurable_space α'] [measurable_space β] [measurable_space β']
-  {f : Ω → α} {g : Ω → α'} (hfg : indep_fun f g μ)
-  {φ : α → β} {ψ : α' → β'} {hφ : measurable φ} {hψ : measurable ψ} :
-indep_fun (φ ∘ f) (ψ ∘ g) μ :=
+lemma indep_fun_comp_of_indep_fun {f : α → β} {g : α → β'} (hfg : indep_fun f g μ)
+  {φ : β → γ} {ψ : β' → γ'} {hφ : measurable φ} {hψ : measurable ψ} :
+  indep_fun (φ ∘ f) (ψ ∘ g) μ :=
 begin
   rintro _ _ ⟨A,hA,rfl⟩ ⟨B,hB,rfl⟩, apply hfg,
   exact ⟨φ ⁻¹' A, hφ hA, set.preimage_comp.symm⟩,
   exact ⟨ψ ⁻¹' B, hψ hB, set.preimage_comp.symm⟩
 end
 
-lemma integrable_mul_of_integrable_of_indep_fun {X Y : Ω → ℝ} {μ : measure Ω} {h : indep_fun X Y μ}
+lemma integrable_mul_of_integrable_of_indep_fun {X Y : α → ℝ} {h : indep_fun X Y μ}
   {hX : integrable X μ} {hY : integrable Y μ} : integrable (X * Y) μ :=
 begin
-  have h1 : ae_measurable (λ a, ∥X a∥₊ : Ω → ennreal) μ := hX.1.nnnorm.coe_nnreal_ennreal,
-  have h2 : ae_measurable (λ a, ∥Y a∥₊ : Ω → ennreal) μ := hY.1.nnnorm.coe_nnreal_ennreal,
-
   refine ⟨hX.1.mul hY.1, _⟩,
+
+  have h1 : ae_measurable (λ a, ∥X a∥₊ : α → ennreal) μ := hX.1.nnnorm.coe_nnreal_ennreal,
+  have h2 : ae_measurable (λ a, ∥Y a∥₊ : α → ennreal) μ := hY.1.nnnorm.coe_nnreal_ennreal,
+
   simp_rw [has_finite_integral, pi.mul_apply, nnnorm_mul, ennreal.coe_mul],
   have := lintegral_mul_eq_lintegral_mul_lintegral_of_indep_fun' h1 h2 _,
   simp only [pi.mul_apply] at this, rw this, clear this,
@@ -56,7 +56,7 @@ begin
   apply indep_fun_comp_of_indep_fun h; exact measurable_nnnorm
 end
 
-lemma integral_indep_of_pos {X Y : Ω → ℝ} {μ : measure Ω} {hXYind : indep_fun X Y μ}
+lemma integral_indep_of_pos {X Y : α → ℝ} {hXYind : indep_fun X Y μ}
   {hXpos : 0 ≤ X} {hXmes : ae_measurable X μ} {hYpos : 0 ≤ Y} {hYmes : ae_measurable Y μ} :
   integral μ (X * Y) = integral μ X * integral μ Y :=
 begin
@@ -78,7 +78,7 @@ begin
   apply indep_fun_comp_of_indep_fun hXYind; exact ennreal.measurable_of_real
 end
 
-lemma integral_indep {X Y : Ω → ℝ} {μ : measure Ω} {hX : integrable X μ} {hY : integrable Y μ}
+lemma integral_indep {X Y : α → ℝ} {hX : integrable X μ} {hY : integrable Y μ}
   {h : indep_fun X Y μ} : integral μ (X * Y) = integral μ X * integral μ Y :=
 begin
   set Xp := (λ x : ℝ, max x 0) ∘ X, -- `X⁺` would be better but it makes `simp_rw` fail
