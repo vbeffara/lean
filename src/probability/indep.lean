@@ -67,15 +67,15 @@ begin
 end
 
 lemma integrable_mul_of_integrable_of_indep_fun {X Y : Ω → ℝ} {h : indep_fun X Y}
-  {hXm : measurable X} {hXi : integrable X} {hYm : measurable Y} {hYi : integrable Y} :
+  {hXi : integrable X} {hYi : integrable Y} :
 integrable (X * Y) :=
 begin
-  have hXpm : measurable (λ a, ∥X a∥₊ : Ω → ennreal) := hXm.nnnorm.coe_nnreal_ennreal,
-  have hYpm : measurable (λ a, ∥Y a∥₊ : Ω → ennreal) := hYm.nnnorm.coe_nnreal_ennreal,
+  have h1 : ae_measurable (λ a, ∥X a∥₊ : Ω → ennreal) volume := hXi.1.nnnorm.coe_nnreal_ennreal,
+  have h2 : ae_measurable (λ a, ∥Y a∥₊ : Ω → ennreal) volume := hYi.1.nnnorm.coe_nnreal_ennreal,
 
   refine ⟨hXi.1.mul hYi.1, _⟩,
   simp_rw [has_finite_integral, pi.mul_apply, nnnorm_mul, ennreal.coe_mul],
-  have := lintegral_mul_eq_lintegral_mul_lintegral_of_indep_fun hXpm hYpm _,
+  have := lintegral_mul_eq_lintegral_mul_lintegral_of_indep_fun' h1 h2 _,
   simp only [pi.mul_apply] at this, rw this, clear this,
   exact ennreal.mul_lt_top_iff.mpr (or.inl ⟨hXi.2, hYi.2⟩),
   apply indep_fun_comp_of_indep_fun; try { exact measurable_coe_nnreal_ennreal },
@@ -99,9 +99,8 @@ begin
   { apply indep_fun_comp_of_indep_fun hXYind; exact ennreal.measurable_of_real }
 end
 
-lemma integral_indep {X Y : Ω → ℝ} {h : indep_fun X Y}
-  {hXm : measurable X} {hX : integrable X} {hYm : measurable Y} {hY : integrable Y} :
-𝔼[X * Y] = 𝔼[X] * 𝔼[Y] :=
+lemma integral_indep {X Y : Ω → ℝ} {h : indep_fun X Y} {hX : integrable X} {hY : integrable Y} :
+  𝔼[X * Y] = 𝔼[X] * 𝔼[Y] :=
 begin
   set Xp := (λ x : ℝ, max x 0) ∘ X, -- `X⁺` would be better but it makes `simp_rw` fail
   set Xm := (λ x : ℝ, max (-x) 0) ∘ X,
@@ -116,29 +115,33 @@ begin
   have hp3 : 0 ≤ Ym := λ ω, le_max_right _ _,
   have hp4 : 0 ≤ Yp := λ ω, le_max_right _ _,
 
-  have hm1 : measurable Xm := hXm.neg.max measurable_const,
-  have hm1' : ae_measurable Xm := hX.1.neg.max ae_measurable_const,
-  have hm2 : measurable Xp := hXm.max measurable_const,
-  have hm2' : ae_measurable Xp := hX.1.max ae_measurable_const,
-  have hm3 : measurable Ym := hYm.neg.max measurable_const,
-  have hm3' : ae_measurable Ym := hY.1.neg.max ae_measurable_const,
-  have hm4 : measurable Yp := hYm.max measurable_const,
-  have hm4' : ae_measurable Yp := hY.1.max ae_measurable_const,
+  have hm1 : ae_measurable Xm := hX.1.neg.max ae_measurable_const,
+  have hm2 : ae_measurable Xp := hX.1.max ae_measurable_const,
+  have hm3 : ae_measurable Ym := hY.1.neg.max ae_measurable_const,
+  have hm4 : ae_measurable Yp := hY.1.max ae_measurable_const,
 
   have hv1 : integrable Xm := hX.neg.max_zero,
   have hv1 : integrable Xp := hX.max_zero,
   have hv1 : integrable Ym := hY.neg.max_zero,
   have hv1 : integrable Yp := hY.max_zero,
 
-  have hi1 : indep_fun Xm Ym := by { apply indep_fun_comp_of_indep_fun h; apply measurable.max, measurability },
-  have hi2 : indep_fun Xp Ym := by { apply indep_fun_comp_of_indep_fun h; apply measurable.max, measurability },
-  have hi3 : indep_fun Xm Yp := by { apply indep_fun_comp_of_indep_fun h; apply measurable.max, measurability },
-  have hi4 : indep_fun Xp Yp := by { apply indep_fun_comp_of_indep_fun h; apply measurable.max, measurability },
+  have hi1 : indep_fun Xm Ym :=
+    by { apply indep_fun_comp_of_indep_fun h; apply measurable.max, measurability },
+  have hi2 : indep_fun Xp Ym :=
+    by { apply indep_fun_comp_of_indep_fun h; apply measurable.max, measurability },
+  have hi3 : indep_fun Xm Yp :=
+    by { apply indep_fun_comp_of_indep_fun h; apply measurable.max, measurability },
+  have hi4 : indep_fun Xp Yp :=
+    by { apply indep_fun_comp_of_indep_fun h; apply measurable.max, measurability },
 
-  have hl1 : integrable (Xm * Ym) := by { apply integrable_mul_of_integrable_of_indep_fun; assumption },
-  have hl2 : integrable (Xp * Ym) := by { apply integrable_mul_of_integrable_of_indep_fun; assumption },
-  have hl3 : integrable (Xm * Yp) := by { apply integrable_mul_of_integrable_of_indep_fun; assumption },
-  have hl4 : integrable (Xp * Yp) := by { apply integrable_mul_of_integrable_of_indep_fun; assumption },
+  have hl1 : integrable (Xm * Ym) :=
+    by { apply integrable_mul_of_integrable_of_indep_fun; assumption },
+  have hl2 : integrable (Xp * Ym) :=
+    by { apply integrable_mul_of_integrable_of_indep_fun; assumption },
+  have hl3 : integrable (Xm * Yp) :=
+    by { apply integrable_mul_of_integrable_of_indep_fun; assumption },
+  have hl4 : integrable (Xp * Yp) :=
+    by { apply integrable_mul_of_integrable_of_indep_fun; assumption },
 
   have hl5 : integrable (Xp * Yp - Xm * Yp) := by { apply integrable.sub; assumption },
   have hl5 : integrable (Xp * Ym - Xm * Ym) := by { apply integrable.sub; assumption },
