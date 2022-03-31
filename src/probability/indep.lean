@@ -40,8 +40,8 @@ begin
   exact ⟨ψ ⁻¹' B, hψ hB, set.preimage_comp.symm⟩
 end
 
-lemma integrable_mul_of_integrable_of_indep_fun {X Y : α → ℝ} {h : indep_fun X Y μ}
-  {hX : integrable X μ} {hY : integrable Y μ} : integrable (X * Y) μ :=
+lemma integrable_mul_of_integrable_of_indep_fun {X Y : α → ℝ} (h : indep_fun X Y μ)
+  (hX : integrable X μ) (hY : integrable Y μ) : integrable (X * Y) μ :=
 begin
   refine ⟨hX.1.mul hY.1, _⟩,
 
@@ -56,9 +56,9 @@ begin
   apply indep_fun_comp_of_indep_fun h; exact measurable_nnnorm
 end
 
-lemma integral_indep_of_pos {X Y : α → ℝ} {hXYind : indep_fun X Y μ}
-  {hXpos : 0 ≤ X} {hXmes : ae_measurable X μ} {hYpos : 0 ≤ Y} {hYmes : ae_measurable Y μ} :
-  integral μ (X * Y) = integral μ X * integral μ Y :=
+lemma integral_mul_eq_integral_mul_integral_of_indep_fun_of_indep_fun_of_nonneg {X Y : α → ℝ}
+  {hXpos : 0 ≤ X} {hXmes : ae_measurable X μ} {hYpos : 0 ≤ Y} {hYmes : ae_measurable Y μ}
+  {hXYind : indep_fun X Y μ} : integral μ (X * Y) = integral μ X * integral μ Y :=
 begin
   have h1 : ae_measurable (λ a, ennreal.of_real (X a)) μ :=
     ennreal.measurable_of_real.comp_ae_measurable hXmes,
@@ -78,8 +78,9 @@ begin
   apply indep_fun_comp_of_indep_fun hXYind; exact ennreal.measurable_of_real
 end
 
-lemma integral_indep {X Y : α → ℝ} {hX : integrable X μ} {hY : integrable Y μ}
-  {h : indep_fun X Y μ} : integral μ (X * Y) = integral μ X * integral μ Y :=
+lemma integral_mul_eq_integral_mul_integral_of_indep_fun {X Y : α → ℝ}
+  (hX : integrable X μ) (hY : integrable Y μ) (h : indep_fun X Y μ) :
+  integral μ (X * Y) = integral μ X * integral μ Y :=
 begin
   set Xp := (λ x : ℝ, max x 0) ∘ X, -- `X⁺` would be better but it makes `simp_rw` fail
   set Xm := (λ x : ℝ, max (-x) 0) ∘ X,
@@ -100,9 +101,9 @@ begin
   have hm4 : ae_measurable Yp μ := hY.1.max ae_measurable_const,
 
   have hv1 : integrable Xm μ := hX.neg.max_zero,
-  have hv1 : integrable Xp μ := hX.max_zero,
-  have hv1 : integrable Ym μ := hY.neg.max_zero,
-  have hv1 : integrable Yp μ := hY.max_zero,
+  have hv2 : integrable Xp μ := hX.max_zero,
+  have hv3 : integrable Ym μ := hY.neg.max_zero,
+  have hv4 : integrable Yp μ := hY.max_zero,
 
   have hi1 : indep_fun Xm Ym μ :=
     by { apply indep_fun_comp_of_indep_fun h; apply measurable.max, measurability },
@@ -113,27 +114,83 @@ begin
   have hi4 : indep_fun Xp Yp μ :=
     by { apply indep_fun_comp_of_indep_fun h; apply measurable.max, measurability },
 
-  have hl1 : integrable (Xm * Ym) μ :=
-    by { apply integrable_mul_of_integrable_of_indep_fun; assumption },
-  have hl2 : integrable (Xp * Ym) μ :=
-    by { apply integrable_mul_of_integrable_of_indep_fun; assumption },
-  have hl3 : integrable (Xm * Yp) μ :=
-    by { apply integrable_mul_of_integrable_of_indep_fun; assumption },
-  have hl4 : integrable (Xp * Yp) μ :=
-    by { apply integrable_mul_of_integrable_of_indep_fun; assumption },
+  have hl1 : integrable (Xm * Ym) μ := integrable_mul_of_integrable_of_indep_fun hi1 hv1 hv3,
+  have hl2 : integrable (Xp * Ym) μ := integrable_mul_of_integrable_of_indep_fun hi2 hv2 hv3,
+  have hl3 : integrable (Xm * Yp) μ := integrable_mul_of_integrable_of_indep_fun hi3 hv1 hv4,
+  have hl4 : integrable (Xp * Yp) μ := integrable_mul_of_integrable_of_indep_fun hi4 hv2 hv4,
 
   have hl5 : integrable (Xp * Yp - Xm * Yp) μ := by { apply integrable.sub; assumption },
   have hl5 : integrable (Xp * Ym - Xm * Ym) μ := by { apply integrable.sub; assumption },
 
   simp_rw [hXpm, hYpm, mul_sub, sub_mul],
   repeat { rw [integral_sub'] },
-  repeat { rw [integral_indep_of_pos] },
+  repeat { rw [integral_mul_eq_integral_mul_integral_of_indep_fun_of_indep_fun_of_nonneg] },
   ring,
   assumption'
 end
 
-example {Ω : Type*} [measure_space Ω] {X Y : Ω → ℝ} {hX : integrable X} {hY : integrable Y}
-  (h : indep_fun X Y) : 𝔼[X*Y] = 𝔼[X] * 𝔼[Y] :=
-by { apply integral_indep; assumption }
+lemma integral_mul_eq_integral_mul_integral_of_indep_fun' {Ω : Type*} [measure_space Ω]
+  {X Y : Ω → ℝ} {hX : integrable X} {hY : integrable Y} (h : indep_fun X Y) :
+  𝔼[X*Y] = 𝔼[X] * 𝔼[Y] :=
+by { apply integral_mul_eq_integral_mul_integral_of_indep_fun; assumption }
+
+lemma indicator_preimage (f : α → β) (B : set β) {c : γ} [has_zero γ] :
+  (B.indicator (λ _, c)) ∘ f = (f ⁻¹' B).indicator (λ _, c) :=
+begin
+  simp only [set.indicator], funext x,
+  split_ifs with hx; { rw set.mem_preimage at hx, simp [hx] }
+end
+
+theorem indep_fun_iff_integral_mul [is_finite_measure μ]
+  {f : α → β} {hfm : measurable f} {g : α → β'} {hgm : measurable g} :
+  indep_fun f g μ ↔ ∀ φ : β → ℝ, ∀ ψ : β' → ℝ,
+  measurable φ → integrable (φ ∘ f) μ → measurable ψ → integrable (ψ ∘ g) μ →
+  integral μ ((φ ∘ f) * (ψ ∘ g)) = integral μ (φ ∘ f) * integral μ (ψ ∘ g) :=
+begin
+  split,
+  { rintro hfg φ ψ hφ hf hψ hg,
+    apply integral_mul_eq_integral_mul_integral_of_indep_fun hf hg,
+    apply indep_fun_comp_of_indep_fun hfg; assumption },
+  { rintro h _ _ ⟨A,hA,rfl⟩ ⟨B,hB,rfl⟩,
+    have h1 : measurable_set (f ⁻¹' A) := hfm hA,
+    have h2 : measurable_set (g ⁻¹' B) := hgm hB,
+    have h3 : measurable_set (f ⁻¹' A ∩ g ⁻¹' B) := h1.inter h2,
+
+    let φ : β → ℝ := A.indicator (λ _, 1),
+    let ψ : β' → ℝ := B.indicator (λ _, 1),
+
+    have hφ : measurable φ := measurable_const.indicator hA,
+    have hψ : measurable ψ := measurable_const.indicator hB,
+
+    have hf : integrable (φ ∘ f) μ := by {
+      apply integrable.indicator, apply integrable_const,
+      apply hfm.comp, exact measurable_id, exact hA },
+    have hg : integrable (ψ ∘ g) μ := by {
+      apply integrable.indicator, apply integrable_const,
+      apply hgm.comp, exact measurable_id, exact hB },
+
+    -- have : (μ (f ⁻¹' A)).to_real = integral μ (φ ∘ f) := sorry,
+    specialize h φ ψ hφ hf hψ hg,
+    repeat { rw [← ennreal.to_real_eq_to_real] },
+    rw ennreal.to_real_mul,
+
+    have := integral_indicator_const (1 : ℝ) h1, simp at this, rw [← this], clear this,
+    have := integral_indicator_const (1 : ℝ) h2, simp at this, rw [← this], clear this,
+    have := integral_indicator_const (1 : ℝ) h3, simp at this, rw [← this], clear this,
+
+    rw ← indicator_preimage f A,
+    rw ← indicator_preimage g B,
+    rw ← h,
+
+    congr, funext, simp [φ, ψ, set.indicator],
+    rw [set.mem_inter_iff, set.mem_preimage, set.mem_preimage],
+    classical, convert ite_and (f x ∈ A) (g x ∈ B) (1:ℝ) 0,
+
+    apply_instance,
+    apply_instance,
+
+    exact measure_ne_top μ (f ⁻¹' A ∩ g ⁻¹' B),
+    exact ennreal.mul_ne_top (measure_ne_top _ _) (measure_ne_top _ _) }
+end
 
 end probability_theory
