@@ -135,7 +135,7 @@ lemma integral_mul_eq_integral_mul_integral_of_indep_fun' {Ω : Type*} [measure_
 by { apply integral_mul_eq_integral_mul_integral_of_indep_fun; assumption }
 
 lemma indicator_preimage (f : α → β) (B : set β) {c : γ} [has_zero γ] :
-  (B.indicator (λ _, c)) ∘ f = (f ⁻¹' B).indicator (λ _, c) :=
+  (B.indicator (1 : β → ℝ)) ∘ f = (f ⁻¹' B).indicator 1 :=
 begin
   simp only [set.indicator], funext x,
   split_ifs with hx; { rw set.mem_preimage at hx, simp [hx] }
@@ -156,37 +156,46 @@ begin
     have h2 : measurable_set (g ⁻¹' B) := hgm hB,
     have h3 : measurable_set (f ⁻¹' A ∩ g ⁻¹' B) := h1.inter h2,
 
-    let φ : β → ℝ := A.indicator (λ _, 1),
-    let ψ : β' → ℝ := B.indicator (λ _, 1),
+    let φ : β → ℝ := A.indicator 1,
+    let ψ : β' → ℝ := B.indicator 1,
 
-    have hφ : measurable φ := measurable_const.indicator hA,
-    have hψ : measurable ψ := measurable_const.indicator hB,
+    have hφ : measurable φ := measurable_one.indicator hA,
+    have hψ : measurable ψ := measurable_one.indicator hB,
 
     have hf : integrable (φ ∘ f) μ := by {
-      apply integrable.indicator, apply integrable_const,
+      apply integrable.indicator, simp, apply integrable_const,
       apply hfm.comp, exact measurable_id, exact hA },
     have hg : integrable (ψ ∘ g) μ := by {
-      apply integrable.indicator, apply integrable_const,
+      apply integrable.indicator, simp, apply integrable_const,
       apply hgm.comp, exact measurable_id, exact hB },
 
-    -- have : (μ (f ⁻¹' A)).to_real = integral μ (φ ∘ f) := sorry,
     specialize h φ ψ hφ hf hψ hg,
     repeat { rw [← ennreal.to_real_eq_to_real] },
     rw ennreal.to_real_mul,
 
-    have := integral_indicator_const (1 : ℝ) h1, simp at this, rw [← this], clear this,
-    have := integral_indicator_const (1 : ℝ) h2, simp at this, rw [← this], clear this,
+    have h4 : integral μ ((f ⁻¹' A).indicator 1) = (μ (f ⁻¹' A)).to_real :=
+      by { have := integral_indicator_const (1 : ℝ) h1, simp at this, exact this },
+    have h5 : integral μ ((g ⁻¹' B).indicator 1) = (μ (g ⁻¹' B)).to_real :=
+      by { have := integral_indicator_const (1 : ℝ) h2, simp at this, exact this },
     have := integral_indicator_const (1 : ℝ) h3, simp at this, rw [← this], clear this,
 
+    rw [← h4, ← h5],
     rw ← indicator_preimage f A,
     rw ← indicator_preimage g B,
+
     rw ← h,
 
     congr, funext, simp [φ, ψ, set.indicator],
     rw [set.mem_inter_iff, set.mem_preimage, set.mem_preimage],
     classical, convert ite_and (f x ∈ A) (g x ∈ B) (1:ℝ) 0,
 
+    exact ℝ,
     apply_instance,
+    exact 0,
+    apply_instance,
+    exact ℝ,
+    apply_instance,
+    exact 0,
     apply_instance,
 
     exact measure_ne_top μ (f ⁻¹' A ∩ g ⁻¹' B),
