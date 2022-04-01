@@ -126,14 +126,13 @@ begin
   have hl3 : integrable (Xm * Yp) μ := integrable_mul_of_integrable_of_indep_fun hi3 hv1 hv4,
   have hl4 : integrable (Xp * Yp) μ := integrable_mul_of_integrable_of_indep_fun hi4 hv2 hv4,
 
-  have hl5 : integrable (Xp * Yp - Xm * Yp) μ := by { apply integrable.sub; assumption },
-  have hl5 : integrable (Xp * Ym - Xm * Ym) μ := by { apply integrable.sub; assumption },
+  have hl5 : integrable (Xp * Yp - Xm * Yp) μ := hl4.sub hl3,
+  have hl5 : integrable (Xp * Ym - Xm * Ym) μ := hl2.sub hl1,
 
   simp_rw [hXpm, hYpm, mul_sub, sub_mul],
   repeat { rw [integral_sub'] },
   repeat { rw [integral_mul_eq_integral_mul_integral_of_indep_fun_of_indep_fun_of_nonneg] },
-  ring,
-  assumption'
+  ring, assumption'
 end
 
 lemma integral_mul_eq_integral_mul_integral_of_indep_fun' {Ω : Type*} [measure_space Ω]
@@ -159,10 +158,6 @@ begin
     apply integral_mul_eq_integral_mul_integral_of_indep_fun hf hg,
     apply indep_fun_comp_of_indep_fun hfg; assumption },
   { rintro h _ _ ⟨A,hA,rfl⟩ ⟨B,hB,rfl⟩,
-    have h1 : measurable_set (f ⁻¹' A) := hfm hA,
-    have h2 : measurable_set (g ⁻¹' B) := hgm hB,
-    have h3 : measurable_set (f ⁻¹' A ∩ g ⁻¹' B) := h1.inter h2,
-
     let φ : β → ℝ := A.indicator 1,
     let ψ : β' → ℝ := B.indicator 1,
 
@@ -181,30 +176,19 @@ begin
     rw ennreal.to_real_mul,
 
     have h4 : integral μ ((f ⁻¹' A).indicator 1) = (μ (f ⁻¹' A)).to_real :=
-      by { have := integral_indicator_const (1 : ℝ) h1, simp at this, exact this },
+      by { have := integral_indicator_const (1 : ℝ) (hfm hA), simp at this, exact this },
     have h5 : integral μ ((g ⁻¹' B).indicator 1) = (μ (g ⁻¹' B)).to_real :=
-      by { have := integral_indicator_const (1 : ℝ) h2, simp at this, exact this },
-    have := integral_indicator_const (1 : ℝ) h3, simp at this, rw [← this], clear this,
+      by { have := integral_indicator_const (1 : ℝ) (hgm hB), simp at this, exact this },
+    have h6 : integral μ ((f ⁻¹' A ∩ g ⁻¹' B).indicator 1) = (μ (f ⁻¹' A ∩ g ⁻¹' B)).to_real :=
+      by { have := integral_indicator_const (1 : ℝ) ((hfm hA).inter (hgm hB)),
+        simp at this, exact this },
 
-    rw [← h4, ← h5],
-    rw ← indicator_preimage f A,
-    rw ← indicator_preimage g B,
-
-    rw ← h,
-
+    rw [←h4, ←h5, ←h6, ←indicator_preimage f A, ←indicator_preimage g B, ←h],
     congr, funext, simp [φ, ψ, set.indicator],
     rw [set.mem_inter_iff, set.mem_preimage, set.mem_preimage],
     classical, convert ite_and (f x ∈ A) (g x ∈ B) (1:ℝ) 0,
-
-    exact ℝ,
-    apply_instance,
-    exact 0,
-    apply_instance,
-    exact ℝ,
-    apply_instance,
-    exact 0,
-    apply_instance,
-
+    exact ℝ, apply_instance, exact 0, apply_instance,
+    exact ℝ, apply_instance, exact 0, apply_instance,
     exact measure_ne_top μ (f ⁻¹' A ∩ g ⁻¹' B),
     exact ennreal.mul_ne_top (measure_ne_top _ _) (measure_ne_top _ _) }
 end
