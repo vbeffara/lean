@@ -85,11 +85,11 @@ noncomputable def partial_avg (X : ℕ → Ω → ℝ) (n : ℕ) (ω : Ω) : ℝ
 lemma blah {f : Ω → ℝ} {hf : measurable f} : integrable (f*f) → integrable f := by
 {
   rintro ⟨h1,h2⟩,
-  refine ⟨hf.ae_measurable, _⟩,
+  refine ⟨hf.ae_strongly_measurable, _⟩,
   simp [has_finite_integral],
   rw [←measure_theory.snorm_one_eq_lintegral_nnnorm],
   apply lt_of_le_of_lt
-    (@snorm_le_snorm_mul_rpow_measure_univ Ω ℝ _ volume _ _ _ 1 2 _ f hf.ae_measurable),
+    (@snorm_le_snorm_mul_rpow_measure_univ Ω ℝ _ volume _ 1 2 _ f hf.ae_strongly_measurable),
   rw snorm_eq_lintegral_rpow_nnnorm,
   simp [measure_univ],
   apply ennreal.rpow_lt_top_of_nonneg,

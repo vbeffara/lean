@@ -355,7 +355,7 @@ begin
   let φ : P → B := λ p, let q := p.val in ⟨q.b,q.hb⟩,
   apply equiv.of_bijective φ, rw fintype.bijective_iff_injective_and_card, split,
   { rintro p₁ p₂ h, apply P_dis, use p₁.val.b, simp at h ⊢, simp [h]  },
-  { simp, apply P_eq.trans, convert (fintype.card_coe B).symm },
+  { simp, exact P_eq },
 end
 
 noncomputable def sep_cleanup {e : G.dart} (ex_in_X : e.fst ∈ X) (ey_in_X : e.snd ∈ X)

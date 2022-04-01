@@ -45,8 +45,10 @@ lemma integrable_mul_of_integrable_of_indep_fun {X Y : α → ℝ} (h : indep_fu
 begin
   refine ⟨hX.1.mul hY.1, _⟩,
 
-  have h1 : ae_measurable (λ a, ∥X a∥₊ : α → ennreal) μ := hX.1.nnnorm.coe_nnreal_ennreal,
-  have h2 : ae_measurable (λ a, ∥Y a∥₊ : α → ennreal) μ := hY.1.nnnorm.coe_nnreal_ennreal,
+  have h1 : ae_measurable (λ a, ∥X a∥₊ : α → ennreal) μ :=
+    hX.1.ae_measurable.nnnorm.coe_nnreal_ennreal,
+  have h2 : ae_measurable (λ a, ∥Y a∥₊ : α → ennreal) μ :=
+    hY.1.ae_measurable.nnnorm.coe_nnreal_ennreal,
 
   simp_rw [has_finite_integral, pi.mul_apply, nnnorm_mul, ennreal.coe_mul],
   have := lintegral_mul_eq_lintegral_mul_lintegral_of_indep_fun' h1 h2 _,
@@ -70,12 +72,17 @@ begin
   have h5 : 0 ≤ᵐ[μ] Y := ae_of_all _ hYpos,
   have h6 : 0 ≤ᵐ[μ] (X * Y) := ae_of_all _ (λ ω, mul_nonneg (hXpos ω) (hYpos ω)),
 
+  have h7 : ae_strongly_measurable X μ := ae_strongly_measurable_iff_ae_measurable.mpr hXmes,
+  have h8 : ae_strongly_measurable Y μ := ae_strongly_measurable_iff_ae_measurable.mpr hYmes,
+  have h9 : ae_strongly_measurable (X*Y) μ := ae_strongly_measurable_iff_ae_measurable.mpr h3,
+
+  have := ennreal.measurable_of_real,
+
   repeat { rw integral_eq_lintegral_of_nonneg_ae },
   simp_rw [←ennreal.to_real_mul, pi.mul_apply, ennreal.of_real_mul (hXpos _)],
   congr,
-  apply lintegral_mul_eq_lintegral_mul_lintegral_of_indep_fun',
-  assumption',
-  apply indep_fun_comp_of_indep_fun hXYind; exact ennreal.measurable_of_real
+  apply lintegral_mul_eq_lintegral_mul_lintegral_of_indep_fun', assumption',
+  apply indep_fun_comp_of_indep_fun hXYind, assumption',
 end
 
 lemma integral_mul_eq_integral_mul_integral_of_indep_fun {X Y : α → ℝ}
@@ -95,10 +102,10 @@ begin
   have hp3 : 0 ≤ Ym := λ ω, le_max_right _ _,
   have hp4 : 0 ≤ Yp := λ ω, le_max_right _ _,
 
-  have hm1 : ae_measurable Xm μ := hX.1.neg.max ae_measurable_const,
-  have hm2 : ae_measurable Xp μ := hX.1.max ae_measurable_const,
-  have hm3 : ae_measurable Ym μ := hY.1.neg.max ae_measurable_const,
-  have hm4 : ae_measurable Yp μ := hY.1.max ae_measurable_const,
+  have hm1 : ae_measurable Xm μ := hX.1.ae_measurable.neg.max ae_measurable_const,
+  have hm2 : ae_measurable Xp μ := hX.1.ae_measurable.max ae_measurable_const,
+  have hm3 : ae_measurable Ym μ := hY.1.ae_measurable.neg.max ae_measurable_const,
+  have hm4 : ae_measurable Yp μ := hY.1.ae_measurable.max ae_measurable_const,
 
   have hv1 : integrable Xm μ := hX.neg.max_zero,
   have hv2 : integrable Xp μ := hX.max_zero,

@@ -1,4 +1,3 @@
-import tactic data.equiv.basic
 import graph_theory.pushforward graph_theory.path
 open function classical
 
