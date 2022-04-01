@@ -140,7 +140,7 @@ lemma integral_mul_eq_integral_mul_integral_of_indep_fun' {Ω : Type*} [measure_
   𝔼[X*Y] = 𝔼[X] * 𝔼[Y] :=
 by { apply integral_mul_eq_integral_mul_integral_of_indep_fun; assumption }
 
-lemma indicator_preimage (f : α → β) (B : set β) {c : γ} [has_zero γ] :
+lemma indicator_preimage (f : α → β) (B : set β) :
   (B.indicator (1 : β → ℝ)) ∘ f = (f ⁻¹' B).indicator 1 :=
 begin
   simp only [set.indicator], funext x,
@@ -164,12 +164,12 @@ begin
     have hφ : measurable φ := measurable_one.indicator hA,
     have hψ : measurable ψ := measurable_one.indicator hB,
 
-    have hf : integrable (φ ∘ f) μ := by {
-      apply integrable.indicator, simp, apply integrable_const,
-      apply hfm.comp, exact measurable_id, exact hA },
-    have hg : integrable (ψ ∘ g) μ := by {
-      apply integrable.indicator, simp, apply integrable_const,
-      apply hgm.comp, exact measurable_id, exact hB },
+    have hf : integrable (φ ∘ f) μ :=
+      by { refine integrable.indicator _ (hfm.comp measurable_id hA),
+      simp, apply integrable_const },
+    have hg : integrable (ψ ∘ g) μ :=
+      by { refine integrable.indicator _ (hgm.comp measurable_id hB),
+      simp, apply integrable_const },
 
     specialize h φ ψ hφ hf hψ hg,
     repeat { rw [← ennreal.to_real_eq_to_real] },
@@ -187,9 +187,7 @@ begin
     congr, funext, simp [φ, ψ, set.indicator],
     rw [set.mem_inter_iff, set.mem_preimage, set.mem_preimage],
     classical, convert ite_and (f x ∈ A) (g x ∈ B) (1:ℝ) 0,
-    exact ℝ, apply_instance, exact 0, apply_instance,
-    exact ℝ, apply_instance, exact 0, apply_instance,
-    exact measure_ne_top μ (f ⁻¹' A ∩ g ⁻¹' B),
+    apply measure_ne_top,
     exact ennreal.mul_ne_top (measure_ne_top _ _) (measure_ne_top _ _) }
 end
 
