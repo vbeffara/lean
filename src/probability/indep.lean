@@ -9,16 +9,6 @@ variables {γ γ' : Type*} [measurable_space γ] [measurable_space γ']
 
 namespace probability_theory
 
-lemma indep_fun_of_indep_fun_of_ae_eq {f g f' g' : α → β} (hfg : indep_fun f g μ)
-  (hf : f =ᵐ[μ] f') (hg : g =ᵐ[μ] g') : indep_fun f' g' μ :=
-begin
-  rintro _ _ ⟨A,hA,rfl⟩ ⟨B,hB,rfl⟩,
-  have h1 : f ⁻¹' A =ᵐ[μ] f' ⁻¹' A := hf.fun_comp A,
-  have h2 : g ⁻¹' B =ᵐ[μ] g' ⁻¹' B := hg.fun_comp B,
-  rw [←measure_congr h1, ←measure_congr h2, ←measure_congr (h1.inter h2)],
-  apply hfg, exact ⟨_,hA,rfl⟩, exact ⟨_,hB,rfl⟩
-end
-
 lemma lintegral_mul_eq_lintegral_mul_lintegral_of_indep_fun' {f g : α → ennreal}
   (h_meas_f : ae_measurable f μ) (h_meas_g : ae_measurable g μ) (h_indep_fun : indep_fun f g μ) :
   ∫⁻ a, (f * g) a ∂μ = ∫⁻ a, f a ∂μ * ∫⁻ a, g a ∂μ :=
@@ -28,16 +18,7 @@ begin
   have fg_ae : f * g =ᵐ[μ] f' * g' := f'_ae.mul g'_ae,
   rw [lintegral_congr_ae f'_ae, lintegral_congr_ae g'_ae, lintegral_congr_ae fg_ae],
   apply lintegral_mul_eq_lintegral_mul_lintegral_of_indep_fun f'_meas g'_meas,
-  exact indep_fun_of_indep_fun_of_ae_eq h_indep_fun f'_ae g'_ae
-end
-
-lemma indep_fun_comp_of_indep_fun {f : α → β} {g : α → β'} (hfg : indep_fun f g μ)
-  {φ : β → γ} {ψ : β' → γ'} {hφ : measurable φ} {hψ : measurable ψ} :
-  indep_fun (φ ∘ f) (ψ ∘ g) μ :=
-begin
-  rintro _ _ ⟨A,hA,rfl⟩ ⟨B,hB,rfl⟩, apply hfg,
-  exact ⟨φ ⁻¹' A, hφ hA, set.preimage_comp.symm⟩,
-  exact ⟨ψ ⁻¹' B, hψ hB, set.preimage_comp.symm⟩
+  exact h_indep_fun.ae_eq f'_ae g'_ae
 end
 
 lemma integrable_mul_of_integrable_of_indep_fun {X Y : α → ℝ} (h : indep_fun X Y μ)
@@ -54,8 +35,9 @@ begin
   have := lintegral_mul_eq_lintegral_mul_lintegral_of_indep_fun' h1 h2 _,
   simp only [pi.mul_apply] at this, rw this, clear this,
   exact ennreal.mul_lt_top_iff.mpr (or.inl ⟨hX.2, hY.2⟩),
-  apply indep_fun_comp_of_indep_fun; try { exact measurable_coe_nnreal_ennreal },
-  apply indep_fun_comp_of_indep_fun h; exact measurable_nnnorm
+  apply indep_fun.comp; try { exact measurable_coe_nnreal_ennreal },
+  apply h.comp;
+  { exact measurable_nnnorm <|> apply_instance }
 end
 
 lemma integral_mul_eq_integral_mul_integral_of_indep_fun_of_indep_fun_of_nonneg {X Y : α → ℝ}
@@ -82,17 +64,23 @@ begin
   simp_rw [←ennreal.to_real_mul, pi.mul_apply, ennreal.of_real_mul (hXpos _)],
   congr,
   apply lintegral_mul_eq_lintegral_mul_lintegral_of_indep_fun', assumption',
-  apply indep_fun_comp_of_indep_fun hXYind, assumption',
+  apply hXYind.comp, assumption', all_goals { apply_instance }
 end
 
 lemma integral_mul_eq_integral_mul_integral_of_indep_fun {X Y : α → ℝ}
   (hX : integrable X μ) (hY : integrable Y μ) (h : indep_fun X Y μ) :
   integral μ (X * Y) = integral μ X * integral μ Y :=
 begin
-  set Xp := (λ x : ℝ, max x 0) ∘ X, -- `X⁺` would be better but it makes `simp_rw` fail
-  set Xm := (λ x : ℝ, max (-x) 0) ∘ X,
-  set Yp := (λ x : ℝ, max x 0) ∘ Y,
-  set Ym := (λ x : ℝ, max (-x) 0) ∘ Y,
+  let pos : ℝ → ℝ :=  (λ x : ℝ, max x 0),
+  let neg : ℝ → ℝ :=  (λ x : ℝ, max (-x) 0),
+
+  set Xp := pos ∘ X, -- `X⁺` would be better but it makes `simp_rw` fail
+  set Xm := neg ∘ X,
+  set Yp := pos ∘ Y,
+  set Ym := neg ∘ Y,
+
+  have posm : measurable pos := measurable_id'.max measurable_const,
+  have negm : measurable neg := measurable_id'.neg.max measurable_const,
 
   have hXpm : X = Xp - Xm := funext (λ ω, (max_zero_sub_max_neg_zero_eq_self (X ω)).symm),
   have hYpm : Y = Yp - Ym := funext (λ ω, (max_zero_sub_max_neg_zero_eq_self (Y ω)).symm),
@@ -112,14 +100,10 @@ begin
   have hv3 : integrable Ym μ := hY.neg.max_zero,
   have hv4 : integrable Yp μ := hY.max_zero,
 
-  have hi1 : indep_fun Xm Ym μ :=
-    by { apply indep_fun_comp_of_indep_fun h; apply measurable.max, measurability },
-  have hi2 : indep_fun Xp Ym μ :=
-    by { apply indep_fun_comp_of_indep_fun h; apply measurable.max, measurability },
-  have hi3 : indep_fun Xm Yp μ :=
-    by { apply indep_fun_comp_of_indep_fun h; apply measurable.max, measurability },
-  have hi4 : indep_fun Xp Yp μ :=
-    by { apply indep_fun_comp_of_indep_fun h; apply measurable.max, measurability },
+  have hi1 : indep_fun Xm Ym μ := h.comp negm negm,
+  have hi2 : indep_fun Xp Ym μ := h.comp posm negm,
+  have hi3 : indep_fun Xm Yp μ := h.comp negm posm,
+  have hi4 : indep_fun Xp Yp μ := h.comp posm posm,
 
   have hl1 : integrable (Xm * Ym) μ := integrable_mul_of_integrable_of_indep_fun hi1 hv1 hv3,
   have hl2 : integrable (Xp * Ym) μ := integrable_mul_of_integrable_of_indep_fun hi2 hv2 hv3,
@@ -156,7 +140,7 @@ begin
   split,
   { rintro hfg φ ψ hφ hf hψ hg,
     apply integral_mul_eq_integral_mul_integral_of_indep_fun hf hg,
-    apply indep_fun_comp_of_indep_fun hfg; assumption },
+    exact hfg.comp hφ hψ },
   { rintro h _ _ ⟨A,hA,rfl⟩ ⟨B,hB,rfl⟩,
     let φ : β → ℝ := A.indicator 1,
     let ψ : β' → ℝ := B.indicator 1,
