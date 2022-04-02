@@ -20,8 +20,9 @@ begin
   exact h_indep_fun.ae_eq f'_ae g'_ae
 end
 
-lemma indep_fun.integrable_mul [measurable_space α] {μ : measure α} {X Y : α → ℝ}
-  (hXY : indep_fun X Y μ) (hX : integrable X μ) (hY : integrable Y μ) :
+lemma indep_fun.integrable_mul [measurable_space α] {μ : measure α}
+  {β : Type*} [measurable_space β] [normed_division_ring β] [borel_space β]
+  {X Y : α → β} (hXY : indep_fun X Y μ) (hX : integrable X μ) (hY : integrable Y μ) :
   integrable (X * Y) μ :=
 begin
   let nX : α → ennreal := λ a, ∥X a∥₊,
