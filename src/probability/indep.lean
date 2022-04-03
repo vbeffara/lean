@@ -131,49 +131,41 @@ begin
   split_ifs with hx; { rw set.mem_preimage at hx, simp [hx] }
 end
 
+lemma measurable_set.integral_indicator {E : set α} (hE : measurable_set E) :
+  integral μ (E.indicator 1) = (μ E).to_real :=
+begin
+  convert integral_indicator_const (1 : ℝ) hE,
+  simp only [algebra.id.smul_eq_mul, mul_one]
+end
+
 theorem indep_fun_iff_integral_mul [is_finite_measure μ] {f : α → β} {g : α → β'}
   {mβ : measurable_space β} {mβ' : measurable_space β'} {hfm : measurable f} {hgm : measurable g} :
   indep_fun f g μ ↔
-  ∀ φ : β → ℝ, ∀ ψ : β' → ℝ, measurable φ → integrable (φ ∘ f) μ →
-    measurable ψ → integrable (ψ ∘ g) μ →
+  ∀ {φ : β → ℝ} {ψ : β' → ℝ},
+    measurable φ → integrable (φ ∘ f) μ → measurable ψ → integrable (ψ ∘ g) μ →
     integral μ ((φ ∘ f) * (ψ ∘ g)) = integral μ (φ ∘ f) * integral μ (ψ ∘ g) :=
 begin
   split,
   { rintro hfg φ ψ hφ hf hψ hg,
-    refine indep_fun.integral_mul_of_integrable _ hf hg,
-    exact hfg.comp hφ hψ },
-  { rintro h _ _ ⟨A,hA,rfl⟩ ⟨B,hB,rfl⟩,
-    let φ : β → ℝ := A.indicator 1,
-    let ψ : β' → ℝ := B.indicator 1,
-
-    have hφ : measurable φ := measurable_one.indicator hA,
-    have hψ : measurable ψ := measurable_one.indicator hB,
-
-    have hf : integrable (φ ∘ f) μ :=
+    exact indep_fun.integral_mul_of_integrable (hfg.comp hφ hψ) hf hg },
+  { rintro h _ _ ⟨A, hA, rfl⟩ ⟨B, hB, rfl⟩,
+    have hf : integrable (A.indicator (1 : β → ℝ) ∘ f) μ :=
       by { refine integrable.indicator _ (hfm.comp measurable_id hA),
-      simp, apply integrable_const },
-    have hg : integrable (ψ ∘ g) μ :=
+      simp only [pi.one_apply], apply integrable_const },
+    have hg : integrable (B.indicator (1 : β' → ℝ) ∘ g) μ :=
       by { refine integrable.indicator _ (hgm.comp measurable_id hB),
-      simp, apply integrable_const },
-
-    specialize h φ ψ hφ hf hψ hg,
-    repeat { rw [← ennreal.to_real_eq_to_real] },
-    rw ennreal.to_real_mul,
-
-    have h4 : integral μ ((f ⁻¹' A).indicator 1) = (μ (f ⁻¹' A)).to_real :=
-      by { have := integral_indicator_const (1 : ℝ) (hfm hA), simp at this, exact this },
-    have h5 : integral μ ((g ⁻¹' B).indicator 1) = (μ (g ⁻¹' B)).to_real :=
-      by { have := integral_indicator_const (1 : ℝ) (hgm hB), simp at this, exact this },
-    have h6 : integral μ ((f ⁻¹' A ∩ g ⁻¹' B).indicator 1) = (μ (f ⁻¹' A ∩ g ⁻¹' B)).to_real :=
-      by { have := integral_indicator_const (1 : ℝ) ((hfm hA).inter (hgm hB)),
-        simp at this, exact this },
-
-    rw [←h4, ←h5, ←h6, ←indicator_preimage f A, ←indicator_preimage g B, ←h],
-    congr, funext, simp [φ, ψ, set.indicator],
-    rw [set.mem_inter_iff, set.mem_preimage, set.mem_preimage],
-    classical, convert ite_and (f x ∈ A) (g x ∈ B) (1:ℝ) 0,
-    apply measure_ne_top,
-    exact ennreal.mul_ne_top (measure_ne_top _ _) (measure_ne_top _ _) }
+      simp only [pi.one_apply], apply integrable_const },
+    rw [← ennreal.to_real_eq_to_real, ennreal.to_real_mul],
+    { convert ← h (measurable_one.indicator hA) hf (measurable_one.indicator hB) hg,
+      { convert ← measurable_set.integral_indicator ((hfm hA).inter (hgm hB)),
+        funext,
+        simp only [set.indicator, pi.one_apply, pi.mul_apply, function.comp_app, boole_mul],
+        classical,
+        convert ite_and (f x ∈ A) (g x ∈ B) (1:ℝ) 0 },
+      { exact measurable_set.integral_indicator (hfm hA) },
+      { exact measurable_set.integral_indicator (hgm hB) } },
+    { apply measure_ne_top },
+    { exact ennreal.mul_ne_top (measure_ne_top _ _) (measure_ne_top _ _) } }
 end
 
 end probability_theory
