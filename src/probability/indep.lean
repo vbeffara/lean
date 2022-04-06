@@ -168,4 +168,86 @@ begin
     { exact ennreal.mul_ne_top (measure_ne_top _ _) (measure_ne_top _ _) } }
 end
 
+noncomputable def ae_trim {α : Type*} {mα' mα : measurable_space α} {hm : mα' ≤ mα} {μ : measure α} :
+  @ae_eq_fun α ℝ mα' _ (μ.trim hm) → @ae_eq_fun α ℝ mα _ μ :=
+begin
+  letI := @measure.ae_eq_setoid α ℝ mα _ μ,
+  letI := @measure.ae_eq_setoid α ℝ mα' _ (μ.trim hm),
+  refine quotient.lift _ _,
+  { exact λ f, ⟦⟨f, ae_strongly_measurable_of_ae_strongly_measurable_trim hm f.prop⟩⟧ },
+  { rintro f g hfg,
+    rw [quotient.eq],
+    exact ae_eq_of_ae_eq_trim hfg }
+end
+
+example {α : Type*} {mα' mα : measurable_space α} {μ : measure α} {hm : mα' ≤ mα} :
+  continuous (λ (x : ↥(Lp ℝ 1 (μ.trim hm))), integral μ ⇑x) :=
+begin
+  have h : ∀ {f : Lp ℝ 1 (μ.trim hm)}, integrable f μ := by {
+    rintro ⟨f, hf⟩,
+    split,
+    { apply ae_measurable.ae_strongly_measurable,
+      apply ae_measurable_of_ae_measurable_trim hm,
+      apply ae_strongly_measurable.ae_measurable,
+      apply Lp.ae_strongly_measurable },
+    { let g : α →ₘ[μ] ℝ := by { extract_goal, sorry },
+
+      sorry }
+  },
+  simp [integral, h],
+  sorry
+end
+
+example
+  {α : Type*} {mα' : measurable_space α} {mα : measurable_space α} {μ : measure α}
+  [is_finite_measure μ]
+  {hm : mα' ≤ mα}
+  {S : set α} {hS1 : mα.measurable_set' S} {hS : indep_sets mα'.measurable_set' {S} μ}
+  {f : α → ℝ} {hf : integrable f (μ.trim hm)}
+  :
+  ∫ a in S, f a ∂μ = (μ S).to_real • ∫ a, f a ∂μ :=
+begin
+  revert f, apply integrable.induction,
+  { rintro c s hs1 -,
+    have hs' := hm _ hs1,
+    have h1 : (μ.restrict S) s ≠ ⊤ := by { rw [measure.restrict_apply hs'], apply measure_ne_top },
+    rw ← integral_congr_ae (@indicator_const_Lp_coe_fn α ℝ mα 1 μ _ s hs' (measure_ne_top _ _) c),
+    rw ← integral_congr_ae (@indicator_const_Lp_coe_fn α ℝ mα 1 (μ.restrict S) _ s hs' h1 c),
+    rw [integral_indicator_const_Lp, integral_indicator_const_Lp, measure.restrict_apply hs'],
+    rw [hS s S hs1 (set.mem_singleton _), ennreal.to_real_mul],
+    simp only [algebra.id.smul_eq_mul],
+    ring },
+  { rintro f g - hf hg h1 h2,
+    have hf' : integrable f μ := integrable_of_integrable_trim hm hf,
+    have hg' : integrable g μ := integrable_of_integrable_trim hm hg,
+    rw [integral_add', integral_add' hf' hg', h1, h2, smul_add],
+    { exact integrable_on_univ.mp ((integrable_on_univ.mpr hf').restrict measurable_set.univ) },
+    { exact integrable_on_univ.mp ((integrable_on_univ.mpr hg').restrict measurable_set.univ) } },
+  {
+    simp,
+    simp_rw ← @sub_eq_zero ℝ _ (integral _ _) _,
+    simp_rw ← set.mem_singleton_iff,
+    apply is_closed.preimage,
+    apply continuous.sub,
+    { sorry },
+    { refine continuous_const.mul _,
+      extract_goal,
+      sorry },
+    { exact t1_space.t1 0 }
+    -- apply is_seq_closed_iff_is_closed.mp,
+    -- { apply is_seq_closed_of_def,
+    --   rintro f ℓ h1 h2,
+    --   simp at h1 ⊢,
+    --   have := (@continuous_integral α ℝ _ _ _ mα μ).tendsto,
+    --   have := (continuous_integral.tendsto ℓ).comp h2, simp at this,
+    --   sorry },
+    -- { apply_instance }
+
+  },
+  { rintro f g hfg - h,
+    have h1 : f =ᵐ[μ] g := ae_eq_of_ae_eq_trim hfg,
+    have h2 : f =ᵐ[μ.restrict S] g := filter.eventually_eq.restrict h1,
+    rwa [← integral_congr_ae h1, ← integral_congr_ae h2] }
+end
+
 end probability_theory
