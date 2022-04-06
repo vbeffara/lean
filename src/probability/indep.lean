@@ -168,16 +168,59 @@ begin
     { exact ennreal.mul_ne_top (measure_ne_top _ _) (measure_ne_top _ _) } }
 end
 
-noncomputable def ae_trim {α : Type*} {mα' mα : measurable_space α} {hm : mα' ≤ mα} {μ : measure α} :
-  @ae_eq_fun α ℝ mα' _ (μ.trim hm) → @ae_eq_fun α ℝ mα _ μ :=
+def Lp_meas_subgroup.mono {m1 m2 : measurable_space α} {μ : measure α} (hm : m1 ≤ m2) :
+  Lp_meas_subgroup ℝ m1 1 μ → Lp_meas_subgroup ℝ m2 1 μ :=
+λ g, let gp : ae_strongly_measurable' m1 g.val μ := g.prop in
+⟨g, ⟨gp.mk g, strongly_measurable.mono gp.strongly_measurable_mk hm, gp.ae_eq_mk⟩⟩
+
+lemma Lp_meas_subgroup.mono_ae_eq {m1 m2 : measurable_space α} {μ : measure α} (hm : m1 ≤ m2)
+  {g : Lp_meas_subgroup ℝ m1 1 μ} :
+  Lp_meas_subgroup.mono hm g =ᵐ[μ] g :=
+by refl
+
+lemma ae_strongly_measurable.mono {m1 m2 : measurable_space α} {μ : measure α} (hm : m1 ≤ m2)
+  {f : α → ℝ} :
+  ae_strongly_measurable f (μ.trim hm) → ae_strongly_measurable f μ :=
+by { rintro ⟨ff, h1, h2⟩, exact ⟨ff, h1.mono hm, ae_eq_of_ae_eq_trim h2⟩ }
+
+noncomputable def ae_eq_fun.mono {m1 m2 : measurable_space α} {μ : measure α} (hm : m1 ≤ m2) :
+  @ae_eq_fun α ℝ m1 _ (μ.trim hm) → @ae_eq_fun α ℝ m2 _ μ :=
 begin
-  letI := @measure.ae_eq_setoid α ℝ mα _ μ,
-  letI := @measure.ae_eq_setoid α ℝ mα' _ (μ.trim hm),
-  refine quotient.lift _ _,
-  { exact λ f, ⟦⟨f, ae_strongly_measurable_of_ae_strongly_measurable_trim hm f.prop⟩⟧ },
-  { rintro f g hfg,
-    rw [quotient.eq],
-    exact ae_eq_of_ae_eq_trim hfg }
+  let E1 := {f : α → ℝ // ae_strongly_measurable f (μ.trim hm)},
+  let E2 := {f : α → ℝ // ae_strongly_measurable f μ},
+  letI S1 := @measure.ae_eq_setoid α ℝ m1 _ (μ.trim hm),
+  letI S2 := @measure.ae_eq_setoid α ℝ m2 _ μ,
+
+  let Φ : E1 → E2 := subtype.map id (λ _, ae_strongly_measurable.mono hm),
+  refine quotient.lift (quotient.mk ∘ Φ) _,
+  intros a b,
+  simp only [Φ, subtype.map, id.def, quotient.eq],
+  exact ae_eq_of_ae_eq_trim
+end
+
+def Lp_trim_to_Lp {m1 m2 : measurable_space α} {μ : measure α} (hm : m1 ≤ m2) :
+  Lp ℝ 1 (μ.trim hm) → Lp ℝ 1 μ :=
+begin
+  rintro ⟨f, hf⟩,
+  refine ⟨_, _⟩,
+  { exact ae_eq_fun.mono hm f },
+  { sorry },
+  -- rw ← @trim_eq_self _ _ μ,
+  -- apply Lp_meas_subgroup_to_Lp_trim,
+  -- apply Lp_meas_subgroup.mono hm,
+  -- apply Lp_trim_to_Lp_meas_subgroup,
+  -- exact f
+end
+
+example {m1 m2 : measurable_space α} {μ : measure α} (hm : m1 ≤ m2) {f : Lp ℝ 1 (μ.trim hm)} :
+  Lp_trim_to_Lp hm f =ᵐ[μ] f :=
+begin
+  let f1 := Lp_trim_to_Lp_meas_subgroup _ _ _ _ f,
+  let f2 := Lp_meas_subgroup.mono hm f1,
+  let f3 := Lp_meas_subgroup_to_Lp_trim _ _ _ _ f2, swap, exact le_rfl,
+  have h1 : f1 =ᵐ[μ] f := Lp_trim_to_Lp_meas_subgroup_ae_eq hm _,
+  have h2 : f2 =ᵐ[μ] f1 := Lp_meas_subgroup.mono_ae_eq hm,
+  have h3 := Lp_meas_subgroup_to_Lp_trim_ae_eq,
 end
 
 example {α : Type*} {mα' mα : measurable_space α} {μ : measure α} {hm : mα' ≤ mα} :
