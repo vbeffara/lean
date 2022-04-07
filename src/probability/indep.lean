@@ -124,6 +124,10 @@ begin
   ring
 end
 
+end probability_theory
+
+namespace measure_theory
+
 lemma indicator_preimage (f : α → β) (B : set β) :
   (B.indicator (1 : β → ℝ)) ∘ f = (f ⁻¹' B).indicator 1 :=
 begin
@@ -137,6 +141,12 @@ begin
   convert integral_indicator_const (1 : ℝ) hE,
   simp only [algebra.id.smul_eq_mul, mul_one]
 end
+
+end measure_theory
+
+open measure_theory
+
+namespace probability_theory
 
 theorem indep_fun_iff_integral_mul [is_finite_measure μ] {f : α → β} {g : α → β'}
   {mβ : measurable_space β} {mβ' : measurable_space β'} {hfm : measurable f} {hgm : measurable g} :
@@ -168,76 +178,47 @@ begin
     { exact ennreal.mul_ne_top (measure_ne_top _ _) (measure_ne_top _ _) } }
 end
 
-def Lp_meas_subgroup.mono {m1 m2 : measurable_space α} {μ : measure α} (hm : m1 ≤ m2) :
-  Lp_meas_subgroup ℝ m1 1 μ → Lp_meas_subgroup ℝ m2 1 μ :=
-λ g, let gp : ae_strongly_measurable' m1 g.val μ := g.prop in
-⟨g, ⟨gp.mk g, strongly_measurable.mono gp.strongly_measurable_mk hm, gp.ae_eq_mk⟩⟩
+end probability_theory
 
-lemma Lp_meas_subgroup.mono_ae_eq {m1 m2 : measurable_space α} {μ : measure α} (hm : m1 ≤ m2)
-  {g : Lp_meas_subgroup ℝ m1 1 μ} :
-  Lp_meas_subgroup.mono hm g =ᵐ[μ] g :=
-by refl
+namespace measure_theory
 
 lemma ae_strongly_measurable.mono {m1 m2 : measurable_space α} {μ : measure α} (hm : m1 ≤ m2)
   {f : α → ℝ} :
   ae_strongly_measurable f (μ.trim hm) → ae_strongly_measurable f μ :=
 by { rintro ⟨ff, h1, h2⟩, exact ⟨ff, h1.mono hm, ae_eq_of_ae_eq_trim h2⟩ }
 
-noncomputable def ae_eq_fun.mono {m1 m2 : measurable_space α} {μ : measure α} (hm : m1 ≤ m2) :
-  @ae_eq_fun α ℝ m1 _ (μ.trim hm) → @ae_eq_fun α ℝ m2 _ μ :=
-begin
-  let E1 := {f : α → ℝ // ae_strongly_measurable f (μ.trim hm)},
-  let E2 := {f : α → ℝ // ae_strongly_measurable f μ},
-  letI S1 := @measure.ae_eq_setoid α ℝ m1 _ (μ.trim hm),
-  letI S2 := @measure.ae_eq_setoid α ℝ m2 _ μ,
-
-  let Φ : E1 → E2 := subtype.map id (λ _, ae_strongly_measurable.mono hm),
-  refine quotient.lift (quotient.mk ∘ Φ) _,
-  intros a b,
-  simp only [Φ, subtype.map, id.def, quotient.eq],
-  exact ae_eq_of_ae_eq_trim
-end
-
-def Lp_trim_to_Lp {m1 m2 : measurable_space α} {μ : measure α} (hm : m1 ≤ m2) :
+noncomputable def Lp_trim_to_Lp {m1 m2 : measurable_space α} {μ : measure α} (hm : m1 ≤ m2) :
   Lp ℝ 1 (μ.trim hm) → Lp ℝ 1 μ :=
 begin
-  rintro ⟨f, hf⟩,
-  refine ⟨_, _⟩,
-  { exact ae_eq_fun.mono hm f },
-  { sorry },
-  -- rw ← @trim_eq_self _ _ μ,
-  -- apply Lp_meas_subgroup_to_Lp_trim,
-  -- apply Lp_meas_subgroup.mono hm,
-  -- apply Lp_trim_to_Lp_meas_subgroup,
-  -- exact f
+  intro f,
+  have hf := Lp.ae_strongly_measurable f,
+  refine mem_ℒp.to_Lp f ⟨hf.mono hm, _⟩,
+  rw ← snorm_trim_ae hm hf,
+  exact Lp.snorm_lt_top f
 end
 
-example {m1 m2 : measurable_space α} {μ : measure α} (hm : m1 ≤ m2) {f : Lp ℝ 1 (μ.trim hm)} :
+lemma Lp_trim_to_Lp.ae_eq {m1 m2 : measurable_space α} {μ : measure α} {hm : m1 ≤ m2}
+  {f : Lp ℝ 1 (μ.trim hm)} :
   Lp_trim_to_Lp hm f =ᵐ[μ] f :=
+by simp [Lp_trim_to_Lp, mem_ℒp.coe_fn_to_Lp]
+
+lemma Lp_trim_to_Lp.continuous {m1 m2 : measurable_space α} {μ : measure α} {hm : m1 ≤ m2}
+  {f : Lp ℝ 1 (μ.trim hm)} :
+  continuous (@Lp_trim_to_Lp α m1 m2 μ hm) :=
 begin
-  let f1 := Lp_trim_to_Lp_meas_subgroup _ _ _ _ f,
-  let f2 := Lp_meas_subgroup.mono hm f1,
-  let f3 := Lp_meas_subgroup_to_Lp_trim _ _ _ _ f2, swap, exact le_rfl,
-  have h1 : f1 =ᵐ[μ] f := Lp_trim_to_Lp_meas_subgroup_ae_eq hm _,
-  have h2 : f2 =ᵐ[μ] f1 := Lp_meas_subgroup.mono_ae_eq hm,
-  have h3 := Lp_meas_subgroup_to_Lp_trim_ae_eq,
+  have : lipschitz_with 1 (@Lp_trim_to_Lp α m1 m2 μ hm) := by {
+    rintro u v,
+    simp [Lp_trim_to_Lp],
+    have := @Lp.edist_def α ℝ m1 1 (μ.trim hm) _ u v,
+  },
+  apply lipschitz_with.continuous,
 end
 
 example {α : Type*} {mα' mα : measurable_space α} {μ : measure α} {hm : mα' ≤ mα} :
   continuous (λ (x : ↥(Lp ℝ 1 (μ.trim hm))), integral μ ⇑x) :=
 begin
-  have h : ∀ {f : Lp ℝ 1 (μ.trim hm)}, integrable f μ := by {
-    rintro ⟨f, hf⟩,
-    split,
-    { apply ae_measurable.ae_strongly_measurable,
-      apply ae_measurable_of_ae_measurable_trim hm,
-      apply ae_strongly_measurable.ae_measurable,
-      apply Lp.ae_strongly_measurable },
-    { let g : α →ₘ[μ] ℝ := by { extract_goal, sorry },
-
-      sorry }
-  },
-  simp [integral, h],
+  -- have : continuous (Lp_trim_to_Lp hm), sorry,
+  -- have := continuous_integral.comp this,
   sorry
 end
 
@@ -293,4 +274,4 @@ begin
     rwa [← integral_congr_ae h1, ← integral_congr_ae h2] }
 end
 
-end probability_theory
+end measure_theory
