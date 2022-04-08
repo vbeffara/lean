@@ -5,21 +5,13 @@ open_locale measure_theory probability_theory ennreal
 
 variables {α β β' γ γ' : Type*} {mα : measurable_space α} {μ : measure α}
 
-lemma measurable_set.integral_indicator {E : set α} (hE : measurable_set E) :
-  integral μ (E.indicator 1) = (μ E).to_real :=
-(integral_indicator_const (1 : ℝ) hE).trans ((smul_eq_mul _).trans (mul_one _))
-
--- lemma indicator_preimage (f : α → β) (g : β → ℝ) (B : set β) :
---   (B.indicator g) ∘ f = (f ⁻¹' B).indicator (g ∘ f) :=
--- by refl
-
 lemma set.indicator_inter {s t : set α} :
   (s ∩ t).indicator (1 : α → ℝ) = s.indicator 1 * t.indicator 1 :=
 begin
-  funext,
-  simp only [set.indicator, pi.one_apply, pi.mul_apply, boole_mul],
   classical,
-  convert ite_and (x ∈ s) (x ∈ t) (1 : ℝ) 0,
+  ext,
+  simp only [set.indicator, pi.one_apply, pi.mul_apply, boole_mul],
+  convert ite_and (x ∈ s) (x ∈ t) (1 : ℝ) (0 : ℝ),
 end
 
 namespace probability_theory
@@ -31,19 +23,16 @@ theorem indep_fun_iff_integral_comp_mul [is_finite_measure μ] {f : α → β} {
     measurable φ → measurable ψ → integrable (φ ∘ f) μ → integrable (ψ ∘ g) μ →
     integral μ ((φ ∘ f) * (ψ ∘ g)) = integral μ (φ ∘ f) * integral μ (ψ ∘ g) :=
 begin
-  split,
-  { exact λ hfg _ _ hφ hψ, indep_fun.integral_mul_of_integrable (hfg.comp hφ hψ) },
-  { rintro h _ _ ⟨A, hA, rfl⟩ ⟨B, hB, rfl⟩,
-    rw [← ennreal.to_real_eq_to_real, ennreal.to_real_mul],
-    { convert ← h (measurable_one.indicator hA) (measurable_one.indicator hB)
-        (integrable.indicator (integrable_const 1) (hfm.comp measurable_id hA))
-        (integrable.indicator (integrable_const 1) (hgm.comp measurable_id hB)),
-      { convert ((hfm hA).inter (hgm hB)).integral_indicator,
-        simpa only [set.indicator_inter] },
-      { exact measurable_set.integral_indicator (hfm hA) },
-      { exact measurable_set.integral_indicator (hgm hB) } },
-    { apply measure_ne_top },
-    { exact ennreal.mul_ne_top (measure_ne_top _ _) (measure_ne_top _ _) } }
+  have I : ∀ {A : set α} (hA : measurable_set A), integral μ (A.indicator 1) = (μ A).to_real,
+    from λ _ hA, (integral_indicator_const (1 : ℝ) hA).trans ((smul_eq_mul _).trans (mul_one _)),
+  refine ⟨λ hfg _ _ hφ hψ, indep_fun.integral_mul_of_integrable (hfg.comp hφ hψ), _⟩,
+  rintro h _ _ ⟨A, hA, rfl⟩ ⟨B, hB, rfl⟩,
+  specialize h (measurable_one.indicator hA) (measurable_one.indicator hB)
+    ((integrable_const 1).indicator (hfm.comp measurable_id hA))
+    ((integrable_const 1).indicator (hgm.comp measurable_id hB)),
+  rwa [← ennreal.to_real_eq_to_real (measure_ne_top μ _), ← I ((hfm hA).inter (hgm hB)),
+    set.indicator_inter, ennreal.to_real_mul, ← I (hfm hA), ← I (hgm hB)],
+  exact ennreal.mul_ne_top (measure_ne_top μ _) (measure_ne_top μ _)
 end
 
 end probability_theory
