@@ -52,11 +52,26 @@ lemma Lp_trim_to_Lp.ae_eq {m1 m2 : measurable_space α} {μ : measure α} {hm : 
   {f : Lp ℝ 1 (μ.trim hm)} : Lp_trim_to_Lp hm f =ᵐ[μ] f :=
 by simp only [Lp_trim_to_Lp, mem_ℒp.coe_fn_to_Lp]
 
+lemma Lp_trim_to_Lp.continuous {m1 m2 : measurable_space α} {μ : measure α} {hm : m1 ≤ m2} :
+  continuous (@Lp_trim_to_Lp α m1 m2 μ hm) :=
+sorry
+
 lemma continuous_integral_trim {mα' mα : measurable_space α} {μ : measure α} {hm : mα' ≤ mα} :
   continuous (λ (f : Lp ℝ 1 (μ.trim hm)), integral μ f) :=
 begin
   convert continuous_integral,
   exact funext (λ f, integral_trim_ae hm (Lp.ae_strongly_measurable f))
+end
+
+lemma continuous_integral_trim_restrict {mα' mα : measurable_space α} {μ : measure α} {hm : mα' ≤ mα}
+  {S : set α} (hS : mα.measurable_set' S) :
+  continuous (λ f : Lp ℝ 1 (μ.trim hm), ∫ a in S, f a ∂μ) :=
+begin
+  let Φ := Lp_trim_to_Lp hm,
+  let Ψ := λ f : Lp ℝ 1 μ, ∫ a in S, f a ∂μ,
+  have h : ∀ {f}, Ψ (Φ f) = ∫ a in S, f a ∂μ, sorry,
+  simp_rw ← h,
+  exact (continuous_set_integral S).comp Lp_trim_to_Lp.continuous,
 end
 
 example
@@ -90,7 +105,7 @@ begin
     simp_rw ← set.mem_singleton_iff,
     apply is_closed.preimage,
     apply continuous.sub,
-    { sorry },
+    { exact continuous_integral_trim_restrict hS1 },
     { refine continuous_const.mul _,
       exact continuous_integral_trim },
     { exact t1_space.t1 0 }
