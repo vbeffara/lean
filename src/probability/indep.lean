@@ -7,19 +7,13 @@ variables {α β β' γ γ' : Type*} {mα : measurable_space α} {μ : measure �
 
 lemma measurable_set.integral_indicator {E : set α} (hE : measurable_set E) :
   integral μ (E.indicator 1) = (μ E).to_real :=
-begin
-  convert ← integral_indicator_const (1 : ℝ) hE,
-  exact (smul_eq_mul _).trans (mul_one _)
-end
+(integral_indicator_const (1 : ℝ) hE).trans ((smul_eq_mul _).trans (mul_one _))
 
-lemma indicator_preimage (f : α → β) (B : set β) :
-  (B.indicator (1 : β → ℝ)) ∘ f = (f ⁻¹' B).indicator 1 :=
-begin
-  simp only [set.indicator], funext x,
-  split_ifs with hx; { rw set.mem_preimage at hx, simp [hx] }
-end
+-- lemma indicator_preimage (f : α → β) (g : β → ℝ) (B : set β) :
+--   (B.indicator g) ∘ f = (f ⁻¹' B).indicator (g ∘ f) :=
+-- by refl
 
-lemma set.indicator_inter_one {s t : set α} :
+lemma set.indicator_inter {s t : set α} :
   (s ∩ t).indicator (1 : α → ℝ) = s.indicator 1 * t.indicator 1 :=
 begin
   funext,
@@ -44,8 +38,8 @@ begin
     { convert ← h (measurable_one.indicator hA) (measurable_one.indicator hB)
         (integrable.indicator (integrable_const 1) (hfm.comp measurable_id hA))
         (integrable.indicator (integrable_const 1) (hgm.comp measurable_id hB)),
-      { convert ← ((hfm hA).inter (hgm hB)).integral_indicator,
-        rw [set.indicator_inter_one, indicator_preimage, indicator_preimage] },
+      { convert ((hfm hA).inter (hgm hB)).integral_indicator,
+        simpa only [set.indicator_inter] },
       { exact measurable_set.integral_indicator (hfm hA) },
       { exact measurable_set.integral_indicator (hgm hB) } },
     { apply measure_ne_top },
