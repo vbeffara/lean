@@ -69,7 +69,17 @@ lemma continuous_integral_trim_restrict {mα' mα : measurable_space α} {μ : m
 begin
   let Φ := Lp_trim_to_Lp hm,
   let Ψ := λ f : Lp ℝ 1 μ, ∫ a in S, f a ∂μ,
-  have h : ∀ {f}, Ψ (Φ f) = ∫ a in S, f a ∂μ, sorry,
+  have h : ∀ {f}, Ψ (Φ f) = ∫ a in S, f a ∂μ,
+  { simp [Φ, Ψ],
+    intro f,
+    have h2 : ∀ᵐ (x : α) ∂μ, (Lp_trim_to_Lp hm f) x = f x := Lp_trim_to_Lp.ae_eq,
+    have h3 : ∀ᵐ (x : α) ∂μ, x ∈ S → (Lp_trim_to_Lp hm f) x = f x := by {
+      apply filter.eventually.mp h2,
+      apply ae_of_all,
+      intros x h h',
+      exact h
+    },
+    exact set_integral_congr_ae hS h3 },
   simp_rw ← h,
   exact (continuous_set_integral S).comp Lp_trim_to_Lp.continuous,
 end
