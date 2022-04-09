@@ -5,13 +5,12 @@ open_locale measure_theory probability_theory ennreal
 
 variables {α β β' γ γ' : Type*} {mα : measurable_space α} {μ : measure α}
 
-lemma set.indicator_inter {s t : set α} :
+lemma set.indicator_inter_one {α : Type*} {s t : set α} :
   (s ∩ t).indicator (1 : α → ℝ) = s.indicator 1 * t.indicator 1 :=
 begin
-  classical,
   ext,
+  rw ← set.indicator_indicator,
   simp only [set.indicator, pi.one_apply, pi.mul_apply, boole_mul],
-  convert ite_and (x ∈ s) (x ∈ t) (1 : ℝ) (0 : ℝ),
 end
 
 namespace probability_theory
@@ -31,7 +30,7 @@ begin
     ((integrable_const 1).indicator (hfm.comp measurable_id hA))
     ((integrable_const 1).indicator (hgm.comp measurable_id hB)),
   rwa [← ennreal.to_real_eq_to_real (measure_ne_top μ _), ← I ((hfm hA).inter (hgm hB)),
-    set.indicator_inter, ennreal.to_real_mul, ← I (hfm hA), ← I (hgm hB)],
+    set.indicator_inter_one, ennreal.to_real_mul, ← I (hfm hA), ← I (hgm hB)],
   exact ennreal.mul_ne_top (measure_ne_top μ _) (measure_ne_top μ _)
 end
 
@@ -59,18 +58,17 @@ begin
   rintro f ε hε,
   use ε,
   use hε,
-  rintro g,
-  suffices : dist (Lp_trim_to_Lp hm g) (Lp_trim_to_Lp hm f) = dist g f, rw this, exact id,
+  rintro g hg,
+  convert hg using 1,
   simp_rw Lp.dist_def,
   simp only [snorm, snorm', one_ne_zero, ennreal.one_ne_top, ennreal.one_to_real, pi.sub_apply,
     ennreal.rpow_one, div_one, if_false],
-  refine congr_arg ennreal.to_real _,
-  rw lintegral_trim_ae,
+  congr' 1,
+  rw lintegral_trim_ae hm,
   { apply lintegral_congr_ae,
     apply filter.eventually_eq.fun_comp,
     apply filter.eventually_eq.fun_comp,
-    apply filter.eventually_eq.sub;
-    exact Lp_trim_to_Lp.ae_eq },
+    exact Lp_trim_to_Lp.ae_eq.sub Lp_trim_to_Lp.ae_eq },
   { apply measurable.comp_ae_measurable,
     exact measurable_coe_nnreal_ennreal,
     apply measurable.comp_ae_measurable,
