@@ -9,8 +9,9 @@ lemma set.indicator_inter_one {α : Type*} {s t : set α} :
   (s ∩ t).indicator (1 : α → ℝ) = s.indicator 1 * t.indicator 1 :=
 begin
   ext,
-  rw ← set.indicator_indicator,
-  simp only [set.indicator, pi.one_apply, pi.mul_apply, boole_mul],
+  have := set.inter_indicator_mul 1 1 x,
+  convert this,
+  simpa only [pi.one_apply, mul_one]
 end
 
 namespace probability_theory
