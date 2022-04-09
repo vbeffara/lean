@@ -7,11 +7,7 @@ variables {α β β' γ γ' : Type*} {mα : measurable_space α} {μ : measure �
 
 lemma set.indicator_inter_one {α : Type*} {s t : set α} :
   (s ∩ t).indicator (1 : α → ℝ) = s.indicator 1 * t.indicator 1 :=
-begin
-  ext,
-  convert set.inter_indicator_mul 1 1 x,
-  simpa only [pi.one_apply, mul_one]
-end
+funext (λ x, by simpa only [←set.inter_indicator_mul, pi.mul_apply, pi.one_apply, mul_one])
 
 namespace probability_theory
 
