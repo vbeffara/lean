@@ -9,8 +9,7 @@ lemma set.indicator_inter_one {α : Type*} {s t : set α} :
   (s ∩ t).indicator (1 : α → ℝ) = s.indicator 1 * t.indicator 1 :=
 begin
   ext,
-  have := set.inter_indicator_mul 1 1 x,
-  convert this,
+  convert set.inter_indicator_mul 1 1 x,
   simpa only [pi.one_apply, mul_one]
 end
 
