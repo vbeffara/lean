@@ -5,7 +5,7 @@ open_locale measure_theory probability_theory ennreal
 
 variables {α β β' γ γ' : Type*} {mα : measurable_space α} {μ : measure α}
 
-lemma set.indicator_inter_one {α M : Type*} [monoid_with_zero M] {s t : set α} :
+lemma set.indicator_inter_one {α M : Type*} [mul_zero_one_class M] {s t : set α} :
   (s ∩ t).indicator (1 : α → M) = s.indicator 1 * t.indicator 1 :=
 funext (λ _, by simpa only [← set.inter_indicator_mul, pi.mul_apply, pi.one_apply, one_mul])
 
