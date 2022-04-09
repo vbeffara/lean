@@ -54,7 +54,30 @@ by simp only [Lp_trim_to_Lp, mem_ℒp.coe_fn_to_Lp]
 
 lemma Lp_trim_to_Lp.continuous {m1 m2 : measurable_space α} {μ : measure α} {hm : m1 ≤ m2} :
   continuous (@Lp_trim_to_Lp α m1 m2 μ hm) :=
-sorry
+begin
+  rw metric.continuous_iff,
+  rintro f ε hε,
+  use ε,
+  use hε,
+  rintro g,
+  suffices : dist (Lp_trim_to_Lp hm g) (Lp_trim_to_Lp hm f) = dist g f, rw this, exact id,
+  simp_rw Lp.dist_def,
+  simp only [snorm, snorm', one_ne_zero, ennreal.one_ne_top, ennreal.one_to_real, pi.sub_apply,
+    ennreal.rpow_one, div_one, if_false],
+  refine congr_arg ennreal.to_real _,
+  rw lintegral_trim_ae,
+  { apply lintegral_congr_ae,
+    apply filter.eventually_eq.fun_comp,
+    apply filter.eventually_eq.fun_comp,
+    apply filter.eventually_eq.sub;
+    exact Lp_trim_to_Lp.ae_eq },
+  { apply measurable.comp_ae_measurable,
+    exact measurable_coe_nnreal_ennreal,
+    apply measurable.comp_ae_measurable,
+    exact measurable_nnnorm,
+    apply ae_measurable.sub;
+    { apply ae_strongly_measurable.ae_measurable, apply Lp.ae_strongly_measurable } }
+end
 
 lemma continuous_integral_trim {mα' mα : measurable_space α} {μ : measure α} {hm : mα' ≤ mα} :
   continuous (λ (f : Lp ℝ 1 (μ.trim hm)), integral μ f) :=
@@ -63,23 +86,18 @@ begin
   exact funext (λ f, integral_trim_ae hm (Lp.ae_strongly_measurable f))
 end
 
+example {P Q : Prop} : P → Q → P := by { exact imp_intro}
+
 lemma continuous_integral_trim_restrict {mα' mα : measurable_space α} {μ : measure α} {hm : mα' ≤ mα}
   {S : set α} (hS : mα.measurable_set' S) :
   continuous (λ f : Lp ℝ 1 (μ.trim hm), ∫ a in S, f a ∂μ) :=
 begin
-  let Φ := Lp_trim_to_Lp hm,
   let Ψ := λ f : Lp ℝ 1 μ, ∫ a in S, f a ∂μ,
-  have h : ∀ {f}, Ψ (Φ f) = ∫ a in S, f a ∂μ,
-  { simp [Φ, Ψ],
-    intro f,
-    have h2 : ∀ᵐ (x : α) ∂μ, (Lp_trim_to_Lp hm f) x = f x := Lp_trim_to_Lp.ae_eq,
-    have h3 : ∀ᵐ (x : α) ∂μ, x ∈ S → (Lp_trim_to_Lp hm f) x = f x := by {
-      apply filter.eventually.mp h2,
-      apply ae_of_all,
-      intros x h h',
-      exact h
-    },
-    exact set_integral_congr_ae hS h3 },
+  have h : ∀ {f}, Ψ (Lp_trim_to_Lp hm f) = ∫ a in S, f a ∂μ :=
+    by { intro f,
+      apply set_integral_congr_ae hS,
+      apply Lp_trim_to_Lp.ae_eq.mono,
+      exact λ _, imp_intro },
   simp_rw ← h,
   exact (continuous_set_integral S).comp Lp_trim_to_Lp.continuous,
 end
