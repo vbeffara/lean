@@ -52,20 +52,13 @@ begin
   rintro g hg,
   convert hg using 1,
   simp_rw Lp.dist_def,
-  simp only [snorm, snorm', one_ne_zero, ennreal.one_ne_top, ennreal.one_to_real, pi.sub_apply,
-    ennreal.rpow_one, div_one, if_false],
   congr' 1,
-  rw lintegral_trim_ae hm,
-  { apply lintegral_congr_ae,
-    apply filter.eventually_eq.fun_comp,
-    apply filter.eventually_eq.fun_comp,
+  rw [snorm_trim_ae],
+  { apply snorm_congr_ae,
     exact Lp_trim_to_Lp.ae_eq.sub Lp_trim_to_Lp.ae_eq },
-  { apply measurable.comp_ae_measurable,
-    exact measurable_coe_nnreal_ennreal,
-    apply measurable.comp_ae_measurable,
-    exact measurable_nnnorm,
-    apply ae_measurable.sub;
-    { apply ae_strongly_measurable.ae_measurable, apply Lp.ae_strongly_measurable } }
+  { apply ae_strongly_measurable.sub,
+    exact @Lp.ae_strongly_measurable _ _ m1 1 (μ.trim hm) _ g,
+    exact @Lp.ae_strongly_measurable _ _ m1 1 (μ.trim hm) _ f },
 end
 
 lemma continuous_integral_trim {mα' mα : measurable_space α} {μ : measure α} {hm : mα' ≤ mα} :
