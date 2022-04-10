@@ -46,19 +46,16 @@ lemma Lp_trim_to_Lp.continuous {m1 m2 : measurable_space α} {μ : measure α} {
   continuous (@Lp_trim_to_Lp α m1 m2 μ hm) :=
 begin
   rw metric.continuous_iff,
-  rintro f ε hε,
-  use ε,
-  use hε,
-  rintro g hg,
+  refine λ f ε hε, ⟨ε, hε, λ g hg, _⟩,
   convert hg using 1,
   simp_rw Lp.dist_def,
   congr' 1,
-  rw [snorm_trim_ae],
-  { apply snorm_congr_ae,
-    exact Lp_trim_to_Lp.ae_eq.sub Lp_trim_to_Lp.ae_eq },
-  { apply ae_strongly_measurable.sub,
-    exact @Lp.ae_strongly_measurable _ _ m1 1 (μ.trim hm) _ g,
-    exact @Lp.ae_strongly_measurable _ _ m1 1 (μ.trim hm) _ f },
+  have h1 : ae_strongly_measurable (⇑g - ⇑f) (μ.trim hm) := by
+    { apply ae_strongly_measurable.sub,
+      exact @Lp.ae_strongly_measurable _ _ m1 1 (μ.trim hm) _ g,
+      exact @Lp.ae_strongly_measurable _ _ m1 1 (μ.trim hm) _ f },
+  rw [snorm_trim_ae hm h1],
+  exact snorm_congr_ae (Lp_trim_to_Lp.ae_eq.sub Lp_trim_to_Lp.ae_eq)
 end
 
 lemma continuous_integral_trim {mα' mα : measurable_space α} {μ : measure α} {hm : mα' ≤ mα} :
