@@ -34,11 +34,6 @@ end probability_theory
 
 namespace measure_theory
 
-lemma ae_strongly_measurable.mono {m1 m2 : measurable_space α} {μ : measure α} (hm : m1 ≤ m2)
-  {f : α → ℝ} :
-  ae_strongly_measurable f (μ.trim hm) → ae_strongly_measurable f μ :=
-by { rintro ⟨ff, h1, h2⟩, exact ⟨ff, h1.mono hm, ae_eq_of_ae_eq_trim h2⟩ }
-
 noncomputable def Lp_trim_to_Lp {m1 m2 : measurable_space α} {μ : measure α} (hm : m1 ≤ m2) :
   Lp ℝ 1 (μ.trim hm) → Lp ℝ 1 μ :=
 λ f, (mem_ℒp_of_mem_ℒp_trim hm (Lp.mem_ℒp f)).to_Lp f
