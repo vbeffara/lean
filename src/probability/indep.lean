@@ -32,22 +32,22 @@ begin
   exact funext (λ f, integral_trim_ae hm (Lp.ae_strongly_measurable f))
 end
 
-lemma continuous_integral_trim_restrict {mα' mα : measurable_space α} {μ : measure α} {hm : mα' ≤ mα}
-  {S : set α} (hS : mα.measurable_set' S) :
+lemma continuous_integral_trim_restrict {mα' mα : measurable_space α} {μ : measure α}
+  {hm : mα' ≤ mα} {S : set α} (hS : mα.measurable_set' S) :
   continuous (λ f : Lp ℝ 1 (μ.trim hm), ∫ a in S, f a ∂μ) :=
 begin
-  have h : ∀ {f}, ∫ a in S, (Lp_trim_to_Lp μ hm f) a ∂μ = ∫ a in S, f a ∂μ,
-    from λ f, set_integral_congr_ae hS (Lp_trim_to_Lp.ae_eq.mono (λ _, imp_intro)),
-  simp_rw ← h,
+  simp_rw [← integral_congr_ae Lp_trim_to_Lp.ae_eq.restrict],
   exact (continuous_set_integral S).comp Lp_trim_to_Lp.isometry.continuous,
 end
 
 example
   {α : Type*} {mα' : measurable_space α} {mα : measurable_space α} {μ : measure α}
-  [is_finite_measure μ]
   {hm : mα' ≤ mα}
-  {S : set α} {hS1 : mα.measurable_set' S} {hS : indep_sets mα'.measurable_set' {S} μ}
-  {f : α → ℝ} {hf : integrable f (μ.trim hm)}
+  {S : set α}
+  {hS1 : mα.measurable_set' S}
+  {hS : indep_sets mα'.measurable_set' {S} μ}
+  {f : α → ℝ}
+  {hf : integrable f (μ.trim hm)}
   :
   ∫ a in S, f a ∂μ = (μ S).to_real • ∫ a, f a ∂μ :=
 begin
@@ -62,21 +62,12 @@ begin
     have hfr : integrable f (μ.restrict S) := integrable.mono_measure hfi measure.restrict_le_self,
     have hgr : integrable g (μ.restrict S) := integrable.mono_measure hgi measure.restrict_le_self,
     rw [integral_add' hfr hgr, integral_add' hfi hgi, h1, h2, smul_add] },
-  {
-    simp,
-    simp_rw ← @sub_eq_zero ℝ _ (integral _ _) _,
-    simp_rw ← set.mem_singleton_iff,
-    apply is_closed.preimage,
-    apply continuous.sub,
-    { exact continuous_integral_trim_restrict hS1 },
-    { refine continuous_const.mul _,
-      exact continuous_integral_trim },
-    { exact t1_space.t1 0 }
-  },
+  { apply is_closed_eq,
+    exact continuous_integral_trim_restrict hS1,
+    exact continuous_const.mul continuous_integral_trim },
   { rintro f g hfg - h,
     have h1 : f =ᵐ[μ] g := ae_eq_of_ae_eq_trim hfg,
-    have h2 : f =ᵐ[μ.restrict S] g := filter.eventually_eq.restrict h1,
-    rwa [← integral_congr_ae h1, ← integral_congr_ae h2] }
+    rwa [← integral_congr_ae h1, ← integral_congr_ae h1.restrict] }
 end
 
 end measure_theory
