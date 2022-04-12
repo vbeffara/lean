@@ -61,6 +61,8 @@ lemma cov_eq_zero_of_indep {X Y : Ω → ℝ} {hX : integrable X} {hY : integrab
   indep_fun X Y → cov X Y = 0 :=
 begin
   intro h,
+  simp [cov],
+  have := indep_fun.integral_mul_of_integrable (indep_recenter h),
   rw [cov, integral_mul_eq_integral_mul_integral_of_indep_fun, avg_recenter, zero_mul],
   { exact hX },
   { apply hX.sub, apply integrable_const },

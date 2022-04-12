@@ -5,51 +5,36 @@ open_locale measure_theory probability_theory ennreal
 
 variables {α β β' γ γ' : Type*} {mα : measurable_space α} {μ : measure α}
 
-lemma set.inter_indicator_one {α M : Type*} [mul_zero_one_class M] {s t : set α} :
-  (s ∩ t).indicator (1 : α → M) = s.indicator 1 * t.indicator 1 :=
-funext (λ _, by simpa only [← set.inter_indicator_mul, pi.mul_apply, pi.one_apply, one_mul])
-
-namespace probability_theory
-
-theorem indep_fun_iff_integral_comp_mul [is_finite_measure μ] {f : α → β} {g : α → β'}
-  {mβ : measurable_space β} {mβ' : measurable_space β'} {hfm : measurable f} {hgm : measurable g} :
-  indep_fun f g μ ↔
-  ∀ {φ : β → ℝ} {ψ : β' → ℝ},
-    measurable φ → measurable ψ → integrable (φ ∘ f) μ → integrable (ψ ∘ g) μ →
-    integral μ ((φ ∘ f) * (ψ ∘ g)) = integral μ (φ ∘ f) * integral μ (ψ ∘ g) :=
-begin
-  have I : ∀ {A : set α} (hA : measurable_set A), integral μ (A.indicator 1) = (μ A).to_real,
-    from λ _ hA, (integral_indicator_const (1 : ℝ) hA).trans ((smul_eq_mul _).trans (mul_one _)),
-  refine ⟨λ hfg _ _ hφ hψ, indep_fun.integral_mul_of_integrable (hfg.comp hφ hψ), _⟩,
-  rintro h _ _ ⟨A, hA, rfl⟩ ⟨B, hB, rfl⟩,
-  specialize h (measurable_one.indicator hA) (measurable_one.indicator hB)
-    ((integrable_const 1).indicator (hfm.comp measurable_id hA))
-    ((integrable_const 1).indicator (hgm.comp measurable_id hB)),
-  rwa [← ennreal.to_real_eq_to_real (measure_ne_top μ _), ← I ((hfm hA).inter (hgm hB)),
-    set.inter_indicator_one, ennreal.to_real_mul, ← I (hfm hA), ← I (hgm hB)],
-  exact ennreal.mul_ne_top (measure_ne_top μ _) (measure_ne_top μ _)
-end
-
-end probability_theory
-
 namespace measure_theory
 
-noncomputable def Lp_trim_to_Lp {m1 m2 : measurable_space α} {μ : measure α} (hm : m1 ≤ m2) :
+noncomputable def Lp_trim_to_Lp {m1 m2 : measurable_space α} (μ : measure α) (hm : m1 ≤ m2) :
   Lp ℝ 1 (μ.trim hm) → Lp ℝ 1 μ :=
 λ f, (mem_ℒp_of_mem_ℒp_trim hm (Lp.mem_ℒp f)).to_Lp f
 
 lemma Lp_trim_to_Lp.ae_eq {m1 m2 : measurable_space α} {μ : measure α} {hm : m1 ≤ m2}
-  {f : Lp ℝ 1 (μ.trim hm)} : Lp_trim_to_Lp hm f =ᵐ[μ] f :=
+  {f : Lp ℝ 1 (μ.trim hm)} : Lp_trim_to_Lp μ hm f =ᵐ[μ] f :=
 by simp only [Lp_trim_to_Lp, mem_ℒp.coe_fn_to_Lp]
 
-lemma Lp_trim_to_Lp.continuous {m1 m2 : measurable_space α} {μ : measure α} {hm : m1 ≤ m2} :
-  continuous (@Lp_trim_to_Lp α m1 m2 μ hm) :=
+lemma Lp_trim_to_Lp.isometry {m1 m2 : measurable_space α} {μ : measure α} {hm : m1 ≤ m2} :
+  isometry (Lp_trim_to_Lp μ hm) :=
 begin
-  refine metric.continuous_iff.mpr (λ f ε hε, ⟨ε, hε, λ g, lt_of_le_of_lt (le_of_eq _)⟩),
-  simp_rw [Lp.dist_def],
-  rw [snorm_trim_ae hm ((Lp.ae_strongly_measurable g).sub (Lp.ae_strongly_measurable f))],
-  exact congr_arg _ (snorm_congr_ae (Lp_trim_to_Lp.ae_eq.sub Lp_trim_to_Lp.ae_eq))
+  rintro f g,
+  rw [Lp.edist_def, Lp.edist_def,
+    snorm_trim_ae hm ((Lp.ae_strongly_measurable f).sub (Lp.ae_strongly_measurable g))],
+  exact snorm_congr_ae (Lp_trim_to_Lp.ae_eq.sub Lp_trim_to_Lp.ae_eq)
 end
+
+lemma Lp_trim_to_Lp.dist {m1 m2 : measurable_space α} {μ : measure α} {hm : m1 ≤ m2} :
+  ∀ {f g}, dist (Lp_trim_to_Lp μ hm f) (Lp_trim_to_Lp μ hm g) = dist f g :=
+Lp_trim_to_Lp.isometry.dist_eq
+
+lemma Lp_trim_to_Lp.edist {m1 m2 : measurable_space α} {μ : measure α} {hm : m1 ≤ m2} :
+  ∀ {f g}, edist (Lp_trim_to_Lp μ hm f) (Lp_trim_to_Lp μ hm g) = edist f g :=
+Lp_trim_to_Lp.isometry.edist_eq
+
+lemma Lp_trim_to_Lp.continuous {m1 m2 : measurable_space α} {μ : measure α} {hm : m1 ≤ m2} :
+  continuous (Lp_trim_to_Lp μ hm) :=
+Lp_trim_to_Lp.isometry.continuous
 
 lemma continuous_integral_trim {mα' mα : measurable_space α} {μ : measure α} {hm : mα' ≤ mα} :
   continuous (λ (f : Lp ℝ 1 (μ.trim hm)), integral μ f) :=
@@ -65,7 +50,7 @@ lemma continuous_integral_trim_restrict {mα' mα : measurable_space α} {μ : m
   continuous (λ f : Lp ℝ 1 (μ.trim hm), ∫ a in S, f a ∂μ) :=
 begin
   let Ψ := λ f : Lp ℝ 1 μ, ∫ a in S, f a ∂μ,
-  have h : ∀ {f}, Ψ (Lp_trim_to_Lp hm f) = ∫ a in S, f a ∂μ :=
+  have h : ∀ {f}, Ψ (Lp_trim_to_Lp μ hm f) = ∫ a in S, f a ∂μ :=
     by { intro f,
       apply set_integral_congr_ae hS,
       apply Lp_trim_to_Lp.ae_eq.mono,
