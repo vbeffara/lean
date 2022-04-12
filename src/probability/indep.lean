@@ -1,3 +1,4 @@
+import algebra.indicator_function
 import probability.integration
 import probability.notation
 open measure_theory probability_theory
@@ -9,11 +10,11 @@ namespace measure_theory
 
 noncomputable def Lp_trim_to_Lp {m1 m2 : measurable_space α} (μ : measure α) (hm : m1 ≤ m2) :
   Lp ℝ 1 (μ.trim hm) → Lp ℝ 1 μ :=
-λ f, (mem_ℒp_of_mem_ℒp_trim hm (Lp.mem_ℒp f)).to_Lp f
+λ f, Lp_trim_to_Lp_meas ℝ ℝ 1 μ hm f
 
 lemma Lp_trim_to_Lp.ae_eq {m1 m2 : measurable_space α} {μ : measure α} {hm : m1 ≤ m2}
   {f : Lp ℝ 1 (μ.trim hm)} : Lp_trim_to_Lp μ hm f =ᵐ[μ] f :=
-by simp only [Lp_trim_to_Lp, mem_ℒp.coe_fn_to_Lp]
+@Lp_trim_to_Lp_meas_ae_eq α ℝ ℝ 1 _ _ _ _ _ μ hm f
 
 lemma Lp_trim_to_Lp.isometry {m1 m2 : measurable_space α} {μ : measure α} {hm : m1 ≤ m2} :
   isometry (Lp_trim_to_Lp μ hm) :=
@@ -24,26 +25,12 @@ begin
   exact snorm_congr_ae (Lp_trim_to_Lp.ae_eq.sub Lp_trim_to_Lp.ae_eq)
 end
 
-lemma Lp_trim_to_Lp.dist {m1 m2 : measurable_space α} {μ : measure α} {hm : m1 ≤ m2} :
-  ∀ {f g}, dist (Lp_trim_to_Lp μ hm f) (Lp_trim_to_Lp μ hm g) = dist f g :=
-Lp_trim_to_Lp.isometry.dist_eq
-
-lemma Lp_trim_to_Lp.edist {m1 m2 : measurable_space α} {μ : measure α} {hm : m1 ≤ m2} :
-  ∀ {f g}, edist (Lp_trim_to_Lp μ hm f) (Lp_trim_to_Lp μ hm g) = edist f g :=
-Lp_trim_to_Lp.isometry.edist_eq
-
-lemma Lp_trim_to_Lp.continuous {m1 m2 : measurable_space α} {μ : measure α} {hm : m1 ≤ m2} :
-  continuous (Lp_trim_to_Lp μ hm) :=
-Lp_trim_to_Lp.isometry.continuous
-
 lemma continuous_integral_trim {mα' mα : measurable_space α} {μ : measure α} {hm : mα' ≤ mα} :
   continuous (λ (f : Lp ℝ 1 (μ.trim hm)), integral μ f) :=
 begin
   convert continuous_integral,
   exact funext (λ f, integral_trim_ae hm (Lp.ae_strongly_measurable f))
 end
-
-example {P Q : Prop} : P → Q → P := by { exact imp_intro}
 
 lemma continuous_integral_trim_restrict {mα' mα : measurable_space α} {μ : measure α} {hm : mα' ≤ mα}
   {S : set α} (hS : mα.measurable_set' S) :
@@ -56,7 +43,7 @@ begin
       apply Lp_trim_to_Lp.ae_eq.mono,
       exact λ _, imp_intro },
   simp_rw ← h,
-  exact (continuous_set_integral S).comp Lp_trim_to_Lp.continuous,
+  exact (continuous_set_integral S).comp Lp_trim_to_Lp.isometry.continuous,
 end
 
 example
@@ -70,14 +57,9 @@ example
 begin
   revert f, apply integrable.induction,
   { rintro c s hs1 -,
-    have hs' := hm _ hs1,
-    have h1 : (μ.restrict S) s ≠ ⊤ := by { rw [measure.restrict_apply hs'], apply measure_ne_top },
-    rw ← integral_congr_ae (@indicator_const_Lp_coe_fn α ℝ mα 1 μ _ s hs' (measure_ne_top _ _) c),
-    rw ← integral_congr_ae (@indicator_const_Lp_coe_fn α ℝ mα 1 (μ.restrict S) _ s hs' h1 c),
-    rw [integral_indicator_const_Lp, integral_indicator_const_Lp, measure.restrict_apply hs'],
-    rw [hS s S hs1 (set.mem_singleton _), ennreal.to_real_mul],
-    simp only [algebra.id.smul_eq_mul],
-    ring },
+    rw [integral_indicator_const _ (hm _ hs1), integral_indicator_const _ (hm _ hs1),
+      measure.restrict_apply (hm _ hs1), hS s S hs1 (set.mem_singleton _), ennreal.to_real_mul,
+      smul_eq_mul, smul_eq_mul, smul_eq_mul, ← mul_assoc, mul_comm (ennreal.to_real _)] },
   { rintro f g - hf hg h1 h2,
     have hf' : integrable f μ := integrable_of_integrable_trim hm hf,
     have hg' : integrable g μ := integrable_of_integrable_trim hm hg,
