@@ -36,12 +36,8 @@ lemma continuous_integral_trim_restrict {mα' mα : measurable_space α} {μ : m
   {S : set α} (hS : mα.measurable_set' S) :
   continuous (λ f : Lp ℝ 1 (μ.trim hm), ∫ a in S, f a ∂μ) :=
 begin
-  let Ψ := λ f : Lp ℝ 1 μ, ∫ a in S, f a ∂μ,
-  have h : ∀ {f}, Ψ (Lp_trim_to_Lp μ hm f) = ∫ a in S, f a ∂μ :=
-    by { intro f,
-      apply set_integral_congr_ae hS,
-      apply Lp_trim_to_Lp.ae_eq.mono,
-      exact λ _, imp_intro },
+  have h : ∀ {f}, ∫ a in S, (Lp_trim_to_Lp μ hm f) a ∂μ = ∫ a in S, f a ∂μ,
+    from λ f, set_integral_congr_ae hS (Lp_trim_to_Lp.ae_eq.mono (λ _, imp_intro)),
   simp_rw ← h,
   exact (continuous_set_integral S).comp Lp_trim_to_Lp.isometry.continuous,
 end
@@ -61,11 +57,11 @@ begin
       measure.restrict_apply (hm _ hs1), hS s S hs1 (set.mem_singleton _), ennreal.to_real_mul,
       smul_eq_mul, smul_eq_mul, smul_eq_mul, ← mul_assoc, mul_comm (ennreal.to_real _)] },
   { rintro f g - hf hg h1 h2,
-    have hf' : integrable f μ := integrable_of_integrable_trim hm hf,
-    have hg' : integrable g μ := integrable_of_integrable_trim hm hg,
-    rw [integral_add', integral_add' hf' hg', h1, h2, smul_add],
-    { exact integrable_on_univ.mp ((integrable_on_univ.mpr hf').restrict measurable_set.univ) },
-    { exact integrable_on_univ.mp ((integrable_on_univ.mpr hg').restrict measurable_set.univ) } },
+    have hfi : integrable f μ := integrable_of_integrable_trim hm hf,
+    have hgi : integrable g μ := integrable_of_integrable_trim hm hg,
+    have hfr : integrable f (μ.restrict S) := integrable.mono_measure hfi measure.restrict_le_self,
+    have hgr : integrable g (μ.restrict S) := integrable.mono_measure hgi measure.restrict_le_self,
+    rw [integral_add' hfr hgr, integral_add' hfi hgi, h1, h2, smul_add] },
   {
     simp,
     simp_rw ← @sub_eq_zero ℝ _ (integral _ _) _,
