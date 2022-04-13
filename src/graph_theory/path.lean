@@ -55,12 +55,5 @@ begin
       refine ih.mpr ⟨h2,h3,_⟩, intros u hu h'u, exact h5 u hu h'u } }
 end
 
-@[simp] def map (f : G →g G') : ∀ {x y}, walk G x y → walk G' (f x) (f y)
-| _ _ nil        := nil
-| _ _ (cons h p) := cons (f.map_rel' h) (map p)
-
-@[simp] lemma length_map {f : G →g G'} : length (map f p) = length p :=
-by { induction p, refl, simpa }
-
 end walk
 end simple_graph
