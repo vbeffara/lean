@@ -1,7 +1,7 @@
 import algebra.indicator_function
 import probability.integration
 import probability.notation
-open measure_theory probability_theory
+open measure_theory probability_theory function
 open_locale measure_theory probability_theory ennreal
 
 variables {α : Type*} {m1 m2 : measurable_space α} {p : ennreal} {μ : measure α} {hm : m1 ≤ m2}
@@ -12,27 +12,31 @@ noncomputable def Lp_trim_to_Lp (p : ennreal) (μ : measure α) (hm : m1 ≤ m2)
   Lp ℝ p (μ.trim hm) → Lp ℝ p μ :=
 λ f, Lp_trim_to_Lp_meas ℝ ℝ p μ hm f
 
-lemma Lp_trim_to_Lp.ae_eq {f : Lp ℝ p (μ.trim hm)} :
+namespace Lp_trim_to_Lp
+
+lemma ae_eq {f : Lp ℝ p (μ.trim hm)} :
   Lp_trim_to_Lp p μ hm f =ᵐ[μ] f :=
 @Lp_trim_to_Lp_meas_ae_eq α ℝ ℝ p _ _ _ _ _ μ hm f
 
-lemma Lp_trim_to_Lp.snorm {f : Lp ℝ p (μ.trim hm)} :
+lemma snorm {f : Lp ℝ p (μ.trim hm)} :
   snorm (Lp_trim_to_Lp p μ hm f) p μ = snorm f p μ :=
-snorm_congr_ae Lp_trim_to_Lp.ae_eq
+snorm_congr_ae ae_eq
 
-lemma Lp_trim_to_Lp.isometry [fact (1 ≤ p)] :
+lemma isometry [fact (1 ≤ p)] :
   isometry (Lp_trim_to_Lp p μ hm) :=
 begin
   rintro f g,
   rw [Lp.edist_def, Lp.edist_def],
   rw [snorm_trim_ae hm ((Lp.ae_strongly_measurable f).sub (Lp.ae_strongly_measurable g))],
-  exact snorm_congr_ae (Lp_trim_to_Lp.ae_eq.sub Lp_trim_to_Lp.ae_eq)
+  exact snorm_congr_ae (ae_eq.sub ae_eq)
 end
 
 @[continuity]
-lemma Lp_trim_to_Lp.continuous [fact (1 ≤ p)]:
+lemma continuous [fact (1 ≤ p)] :
   continuous (Lp_trim_to_Lp p μ hm) :=
 Lp_trim_to_Lp.isometry.continuous
+
+end Lp_trim_to_Lp
 
 @[continuity]
 lemma continuous_integral_trim :
