@@ -1,31 +1,22 @@
-import probability.independence
-import probability.notation
-import probability.integration
-import measure_theory.constructions.borel_space
-import measure_theory.measure.finite_measure_weak_convergence
-import measure_theory.function.convergence_in_measure
 import probability.indep
-
 open measure_theory probability_theory
 open_locale big_operators measure_theory probability_theory
-noncomputable theory
 
 variables {α : Type*} {mα : measurable_space α} {μ : measure α}
 variables {Ω : Type*} [measure_space Ω] [is_probability_measure (volume : measure Ω)]
 
-def cov (X Y : Lp ℝ 1 μ) : ℝ := integral μ (X * Y) - integral μ X * integral μ Y
+noncomputable def cov (X Y : Lp ℝ 1 μ) : ℝ := integral μ (X * Y) - integral μ X * integral μ Y
 
 lemma cov_eq_zero_of_indep {X Y : Lp ℝ 1 μ} (h : indep_fun X Y μ) :
   cov X Y = 0 :=
 sub_eq_zero_of_eq (h.integral_mul_of_integrable (L1.integrable_coe_fn X) (L1.integrable_coe_fn Y))
 
-def var (X : Lp ℝ 2 μ) : ℝ := integral μ (X^2) - (integral μ X)^2
+noncomputable def var (X : Lp ℝ 2 μ) : ℝ := integral μ (X^2) - (integral μ X)^2
 
 lemma blah [is_finite_measure μ] (f : Lp ℝ 2 μ) : integrable f μ :=
 begin
-  convert L1.integrable_coe_fn (⟨f, Lp.antitone _ f.prop⟩ : Lp ℝ 1 μ),
-  norm_cast,
-  exact one_le_two
+  have : (1 : ennreal) ≤ 2 := by { norm_cast, exact one_le_two },
+  convert L1.integrable_coe_fn (⟨f, Lp.antitone this f.prop⟩ : Lp ℝ 1 μ)
 end
 
 lemma var.add [is_finite_measure μ] {X Y : Lp ℝ 2 μ} (h : indep_fun X Y μ) :
@@ -52,5 +43,5 @@ begin
   { exact hc.add hd },
 end
 
-noncomputable def partial_avg (X : ℕ → Ω → ℝ) (n : ℕ) (ω : Ω) : ℝ :=
-(∑ i in finset.range n, X i ω) / n
+noncomputable def partial_avg (X : ℕ → Ω → ℝ) (n : ℕ) : Ω → ℝ :=
+(∑ i in finset.range n, X i) / n
