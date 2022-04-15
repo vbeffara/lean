@@ -8,13 +8,12 @@ variables {α : Type*} {m1 m2 : measurable_space α} {p : ennreal} {μ : measure
 
 namespace measure_theory
 
-lemma Lp.integrable [is_finite_measure μ] {p : ennreal} (hp : 1 ≤ p) (f : Lp ℝ p μ) :
+lemma Lp.integrable [is_finite_measure μ] {p : ennreal} [fact (1 ≤ p)] (f : Lp ℝ p μ) :
   integrable f μ :=
-by convert L1.integrable_coe_fn (⟨f, Lp.antitone hp f.prop⟩ : Lp ℝ 1 μ)
+(Lp.mem_ℒp f).integrable (fact.out _)
 
-lemma L2.integrable_mul (f g : Lp ℝ 2 μ) :
-  integrable (f * g) μ :=
-@L2.integrable_inner α ℝ ℝ _ _ μ _ f g
+lemma L2.integrable_mul : ∀ (f g : Lp ℝ 2 μ), integrable (f * g) μ :=
+@L2.integrable_inner α ℝ ℝ _ _ μ _
 
 noncomputable def Lp_trim_to_Lp (p : ennreal) (μ : measure α) (hm : m1 ≤ m2) :
   Lp ℝ p (μ.trim hm) → Lp ℝ p μ :=
@@ -89,9 +88,9 @@ open measure_theory
 
 namespace probability_theory
 
-theorem indep_fun.integral_mul_of_Lp [is_finite_measure μ] {p : ennreal} (hp : 1 ≤ p)
+theorem indep_fun.integral_mul_of_Lp [is_finite_measure μ] {p : ennreal} [fact (1 ≤ p)]
   {X Y : Lp ℝ p μ} (hXY : indep_fun X Y μ) :
   integral μ (X * Y) = integral μ X * integral μ Y :=
-hXY.integral_mul_of_integrable (Lp.integrable hp X) (Lp.integrable hp Y)
+hXY.integral_mul_of_integrable (Lp.integrable X) (Lp.integrable Y)
 
 end probability_theory
