@@ -83,6 +83,7 @@ theorem lln
   (ν : measure ℝ)
   (X : ℕ → α → ℝ)
   (h_int : integrable id ν)
+  (h_meas : ∀ i, measurable (X i))
   (h_dist : ∀ i, μ.map (X i) = ν)
   (h_indep : pairwise (λ i j, indep_fun (X i) (X j) μ)) :
   ∀ᵐ a ∂μ, filter.tendsto (partial_avg' X a) ⊤ (nhds (integral ν id)) :=
@@ -92,15 +93,31 @@ begin
   let Xp : ℕ → α → ℝ := λ n a, pos (X n a),
   let Xm : ℕ → α → ℝ := λ n a, neg (X n a),
 
-  have h1 : integrable id (measure.map pos ν) := sorry,
-  have h2 : ∀ (i : ℕ), measure.map (Xp i) μ = measure.map pos ν := sorry,
+  have h1 : integrable id (measure.map pos ν),
+    from (integrable_map_measure measurable_id.ae_strongly_measurable
+      (measurable_id.max measurable_const).ae_measurable).mpr h_int.max_zero,
+
+  have h2 : ∀ (i : ℕ), measure.map (Xp i) μ = measure.map pos ν := by {
+    intro i,
+    rw [← h_dist i],
+    exact (measure.map_map (measurable_id.max measurable_const) (h_meas i)).symm
+  },
+
   have h3 : pairwise (λ (i j : ℕ), indep_fun (Xp i) (Xp j) μ) := sorry,
   have h4 : ∀ᵐ (x : ℝ) ∂measure.map pos ν, 0 ≤ x := sorry,
 
   have Hp := lln_of_nonneg (ν.map pos) Xp h1 h2 h3 h4,
 
-  have h'1 : integrable id (measure.map neg ν) := sorry,
-  have h'2 : ∀ (i : ℕ), measure.map (Xm i) μ = measure.map neg ν := sorry,
+  have h'1 : integrable id (measure.map neg ν),
+    from (integrable_map_measure measurable_id.ae_strongly_measurable
+      (measurable_neg.max measurable_const).ae_measurable).mpr h_int.neg.max_zero,
+
+  have h'2 : ∀ (i : ℕ), measure.map (Xm i) μ = measure.map neg ν := by {
+    intro i,
+    rw [← h_dist i],
+    exact (measure.map_map (measurable_neg.max measurable_const) (h_meas i)).symm
+  },
+
   have h'3 : pairwise (λ (i j : ℕ), indep_fun (Xm i) (Xm j) μ) := sorry,
   have h'4 : ∀ᵐ (x : ℝ) ∂measure.map neg ν, 0 ≤ x := sorry,
 
