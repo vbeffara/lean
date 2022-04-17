@@ -34,4 +34,89 @@ end
 noncomputable def partial_avg (X : ℕ → α → ℝ) (n : ℕ) : α → ℝ :=
 (∑ i in finset.range n, X i) / n
 
+noncomputable def partial_avg' (X : ℕ → α → ℝ) (a : α) (n : ℕ) : ℝ :=
+(∑ i : fin n, X i a) / n
+
+lemma fin.sum.add (n : ℕ) (f g : ℕ → ℝ) :
+  ∑ i : fin n, (f i + g i) = ∑ i : fin n, f i + ∑ i : fin n, g i :=
+begin
+  induction n,
+  { simp },
+  { simp [fin.sum_univ_cast_succ, n_ih], ring }
+end
+
+lemma fin.sum.sub (n : ℕ) (f g : ℕ → ℝ) :
+  ∑ i : fin n, (f i - g i) = ∑ i : fin n, f i - ∑ i : fin n, g i :=
+begin
+  induction n,
+  { simp },
+  { simp [fin.sum_univ_cast_succ, n_ih], ring }
+end
+
+lemma integral_pos_add_neg {ν : measure ℝ} (h_int : integrable id ν) :
+  let pos : ℝ → ℝ := λ (x : ℝ), max x 0,
+      neg : ℝ → ℝ := λ (x : ℝ), max (-x) 0
+  in integral ν id = integral (measure.map pos ν) id - integral (measure.map neg ν) id :=
+begin
+  intros pos neg,
+  rw [integral_map, integral_map, ← integral_sub],
+  { simpa only [id.def, max_zero_sub_max_neg_zero_eq_self] },
+  { exact h_int.max_zero },
+  { exact h_int.neg.max_zero },
+  { exact (measurable_neg.max measurable_const).ae_measurable },
+  { exact measurable_id.ae_strongly_measurable },
+  { exact (measurable_id.max measurable_const).ae_measurable },
+  { exact measurable_id.ae_strongly_measurable }
+end
+
+theorem lln_of_nonneg
+  (ν : measure ℝ)
+  (X : ℕ → α → ℝ)
+  (h_int : integrable id ν)
+  (h_dist : ∀ i, measure.map (X i) μ = ν)
+  (h_indep : pairwise (λ i j, indep_fun (X i) (X j) μ))
+  (h_pos : ∀ᵐ (x : ℝ) ∂ν, 0 ≤ x) :
+  ∀ᵐ a ∂μ, filter.tendsto (partial_avg' X a) ⊤ (nhds (integral ν id)) :=
+sorry
+
+theorem lln
+  (ν : measure ℝ)
+  (X : ℕ → α → ℝ)
+  (h_int : integrable id ν)
+  (h_dist : ∀ i, μ.map (X i) = ν)
+  (h_indep : pairwise (λ i j, indep_fun (X i) (X j) μ)) :
+  ∀ᵐ a ∂μ, filter.tendsto (partial_avg' X a) ⊤ (nhds (integral ν id)) :=
+begin
+  let pos : ℝ → ℝ := λ x, max x 0,
+  let neg : ℝ → ℝ := λ x, max (-x) 0,
+  let Xp : ℕ → α → ℝ := λ n a, pos (X n a),
+  let Xm : ℕ → α → ℝ := λ n a, neg (X n a),
+
+  have h1 : integrable id (measure.map pos ν) := sorry,
+  have h2 : ∀ (i : ℕ), measure.map (Xp i) μ = measure.map pos ν := sorry,
+  have h3 : pairwise (λ (i j : ℕ), indep_fun (Xp i) (Xp j) μ) := sorry,
+  have h4 : ∀ᵐ (x : ℝ) ∂measure.map pos ν, 0 ≤ x := sorry,
+
+  have Hp := lln_of_nonneg (ν.map pos) Xp h1 h2 h3 h4,
+
+  have h'1 : integrable id (measure.map neg ν) := sorry,
+  have h'2 : ∀ (i : ℕ), measure.map (Xm i) μ = measure.map neg ν := sorry,
+  have h'3 : pairwise (λ (i j : ℕ), indep_fun (Xm i) (Xm j) μ) := sorry,
+  have h'4 : ∀ᵐ (x : ℝ) ∂measure.map neg ν, 0 ≤ x := sorry,
+
+  have Hn := lln_of_nonneg (ν.map neg) Xm h'1 h'2 h'3 h'4,
+
+  apply (Hp.and Hn).mono,
+  rintro a ⟨c1, c2⟩,
+  convert c1.sub c2,
+  { funext n,
+    simp [partial_avg'],
+    rw [← sub_div],
+    apply congr_arg (λ (z : ℝ), z / n),
+    rw [← @fin.sum.sub n (λ n, Xp n a) (λ n, Xm n a)],
+    congr,
+    simp },
+  { exact integral_pos_add_neg h_int }
+end
+
 end probability_theory

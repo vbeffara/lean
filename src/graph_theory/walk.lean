@@ -102,6 +102,12 @@ begin
   refine ⟨⟨p ++ q⟩, rfl, rfl⟩,
 end
 
+def append_aux' (p q : G.Walk) (hpq : p.b = q.a) : {w : G.Walk // w.a = p.a ∧ w.b = q.b} :=
+begin
+  rcases p with ⟨a,b,p⟩, rcases q with ⟨c,d,q⟩, simp only at hpq, subst c,
+  refine ⟨⟨p ++ q⟩, rfl, rfl⟩,
+end
+
 def append (p q : G.Walk) (hpq : p.b = q.a) : G.Walk :=
 (append_aux p q hpq).val
 
@@ -329,16 +335,6 @@ begin
       { simp at h₂ ⊢, rcases h₂ with ⟨z,hz⟩, simp at hz, cases hz with hz₁ hz₂,
         cases hz₁, subst z, exact hz₂, exfalso, apply h, use z, simp, exact ⟨hz₁,hz₂⟩ },
       { simp at h ⊢, exact h } } }
-end
-
-noncomputable def within (p : G.Walk) (G' : simple_graph V) : {q : G'.Walk // q.a = p.a} :=
-begin
-  refine rec₀ _ _ p,
-  { intro v, exact ⟨nil v, rfl⟩ },
-  { rintro e p h q,
-    by_cases h' : G'.adj e.fst e.snd,
-    { rw ← q.prop at h, refine ⟨cons ⟨⟨_,_⟩,h'⟩ q h, rfl⟩ },
-    { exact ⟨nil e.fst, rfl⟩ } }
 end
 
 def reverse (p : G.Walk) : G.Walk := ⟨p.p.reverse⟩
