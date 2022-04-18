@@ -93,66 +93,43 @@ begin
   let Xp : ℕ → α → ℝ := λ n a, pos (X n a),
   let Xm : ℕ → α → ℝ := λ n a, neg (X n a),
 
-  have h1 : integrable id (measure.map pos ν),
-    from (integrable_map_measure measurable_id.ae_strongly_measurable
-      (measurable_id.max measurable_const).ae_measurable).mpr h_int.max_zero,
+  have Hp : ∀ᵐ a ∂μ, filter.tendsto (partial_avg' Xp a) ⊤ (nhds (integral (measure.map pos ν) id)),
+  { apply lln_of_nonneg,
+    { exact (integrable_map_measure measurable_id.ae_strongly_measurable
+        (measurable_id.max measurable_const).ae_measurable).mpr h_int.max_zero },
+    { intro i,
+      rw [← h_dist i],
+      exact (measure.map_map (measurable_id.max measurable_const) (h_meas i)).symm },
+    { intros i j hij,
+      apply indep_fun.comp (h_indep i j hij);
+      exact measurable_id.max measurable_const },
+    { rw ae_map_iff,
+      { simp only [le_max_iff, le_refl, or_true, filter.eventually_true] },
+      { measurability },
+      { exact measurable_set_Ici } } },
 
-  have h2 : ∀ (i : ℕ), measure.map (Xp i) μ = measure.map pos ν := by {
-    intro i,
-    rw [← h_dist i],
-    exact (measure.map_map (measurable_id.max measurable_const) (h_meas i)).symm
-  },
-
-  have h3 : pairwise (λ (i j : ℕ), indep_fun (Xp i) (Xp j) μ) := by {
-    intros i j hij,
-    apply indep_fun.comp (h_indep i j hij);
-    exact measurable_id.max measurable_const
-  },
-
-  have h4 : ∀ᵐ (x : ℝ) ∂measure.map pos ν, 0 ≤ x := by {
-    rw ae_map_iff,
-    { simp only [le_max_iff, le_refl, or_true, filter.eventually_true] },
-    { measurability },
-    { exact measurable_set_Ici }
-  },
-
-  have Hp := lln_of_nonneg (ν.map pos) Xp h1 h2 h3 h4,
-
-  have h'1 : integrable id (measure.map neg ν),
-    from (integrable_map_measure measurable_id.ae_strongly_measurable
-      (measurable_neg.max measurable_const).ae_measurable).mpr h_int.neg.max_zero,
-
-  have h'2 : ∀ (i : ℕ), measure.map (Xm i) μ = measure.map neg ν := by {
-    intro i,
-    rw [← h_dist i],
-    exact (measure.map_map (measurable_neg.max measurable_const) (h_meas i)).symm
-  },
-
-  have h'3 : pairwise (λ (i j : ℕ), indep_fun (Xm i) (Xm j) μ) := by {
-    intros i j hij,
-    apply indep_fun.comp (h_indep i j hij);
-    exact measurable_neg.max measurable_const
-  },
-
-  have h'4 : ∀ᵐ (x : ℝ) ∂measure.map neg ν, 0 ≤ x := by {
-    rw ae_map_iff,
-    { simp only [le_max_iff, le_refl, or_true, filter.eventually_true] },
-    { measurability },
-    { exact measurable_set_Ici }
-  },
-
-  have Hn := lln_of_nonneg (ν.map neg) Xm h'1 h'2 h'3 h'4,
+  have Hn : ∀ᵐ a ∂μ, filter.tendsto (partial_avg' Xm a) ⊤ (nhds (integral (measure.map neg ν) id)),
+  { apply lln_of_nonneg,
+    { exact (integrable_map_measure measurable_id.ae_strongly_measurable
+        (measurable_neg.max measurable_const).ae_measurable).mpr h_int.neg.max_zero },
+    { intro i,
+      rw [← h_dist i],
+      exact (measure.map_map (measurable_neg.max measurable_const) (h_meas i)).symm },
+    { intros i j hij,
+      apply indep_fun.comp (h_indep i j hij);
+      exact measurable_neg.max measurable_const },
+    { rw ae_map_iff,
+      { simp only [le_max_iff, le_refl, or_true, filter.eventually_true] },
+      { measurability },
+      { exact measurable_set_Ici } } },
 
   apply (Hp.and Hn).mono,
   rintro a ⟨c1, c2⟩,
   convert c1.sub c2,
   { funext n,
-    simp [partial_avg'],
-    rw [← sub_div],
-    apply congr_arg (λ (z : ℝ), z / n),
-    rw [← @fin.sum.sub n (λ n, Xp n a) (λ n, Xm n a)],
-    congr,
-    simp },
+    simp only [partial_avg'],
+    rw [← sub_div, ← @fin.sum.sub n (λ n, Xp n a) (λ n, Xm n a)],
+    simp only [max_zero_sub_max_neg_zero_eq_self] },
   { exact integral_pos_add_neg h_int }
 end
 
