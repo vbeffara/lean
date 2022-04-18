@@ -2,7 +2,7 @@ import probability.indep
 open measure_theory probability_theory filter
 open_locale big_operators measure_theory probability_theory topological_space
 
-variables {α : Type*} {mα : measurable_space α} {μ : measure α} [is_finite_measure μ]
+variables {α β γ : Type*} {mα : measurable_space α} {μ : measure α} [is_finite_measure μ]
 
 namespace probability_theory
 
@@ -70,16 +70,6 @@ begin
 end
 
 theorem lln_of_nonneg
-  (ν : measure ℝ)
-  (X : ℕ → α → ℝ)
-  (h_int : integrable id ν)
-  (h_dist : ∀ i, measure.map (X i) μ = ν)
-  (h_indep : pairwise (λ i j, indep_fun (X i) (X j) μ))
-  (h_pos' : ∀ n, 0 ≤ᵐ[μ] X n) :
-  ∀ᵐ a ∂μ, tendsto (partial_avg' X a) at_top (𝓝 (integral ν id)) :=
-sorry
-
-theorem lln_of_nonneg'
   (X : ℕ → α → ℝ)
   (h_int : ∀ i, integrable (X i) μ)
   (h_dist : ∀ i, μ.map (X i) = μ.map (X 0))
@@ -89,86 +79,67 @@ theorem lln_of_nonneg'
   ∀ᵐ a ∂μ, tendsto (partial_avg' X a) at_top (𝓝 (integral μ (X 0))) :=
 sorry
 
+lemma bla2
+  {mβ : measurable_space β} {mγ : measurable_space γ}
+  {X Y : α → β} {mX : measurable X} {mY : measurable Y}
+  (φ : β → γ) {mφ : measurable φ}
+  (h : μ.map X = μ.map Y) :
+  μ.map (φ ∘ X) = μ.map (φ ∘ Y) :=
+by rw [← measure.map_map mφ mX, ← measure.map_map mφ mY, h]
+
+lemma bla1
+  {X Y : α → ℝ} (hX : measurable X) (hY : measurable Y) (hXY : μ.map X = μ.map Y) :
+  (μ.map (X ⊔ 0) = μ.map (Y ⊔ 0)) :=
+begin
+  have : X ⊔ 0 = (⊔ 0) ∘ X := by refl, rw this,
+  apply bla2; measurability
+end
+
 theorem lln
-  (ν : measure ℝ)
   (X : ℕ → α → ℝ)
-  (h_int : integrable id ν)
-  (h_meas : ∀ i, measurable (X i))
-  (h_int' : ∀ i, integrable (X i) μ)
-  (h_dist : ∀ i, μ.map (X i) = ν)
+  (h_int : ∀ i, integrable (X i) μ)
   (h_dist' : ∀ i, μ.map (X i) = μ.map (X 0))
   (h_indep : pairwise (λ i j, indep_fun (X i) (X j) μ)) :
   ∀ᵐ a ∂μ, tendsto (partial_avg' X a) at_top (𝓝 (integral μ (X 0))) :=
 begin
-  let pos : ℝ → ℝ := λ x, max x 0,
   let neg : ℝ → ℝ := λ x, max (-x) 0,
-  let Xp : ℕ → α → ℝ := λ n a, pos (X n a),
-  let Xp' : ℕ → α → ℝ := λ n, X n ⊔ 0,
-  let Xp'' : ℕ → α → ℝ := X ⊔ 0,
-  let Xm : ℕ → α → ℝ := λ n a, neg (X n a),
-  let Xm'' := (-X) ⊔ 0,
+  let Xp := X ⊔ 0,
+  let Xm := -X ⊔ 0,
 
-  have h1 : ∀ i, μ.map (X i ⊔ 0) = ν.map (⊔ 0) := sorry,
-  have h2 : ∀ i, Xp'' i = (⊔ 0) ∘ X i := sorry,
+  have h1 : ∀ i, μ.map (X i ⊔ 0) = μ.map (X 0 ⊔ 0) := λ i, bla1 (h_int i) (h_int 0) (h_dist' i),
   have h3 : measurable (⊔ (0 : real)) := measurable_id.max measurable_const,
-  have h4 : ∀ i, μ.map (- X i ⊔ 0) = ν.map ((⊔ 0) ∘ neg) := sorry,
+  have h4 : ∀ i, μ.map (- X i ⊔ 0) = μ.map (- X 0 ⊔ 0) := sorry,
   have h5 : measurable ((⊔ (0 : real)) ∘ neg) := sorry,
-  have h6 : ∀ i, Xm'' i = ((⊔ 0) ∘ neg) ∘ X i := sorry,
+  have h6 : ∀ i, Xm i = ((⊔ 0) ∘ neg) ∘ X i := sorry,
   have h7 : ∀ x : ℝ, x ⊔ 0 - (-x) ⊔ 0 = x := sorry,
 
-  have Hp : ∀ᵐ a ∂μ, tendsto (partial_avg' Xp a) at_top (𝓝 (integral (measure.map pos ν) id)),
+  have Hp : ∀ᵐ a ∂μ, tendsto (partial_avg' Xp a) at_top (𝓝 (integral μ (Xp 0))),
   { apply lln_of_nonneg,
-    { exact (integrable_map_measure measurable_id.ae_strongly_measurable
-        (measurable_id.max measurable_const).ae_measurable).mpr h_int.max_zero },
-    { intro i,
-      rw [← h_dist i],
-      exact (measure.map_map (measurable_id.max measurable_const) (h_meas i)).symm },
-    { intros i j hij,
-      apply indep_fun.comp (h_indep i j hij);
-      exact measurable_id.max measurable_const },
-    { refine λ n, ae_of_all _ _,
-      simp only [pi.zero_apply, le_max_iff, le_refl, or_true, implies_true_iff]} },
-
-  have Hp'' : ∀ᵐ a ∂μ, tendsto (partial_avg' Xp'' a) at_top (𝓝 (integral μ (Xp'' 0))),
-  { apply lln_of_nonneg',
-    { exact λ i, (h_int' i).max_zero },
-    { simp only [Xp'', h1, pi.sup_apply, pi.zero_apply, forall_const] },
+    { exact λ i, (h_int i).max_zero },
+    { simp only [Xp, h1, pi.sup_apply, pi.zero_apply, forall_const] },
     { exact λ i j hij, by apply indep_fun.comp (h_indep i j hij) h3 h3 },
-    { exact λ i, ae_of_all _ (by simp [Xp'']) } },
+    { exact λ i, ae_of_all _ (by simp [Xp]) } },
 
-  have Hn : ∀ᵐ a ∂μ, tendsto (partial_avg' Xm a) at_top (𝓝 (integral (measure.map neg ν) id)),
+  have Hn : ∀ᵐ a ∂μ, tendsto (partial_avg' Xm a) at_top (𝓝 (integral μ (Xm 0))),
   { apply lln_of_nonneg,
-    { exact (integrable_map_measure measurable_id.ae_strongly_measurable
-        (measurable_neg.max measurable_const).ae_measurable).mpr h_int.neg.max_zero },
-    { intro i,
-      rw [← h_dist i],
-      exact (measure.map_map (measurable_neg.max measurable_const) (h_meas i)).symm },
-    { intros i j hij,
-      apply indep_fun.comp (h_indep i j hij);
-      exact measurable_neg.max measurable_const },
-    { refine λ n, ae_of_all _ _,
-      simp only [pi.zero_apply, le_max_iff, le_refl, or_true, implies_true_iff] } },
-
-  have Hn'' : ∀ᵐ a ∂μ, tendsto (partial_avg' Xm'' a) at_top (𝓝 (integral μ (Xm'' 0))),
-  { apply lln_of_nonneg',
-    { exact λ i, (h_int' i).neg.max_zero },
-    { simp only [Xm'', h4, pi.sup_apply, pi.neg_apply, pi.zero_apply, forall_const] },
+    { exact λ i, (h_int i).neg.max_zero },
+    { simp only [Xm, h4, pi.sup_apply, pi.neg_apply, pi.zero_apply, forall_const] },
     { intros i j hij,
       rw [h6, h6],
       apply indep_fun.comp (h_indep i j hij) h5 h5 },
-    { exact λ i, ae_of_all _ (by simp [Xm'']) } },
+    { exact λ i, ae_of_all _ (by simp [Xm]) } },
 
-  apply (Hp''.and Hn'').mono,
+  apply (Hp.and Hn).mono,
   rintro a ⟨c1, c2⟩,
   convert c1.sub c2,
   { funext n,
-    simp only [partial_avg', Xp'', Xm''],
-    rw [← sub_div, ← @fin.sum.sub n (λ n, Xp'' n a) (λ n, Xm'' n a)],
-    simp only [Xp'', Xm'', h7, pi.sup_apply, pi.zero_apply, pi.neg_apply] },
+    simp only [partial_avg', Xp, Xm],
+    rw [← sub_div, ← @fin.sum.sub n (λ n, Xp n a) (λ n, Xm n a)],
+    simp only [Xp, Xm, h7, pi.sup_apply, pi.zero_apply, pi.neg_apply] },
   { rw ← integral_sub,
     { simp [h7] },
-    { exact (h_int' 0).max_zero },
-    { exact (h_int' 0).neg.max_zero } }
+    { exact (h_int 0).max_zero },
+    { exact (h_int 0).neg.max_zero } }
 end
 
 end probability_theory
