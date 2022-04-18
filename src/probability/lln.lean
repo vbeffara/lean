@@ -98,7 +98,7 @@ theorem lln
   (h_dist : ∀ i, μ.map (X i) = ν)
   (h_dist' : ∀ i, μ.map (X i) = μ.map (X 0))
   (h_indep : pairwise (λ i j, indep_fun (X i) (X j) μ)) :
-  ∀ᵐ a ∂μ, tendsto (partial_avg' X a) at_top (𝓝 (integral ν id)) :=
+  ∀ᵐ a ∂μ, tendsto (partial_avg' X a) at_top (𝓝 (integral μ (X 0))) :=
 begin
   let pos : ℝ → ℝ := λ x, max x 0,
   let neg : ℝ → ℝ := λ x, max (-x) 0,
@@ -114,6 +114,7 @@ begin
   have h4 : ∀ i, μ.map (- X i ⊔ 0) = ν.map ((⊔ 0) ∘ neg) := sorry,
   have h5 : measurable ((⊔ (0 : real)) ∘ neg) := sorry,
   have h6 : ∀ i, Xm'' i = ((⊔ 0) ∘ neg) ∘ X i := sorry,
+  have h7 : ∀ x : ℝ, x ⊔ 0 - (-x) ⊔ 0 = x := sorry,
 
   have Hp : ∀ᵐ a ∂μ, tendsto (partial_avg' Xp a) at_top (𝓝 (integral (measure.map pos ν) id)),
   { apply lln_of_nonneg,
@@ -157,14 +158,17 @@ begin
       apply indep_fun.comp (h_indep i j hij) h5 h5 },
     { exact λ i, ae_of_all _ (by simp [Xm'']) } },
 
-  apply (Hp.and Hn).mono,
+  apply (Hp''.and Hn'').mono,
   rintro a ⟨c1, c2⟩,
   convert c1.sub c2,
   { funext n,
-    simp only [partial_avg'],
-    rw [← sub_div, ← @fin.sum.sub n (λ n, Xp n a) (λ n, Xm n a)],
-    simp only [max_zero_sub_max_neg_zero_eq_self] },
-  { exact integral_pos_add_neg h_int }
+    simp only [partial_avg', Xp'', Xm''],
+    rw [← sub_div, ← @fin.sum.sub n (λ n, Xp'' n a) (λ n, Xm'' n a)],
+    simp only [Xp'', Xm'', h7, pi.sup_apply, pi.zero_apply, pi.neg_apply] },
+  { rw ← integral_sub,
+    { simp [h7] },
+    { exact (h_int' 0).max_zero },
+    { exact (h_int' 0).neg.max_zero } }
 end
 
 end probability_theory
