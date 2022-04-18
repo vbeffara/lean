@@ -109,7 +109,12 @@ begin
     exact measurable_id.max measurable_const
   },
 
-  have h4 : ∀ᵐ (x : ℝ) ∂measure.map pos ν, 0 ≤ x := sorry,
+  have h4 : ∀ᵐ (x : ℝ) ∂measure.map pos ν, 0 ≤ x := by {
+    rw ae_map_iff,
+    { simp only [le_max_iff, le_refl, or_true, filter.eventually_true] },
+    { measurability },
+    { exact measurable_set_Ici }
+  },
 
   have Hp := lln_of_nonneg (ν.map pos) Xp h1 h2 h3 h4,
 
@@ -129,7 +134,12 @@ begin
     exact measurable_neg.max measurable_const
   },
 
-  have h'4 : ∀ᵐ (x : ℝ) ∂measure.map neg ν, 0 ≤ x := sorry,
+  have h'4 : ∀ᵐ (x : ℝ) ∂measure.map neg ν, 0 ≤ x := by {
+    rw ae_map_iff,
+    { simp only [le_max_iff, le_refl, or_true, filter.eventually_true] },
+    { measurability },
+    { exact measurable_set_Ici }
+  },
 
   have Hn := lln_of_nonneg (ν.map neg) Xm h'1 h'2 h'3 h'4,
 
