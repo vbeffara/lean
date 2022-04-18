@@ -103,7 +103,12 @@ begin
     exact (measure.map_map (measurable_id.max measurable_const) (h_meas i)).symm
   },
 
-  have h3 : pairwise (λ (i j : ℕ), indep_fun (Xp i) (Xp j) μ) := sorry,
+  have h3 : pairwise (λ (i j : ℕ), indep_fun (Xp i) (Xp j) μ) := by {
+    intros i j hij,
+    apply indep_fun.comp (h_indep i j hij);
+    exact measurable_id.max measurable_const
+  },
+
   have h4 : ∀ᵐ (x : ℝ) ∂measure.map pos ν, 0 ≤ x := sorry,
 
   have Hp := lln_of_nonneg (ν.map pos) Xp h1 h2 h3 h4,
@@ -118,7 +123,12 @@ begin
     exact (measure.map_map (measurable_neg.max measurable_const) (h_meas i)).symm
   },
 
-  have h'3 : pairwise (λ (i j : ℕ), indep_fun (Xm i) (Xm j) μ) := sorry,
+  have h'3 : pairwise (λ (i j : ℕ), indep_fun (Xm i) (Xm j) μ) := by {
+    intros i j hij,
+    apply indep_fun.comp (h_indep i j hij);
+    exact measurable_neg.max measurable_const
+  },
+
   have h'4 : ∀ᵐ (x : ℝ) ∂measure.map neg ν, 0 ≤ x := sorry,
 
   have Hn := lln_of_nonneg (ν.map neg) Xm h'1 h'2 h'3 h'4,
