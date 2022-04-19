@@ -96,26 +96,16 @@ theorem lln
   (h_indep : pairwise (λ i j, indep_fun (X i) (X j) μ)) :
   ∀ᵐ a ∂μ, tendsto (partial_avg' X a) at_top (𝓝 (integral μ (X 0))) :=
 begin
-  let Xp := λ n a, (X n a)⁺,
-  let Xm := λ n a, (X n a)⁻,
-
-  have h1 : ∀ i, μ.map ((X i)⁺) = μ.map ((X 0)⁺) := by {
-    apply λ i, bla2 (h_dist i) (λ z, z⁺),
-    { exact h_meas i },
-    { exact h_meas 0 },
-    { exact measurable_id.sup_const 0 }
-  },
-  have h4 : ∀ i, μ.map ((X i)⁻) = μ.map ((X 0)⁻) := by {
-    intro i,
-    apply bla2 (h_dist i) (λ z, z⁻),
-    { exact h_meas i },
-    { exact h_meas 0 },
-    { exact measurable_id.neg.sup_const 0 }
-  },
-
   have h3 : measurable (λ z : ℝ, z⁺) := measurable_id.sup_const 0,
   have h5 : measurable (λ z : ℝ, z⁻) := measurable_id.neg.sup_const 0,
   have h7 : ∀ x : ℝ, x⁺ - x⁻ = x := lattice_ordered_comm_group.pos_sub_neg,
+
+  have h1 : ∀ i, μ.map (X⁺ i) = μ.map (X⁺ 0) := by {
+    apply λ i, bla2 (h_dist i) (λ z, z⁺),
+    measurability },
+  have h4 : ∀ i, μ.map (X⁻ i) = μ.map (X⁻ 0) := by {
+    apply λ i, bla2 (h_dist i) (λ z, z⁻),
+    measurability },
 
   have Hp : ∀ᵐ a ∂μ, tendsto (partial_avg' (X⁺) a) at_top (𝓝 (integral μ (X⁺ 0))),
   { apply lln_of_nonneg (X⁺),
