@@ -31,43 +31,8 @@ begin
   ring
 end
 
-noncomputable def partial_avg (X : ℕ → α → ℝ) (n : ℕ) : α → ℝ :=
-(∑ i in finset.range n, X i) / n
-
-noncomputable def partial_avg' (X : ℕ → α → ℝ) (a : α) (n : ℕ) : ℝ :=
-(∑ i : fin n, X i a) / n
-
-lemma fin.sum.add (n : ℕ) (f g : ℕ → ℝ) :
-  ∑ i : fin n, (f i + g i) = ∑ i : fin n, f i + ∑ i : fin n, g i :=
-begin
-  induction n,
-  { simp },
-  { simp [fin.sum_univ_cast_succ, n_ih], ring }
-end
-
-lemma fin.sum.sub (n : ℕ) (f g : ℕ → ℝ) :
-  ∑ i : fin n, (f i - g i) = ∑ i : fin n, f i - ∑ i : fin n, g i :=
-begin
-  induction n,
-  { simp },
-  { simp [fin.sum_univ_cast_succ, n_ih], ring }
-end
-
-lemma integral_pos_add_neg {ν : measure ℝ} (h_int : integrable id ν) :
-  let pos : ℝ → ℝ := λ (x : ℝ), max x 0,
-      neg : ℝ → ℝ := λ (x : ℝ), max (-x) 0
-  in integral ν id = integral (measure.map pos ν) id - integral (measure.map neg ν) id :=
-begin
-  intros pos neg,
-  rw [integral_map, integral_map, ← integral_sub],
-  { simpa only [id.def, max_zero_sub_max_neg_zero_eq_self] },
-  { exact h_int.max_zero },
-  { exact h_int.neg.max_zero },
-  { exact (measurable_neg.max measurable_const).ae_measurable },
-  { exact measurable_id.ae_strongly_measurable },
-  { exact (measurable_id.max measurable_const).ae_measurable },
-  { exact measurable_id.ae_strongly_measurable }
-end
+noncomputable def partial_avg (X : ℕ → α → ℝ) (a : α) (n : ℕ) :=
+(∑ i in finset.range n, X i a) / n
 
 theorem lln_of_nonneg
   (X : ℕ → α → ℝ)
@@ -77,7 +42,7 @@ theorem lln_of_nonneg
   (h_indep : pairwise (λ i j, indep_fun (X i) (X j) μ))
   (h_pos : ∀ i, 0 ≤ᵐ[μ] X i)
   :
-  ∀ᵐ a ∂μ, tendsto (partial_avg' X a) at_top (𝓝 (integral μ (X 0))) :=
+  ∀ᵐ a ∂μ, tendsto (partial_avg X a) at_top (𝓝 (integral μ (X 0))) :=
 sorry
 
 lemma bla2
@@ -94,47 +59,35 @@ theorem lln
   (h_int : ∀ i, integrable (X i) μ)
   (h_dist : ∀ i, μ.map (X i) = μ.map (X 0))
   (h_indep : pairwise (λ i j, indep_fun (X i) (X j) μ)) :
-  ∀ᵐ a ∂μ, tendsto (partial_avg' X a) at_top (𝓝 (integral μ (X 0))) :=
+  ∀ᵐ a ∂μ, tendsto (partial_avg X a) at_top (𝓝 (integral μ (X 0))) :=
 begin
+  have h7 : ∀ i a, X⁺ i a - X⁻ i a = X i a := λ i a, lattice_ordered_comm_group.pos_sub_neg _,
   have h3 : measurable (λ z : ℝ, z⁺) := measurable_id.sup_const 0,
   have h5 : measurable (λ z : ℝ, z⁻) := measurable_id.neg.sup_const 0,
-  have h7 : ∀ x : ℝ, x⁺ - x⁻ = x := lattice_ordered_comm_group.pos_sub_neg,
+  have ha : ∀ i, measurable (X⁺ i) := λ i, (h_meas i).sup_const 0,
+  have hc : ∀ i, measurable (X⁻ i) := λ i, (h_meas i).neg.sup_const 0,
+  have hb : ∀ i, integrable (X⁺ i) μ := λ i, (h_int i).max_zero,
+  have hd : ∀ i, integrable (X⁻ i) μ := λ i, (h_int i).neg.max_zero,
 
-  have h1 : ∀ i, μ.map (X⁺ i) = μ.map (X⁺ 0) := by {
-    apply λ i, bla2 (h_dist i) (λ z, z⁺),
-    measurability },
-  have h4 : ∀ i, μ.map (X⁻ i) = μ.map (X⁻ 0) := by {
-    apply λ i, bla2 (h_dist i) (λ z, z⁻),
-    measurability },
+  have h1 : ∀ i, μ.map (X⁺ i) = μ.map (X⁺ 0) :=
+    by { apply λ i, bla2 (h_dist i) (λ z, z⁺), measurability },
+  have h4 : ∀ i, μ.map (X⁻ i) = μ.map (X⁻ 0) :=
+    by { apply λ i, bla2 (h_dist i) (λ z, z⁻), measurability },
 
-  have Hp : ∀ᵐ a ∂μ, tendsto (partial_avg' (X⁺) a) at_top (𝓝 (integral μ (X⁺ 0))),
-  { apply lln_of_nonneg (X⁺),
-    { exact λ i, (h_meas i).sup_const 0 },
-    { exact λ i, (h_int i).max_zero },
-    { exact h1 },
-    { exact λ i j hij, by apply indep_fun.comp (h_indep i j hij) h3 h3 },
-    { exact λ i, ae_of_all _ (by simp [has_pos_part.pos]) },
-    { apply_instance } },
+  have Hp : ∀ᵐ a ∂μ, tendsto (partial_avg (X⁺) a) at_top (𝓝 (integral μ (X⁺ 0))),
+  { apply lln_of_nonneg (X⁺) ha hb h1,
+    { exact h_indep.mono (λ i j hij, by apply indep_fun.comp hij h3 h3) },
+    { exact λ i, ae_of_all _ (by simp [has_pos_part.pos]) } },
 
-  have Hn : ∀ᵐ a ∂μ, tendsto (partial_avg' (X⁻) a) at_top (𝓝 (integral μ ((X⁻) 0))),
-  { apply lln_of_nonneg,
-    { exact λ i, (h_meas i).neg.sup_const 0 },
-    { exact λ i, (h_int i).neg.max_zero },
-    { exact h4 },
-    { intros i j hij, apply indep_fun.comp (h_indep i j hij) h5 h5 },
+  have Hn : ∀ᵐ a ∂μ, tendsto (partial_avg (X⁻) a) at_top (𝓝 (integral μ ((X⁻) 0))),
+  { apply lln_of_nonneg (X⁻) hc hd h4,
+    { exact h_indep.mono (λ i j hij, by apply indep_fun.comp hij h5 h5) },
     { exact λ i, ae_of_all _ (by simp [has_neg_part.neg]) } },
 
-  apply (Hp.and Hn).mono,
-  rintro a ⟨c1, c2⟩,
-  convert c1.sub c2,
-  { funext n,
-    simp only [partial_avg'],
-    rw [← sub_div, ← @fin.sum.sub n (λ n, X⁺ n a) (λ n, X⁻ n a)],
-    congr, funext i, exact (h7 _).symm },
-  { rw ← integral_sub,
-    { congr, funext a, exact (h7 _).symm },
-    { exact (h_int 0).max_zero },
-    { exact (h_int 0).neg.max_zero } }
+  refine (Hp.and Hn).mono (λ a c, _),
+  convert c.1.sub c.2,
+  { exact funext (λ x, by simp_rw [partial_avg, ← sub_div, ← finset.sum_sub_distrib, h7]) },
+  { simp_rw [← integral_sub (hb 0) (hd 0), h7] }
 end
 
 end probability_theory
