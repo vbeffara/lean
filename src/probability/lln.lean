@@ -104,10 +104,10 @@ theorem lln
   (h_indep : pairwise (λ i j, indep_fun (X i) (X j) μ)) :
   ∀ᵐ a ∂μ, tendsto (partial_avg' X a) at_top (𝓝 (integral μ (X 0))) :=
 begin
-  let Xp := λ n, X n ⊔ 0,
+  let Xp := λ n a, (X n a)⁺,
   let Xm := λ n, - X n ⊔ 0,
 
-  have h1 : ∀ i, μ.map (X i ⊔ 0) = μ.map (X 0 ⊔ 0) := λ i, bla1 (h_meas i) (h_meas 0) (h_dist i),
+  have h1 : ∀ i, μ.map (Xp i) = μ.map (Xp 0) := λ i, bla1 (h_meas i) (h_meas 0) (h_dist i),
   have h4 : ∀ i, μ.map (- X i ⊔ 0) = μ.map (- X 0 ⊔ 0) := by {
     convert λ i, bla2 (λ z, - z ⊔ (0 : ℝ)) (h_dist i),
     exact h_meas i,
@@ -117,15 +117,15 @@ begin
 
   have h3 : measurable (λ z : ℝ, z ⊔ 0) := measurable_id.sup_const 0,
   have h5 : measurable (λ z : ℝ, - z ⊔ 0) := measurable_id.neg.sup_const 0,
-  have h7 : ∀ x : ℝ, x ⊔ 0 - (-x) ⊔ 0 = x := lattice_ordered_comm_group.pos_sub_neg,
+  have h7 : ∀ x : ℝ, x⁺ - (-x) ⊔ 0 = x := lattice_ordered_comm_group.pos_sub_neg,
 
   have Hp : ∀ᵐ a ∂μ, tendsto (partial_avg' Xp a) at_top (𝓝 (integral μ (Xp 0))),
   { apply lln_of_nonneg,
-    { intro i, refine (h_meas i).max _, simp only [pi.zero_apply, measurable_const] },
+    { exact λ i, (h_meas i).sup_const 0 },
     { exact λ i, (h_int i).max_zero },
-    { simp only [Xp, h1, pi.sup_apply, pi.zero_apply, forall_const] },
+    { exact h1 },
     { exact λ i j hij, by apply indep_fun.comp (h_indep i j hij) h3 h3 },
-    { exact λ i, ae_of_all _ (by simp [Xp]) } },
+    { exact λ i, ae_of_all _ (by simp [Xp, has_pos_part.pos]) } },
 
   have Hn : ∀ᵐ a ∂μ, tendsto (partial_avg' Xm a) at_top (𝓝 (integral μ (Xm 0))),
   { apply lln_of_nonneg,
@@ -142,7 +142,7 @@ begin
   { funext n,
     simp only [partial_avg', Xp, Xm],
     rw [← sub_div, ← @fin.sum.sub n (λ n, Xp n a) (λ n, Xm n a)],
-    simp only [Xp, Xm, h7, pi.sup_apply, pi.zero_apply, pi.neg_apply] },
+    simp only [Xp, Xm, h7, pi.sup_apply, pi.zero_apply, pi.neg_apply], },
   { rw ← integral_sub,
     { simp [h7] },
     { exact (h_int 0).max_zero },
