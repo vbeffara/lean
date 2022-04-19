@@ -83,18 +83,10 @@ sorry
 lemma bla2
   {mβ : measurable_space β} {mγ : measurable_space γ}
   {X Y : α → β} {mX : measurable X} {mY : measurable Y}
-  (φ : β → γ) {mφ : measurable φ}
-  (h : μ.map X = μ.map Y) :
+  (h : μ.map X = μ.map Y)
+  (φ : β → γ) {mφ : measurable φ} :
   μ.map (φ ∘ X) = μ.map (φ ∘ Y) :=
 by rw [← measure.map_map mφ mX, ← measure.map_map mφ mY, h]
-
-lemma bla1
-  {X Y : α → ℝ} (hX : measurable X) (hY : measurable Y) (hXY : μ.map X = μ.map Y) :
-  (μ.map (X ⊔ 0) = μ.map (Y ⊔ 0)) :=
-begin
-  have : X ⊔ 0 = (⊔ 0) ∘ X := by refl, rw this,
-  apply bla2; measurability
-end
 
 theorem lln
   (X : ℕ → α → ℝ)
@@ -105,46 +97,52 @@ theorem lln
   ∀ᵐ a ∂μ, tendsto (partial_avg' X a) at_top (𝓝 (integral μ (X 0))) :=
 begin
   let Xp := λ n a, (X n a)⁺,
-  let Xm := λ n, - X n ⊔ 0,
+  let Xm := λ n a, (X n a)⁻,
 
-  have h1 : ∀ i, μ.map (Xp i) = μ.map (Xp 0) := λ i, bla1 (h_meas i) (h_meas 0) (h_dist i),
-  have h4 : ∀ i, μ.map (- X i ⊔ 0) = μ.map (- X 0 ⊔ 0) := by {
-    convert λ i, bla2 (λ z, - z ⊔ (0 : ℝ)) (h_dist i),
-    exact h_meas i,
-    exact h_meas 0,
-    exact measurable_id.neg.sup_const 0
+  have h1 : ∀ i, μ.map ((X i)⁺) = μ.map ((X 0)⁺) := by {
+    apply λ i, bla2 (h_dist i) (λ z, z⁺),
+    { exact h_meas i },
+    { exact h_meas 0 },
+    { exact measurable_id.sup_const 0 }
+  },
+  have h4 : ∀ i, μ.map ((X i)⁻) = μ.map ((X 0)⁻) := by {
+    intro i,
+    apply bla2 (h_dist i) (λ z, z⁻),
+    { exact h_meas i },
+    { exact h_meas 0 },
+    { exact measurable_id.neg.sup_const 0 }
   },
 
-  have h3 : measurable (λ z : ℝ, z ⊔ 0) := measurable_id.sup_const 0,
-  have h5 : measurable (λ z : ℝ, - z ⊔ 0) := measurable_id.neg.sup_const 0,
-  have h7 : ∀ x : ℝ, x⁺ - (-x) ⊔ 0 = x := lattice_ordered_comm_group.pos_sub_neg,
+  have h3 : measurable (λ z : ℝ, z⁺) := measurable_id.sup_const 0,
+  have h5 : measurable (λ z : ℝ, z⁻) := measurable_id.neg.sup_const 0,
+  have h7 : ∀ x : ℝ, x⁺ - x⁻ = x := lattice_ordered_comm_group.pos_sub_neg,
 
-  have Hp : ∀ᵐ a ∂μ, tendsto (partial_avg' Xp a) at_top (𝓝 (integral μ (Xp 0))),
-  { apply lln_of_nonneg,
+  have Hp : ∀ᵐ a ∂μ, tendsto (partial_avg' (X⁺) a) at_top (𝓝 (integral μ (X⁺ 0))),
+  { apply lln_of_nonneg (X⁺),
     { exact λ i, (h_meas i).sup_const 0 },
     { exact λ i, (h_int i).max_zero },
     { exact h1 },
     { exact λ i j hij, by apply indep_fun.comp (h_indep i j hij) h3 h3 },
-    { exact λ i, ae_of_all _ (by simp [Xp, has_pos_part.pos]) } },
+    { exact λ i, ae_of_all _ (by simp [has_pos_part.pos]) },
+    { apply_instance } },
 
-  have Hn : ∀ᵐ a ∂μ, tendsto (partial_avg' Xm a) at_top (𝓝 (integral μ (Xm 0))),
+  have Hn : ∀ᵐ a ∂μ, tendsto (partial_avg' (X⁻) a) at_top (𝓝 (integral μ ((X⁻) 0))),
   { apply lln_of_nonneg,
-    { intro i, refine (h_meas i).neg.max _, simp only [pi.zero_apply, measurable_const] },
+    { exact λ i, (h_meas i).neg.sup_const 0 },
     { exact λ i, (h_int i).neg.max_zero },
-    { simp only [Xm, h4, pi.sup_apply, pi.neg_apply, pi.zero_apply, forall_const] },
-    { intros i j hij,
-      apply indep_fun.comp (h_indep i j hij) h5 h5 },
-    { exact λ i, ae_of_all _ (by simp [Xm]) } },
+    { exact h4 },
+    { intros i j hij, apply indep_fun.comp (h_indep i j hij) h5 h5 },
+    { exact λ i, ae_of_all _ (by simp [has_neg_part.neg]) } },
 
   apply (Hp.and Hn).mono,
   rintro a ⟨c1, c2⟩,
   convert c1.sub c2,
   { funext n,
-    simp only [partial_avg', Xp, Xm],
-    rw [← sub_div, ← @fin.sum.sub n (λ n, Xp n a) (λ n, Xm n a)],
-    simp only [Xp, Xm, h7, pi.sup_apply, pi.zero_apply, pi.neg_apply], },
+    simp only [partial_avg'],
+    rw [← sub_div, ← @fin.sum.sub n (λ n, X⁺ n a) (λ n, X⁻ n a)],
+    congr, funext i, exact (h7 _).symm },
   { rw ← integral_sub,
-    { simp [h7] },
+    { congr, funext a, exact (h7 _).symm },
     { exact (h_int 0).max_zero },
     { exact (h_int 0).neg.max_zero } }
 end
