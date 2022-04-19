@@ -71,6 +71,7 @@ end
 
 theorem lln_of_nonneg
   (X : ℕ → α → ℝ)
+  (h_meas : ∀ i, measurable (X i))
   (h_int : ∀ i, integrable (X i) μ)
   (h_dist : ∀ i, μ.map (X i) = μ.map (X 0))
   (h_indep : pairwise (λ i j, indep_fun (X i) (X j) μ))
@@ -97,24 +98,30 @@ end
 
 theorem lln
   (X : ℕ → α → ℝ)
+  (h_meas : ∀ i, measurable (X i))
   (h_int : ∀ i, integrable (X i) μ)
-  (h_dist' : ∀ i, μ.map (X i) = μ.map (X 0))
+  (h_dist : ∀ i, μ.map (X i) = μ.map (X 0))
   (h_indep : pairwise (λ i j, indep_fun (X i) (X j) μ)) :
   ∀ᵐ a ∂μ, tendsto (partial_avg' X a) at_top (𝓝 (integral μ (X 0))) :=
 begin
-  let neg : ℝ → ℝ := λ x, max (-x) 0,
-  let Xp := X ⊔ 0,
-  let Xm := -X ⊔ 0,
+  let Xp := λ n, X n ⊔ 0,
+  let Xm := λ n, - X n ⊔ 0,
 
-  have h1 : ∀ i, μ.map (X i ⊔ 0) = μ.map (X 0 ⊔ 0) := λ i, bla1 (h_int i) (h_int 0) (h_dist' i),
-  have h3 : measurable (⊔ (0 : real)) := measurable_id.max measurable_const,
-  have h4 : ∀ i, μ.map (- X i ⊔ 0) = μ.map (- X 0 ⊔ 0) := sorry,
-  have h5 : measurable ((⊔ (0 : real)) ∘ neg) := sorry,
-  have h6 : ∀ i, Xm i = ((⊔ 0) ∘ neg) ∘ X i := sorry,
-  have h7 : ∀ x : ℝ, x ⊔ 0 - (-x) ⊔ 0 = x := sorry,
+  have h1 : ∀ i, μ.map (X i ⊔ 0) = μ.map (X 0 ⊔ 0) := λ i, bla1 (h_meas i) (h_meas 0) (h_dist i),
+  have h4 : ∀ i, μ.map (- X i ⊔ 0) = μ.map (- X 0 ⊔ 0) := by {
+    convert λ i, bla2 (λ z, - z ⊔ (0 : ℝ)) (h_dist i),
+    exact h_meas i,
+    exact h_meas 0,
+    exact measurable_id.neg.sup_const 0
+  },
+
+  have h3 : measurable (λ z : ℝ, z ⊔ 0) := measurable_id.sup_const 0,
+  have h5 : measurable (λ z : ℝ, - z ⊔ 0) := measurable_id.neg.sup_const 0,
+  have h7 : ∀ x : ℝ, x ⊔ 0 - (-x) ⊔ 0 = x := lattice_ordered_comm_group.pos_sub_neg,
 
   have Hp : ∀ᵐ a ∂μ, tendsto (partial_avg' Xp a) at_top (𝓝 (integral μ (Xp 0))),
   { apply lln_of_nonneg,
+    { intro i, refine (h_meas i).max _, simp only [pi.zero_apply, measurable_const] },
     { exact λ i, (h_int i).max_zero },
     { simp only [Xp, h1, pi.sup_apply, pi.zero_apply, forall_const] },
     { exact λ i j hij, by apply indep_fun.comp (h_indep i j hij) h3 h3 },
@@ -122,10 +129,10 @@ begin
 
   have Hn : ∀ᵐ a ∂μ, tendsto (partial_avg' Xm a) at_top (𝓝 (integral μ (Xm 0))),
   { apply lln_of_nonneg,
+    { intro i, refine (h_meas i).neg.max _, simp only [pi.zero_apply, measurable_const] },
     { exact λ i, (h_int i).neg.max_zero },
     { simp only [Xm, h4, pi.sup_apply, pi.neg_apply, pi.zero_apply, forall_const] },
     { intros i j hij,
-      rw [h6, h6],
       apply indep_fun.comp (h_indep i j hij) h5 h5 },
     { exact λ i, ae_of_all _ (by simp [Xm]) } },
 
