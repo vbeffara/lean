@@ -39,8 +39,7 @@ theorem lln_of_nonneg
   (h_int : ∀ i, integrable (X i) μ)
   (h_dist : ∀ i, μ.map (X i) = μ.map (X 0))
   (h_indep : pairwise (λ i j, indep_fun (X i) (X j) μ))
-  (h_pos : ∀ i, 0 ≤ᵐ[μ] X i)
-  :
+  (h_pos : ∀ i, 0 ≤ᵐ[μ] X i) :
   ∀ᵐ a ∂μ, tendsto (partial_avg X a) at_top (𝓝 (integral μ (X 0))) :=
 sorry
 
@@ -56,24 +55,25 @@ lemma bla2 {mβ : measurable_space β} {mγ : measurable_space γ}
 by rw [← map_map' mφ mX, ← map_map' mφ mY, h]
 
 theorem lln
-  (X : ℕ → α → ℝ)
+  ⦃X : ℕ → α → ℝ⦄
   (h_int : ∀ i, integrable (X i) μ)
   (h_dist : ∀ i, μ.map (X i) = μ.map (X 0))
   (h_indep : pairwise (λ i j, indep_fun (X i) (X j) μ)) :
   ∀ᵐ a ∂μ, tendsto (partial_avg X a) at_top (𝓝 (integral μ (X 0))) :=
 begin
+  have h0 : X⁺ - X⁻ = X := lattice_ordered_comm_group.pos_sub_neg X,
   have h1 : ∀ i a, X⁺ i a - X⁻ i a = X i a := λ _ _, lattice_ordered_comm_group.pos_sub_neg _,
   have h2 : measurable (λ z : ℝ, z⁺) := measurable_id.sup_const 0,
   have h3 : measurable (λ z : ℝ, z⁻) := measurable_id.neg.sup_const 0,
 
   have Hp : ∀ᵐ a ∂μ, tendsto (partial_avg (X⁺) a) at_top (𝓝 (integral μ (X⁺ 0))),
     from lln_of_nonneg (λ i, (h_int i).max_zero)
-      (λ i, bla2 (h_int i).1.ae_measurable (h_int 0).1.ae_measurable (h_dist i) h2)
+      (λ i, bla2 (h_int i).ae_measurable (h_int 0).ae_measurable (h_dist i) h2)
       (h_indep.mono (λ i j hij, hij.comp h2 h2)) (λ i, ae_of_all _ (λ a, le_sup_right)),
 
   have Hn : ∀ᵐ a ∂μ, tendsto (partial_avg (X⁻) a) at_top (𝓝 (integral μ (X⁻ 0))),
     from lln_of_nonneg (λ i, (h_int i).neg.max_zero)
-      (λ i, bla2 (h_int i).1.ae_measurable (h_int 0).1.ae_measurable (h_dist i) h3)
+      (λ i, bla2 (h_int i).ae_measurable (h_int 0).ae_measurable (h_dist i) h3)
       (h_indep.mono (λ i j hij, hij.comp h3 h3)) (λ i, ae_of_all _ (λ a, le_sup_right)),
 
   refine (Hp.and Hn).mono (λ a c, _),
