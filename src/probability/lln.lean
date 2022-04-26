@@ -65,13 +65,11 @@ begin
   have h1 : ∀ i a, X⁺ i a - X⁻ i a = X i a := λ _ _, lattice_ordered_comm_group.pos_sub_neg _,
   have h2 : measurable (λ z : ℝ, z⁺) := measurable_id.sup_const 0,
   have h3 : measurable (λ z : ℝ, z⁻) := measurable_id.neg.sup_const 0,
-  have h6 : ∀ i, integrable (X⁺ i) μ := λ i, (h_int i).max_zero,
-  have h7 : ∀ i, integrable (X⁻ i) μ := λ i, (h_int i).neg.max_zero,
 
   have Hp : ∀ᵐ a ∂μ, tendsto (partial_avg (X⁺) a) at_top (𝓝 (integral μ (X⁺ 0))),
     from lln_of_nonneg (λ i, (h_int i).max_zero)
       (λ i, bla2 (h_int i).1.ae_measurable (h_int 0).1.ae_measurable (h_dist i) h2)
-      (h_indep.mono (λ i j hij, hij.comp h2 h2 )) (λ i, ae_of_all _ (λ a, le_sup_right)),
+      (h_indep.mono (λ i j hij, hij.comp h2 h2)) (λ i, ae_of_all _ (λ a, le_sup_right)),
 
   have Hn : ∀ᵐ a ∂μ, tendsto (partial_avg (X⁻) a) at_top (𝓝 (integral μ (X⁻ 0))),
     from lln_of_nonneg (λ i, (h_int i).neg.max_zero)
@@ -81,7 +79,8 @@ begin
   refine (Hp.and Hn).mono (λ a c, _),
   convert c.1.sub c.2,
   { exact funext (λ x, by simp_rw [partial_avg, ← sub_div, ← finset.sum_sub_distrib, h1]) },
-  { simp_rw [← integral_sub (h6 0) (h7 0), h1] }
+  { exact (congr_arg (integral μ) (funext (λ a, (h1 0 a).symm))).trans
+    (integral_sub (h_int 0).max_zero (h_int 0).neg.max_zero) }
 end
 
 end probability_theory
