@@ -1,8 +1,10 @@
+import algebra.module.linear_map
 import probability.indep
 open measure_theory probability_theory filter
 open_locale big_operators measure_theory probability_theory topological_space
 
-variables {α β γ : Type*} {mα : measurable_space α} {μ : measure α} [is_finite_measure μ]
+variables {α β γ : Type*} {mα : measurable_space α} {mβ : measurable_space β} {mγ : measurable_space γ}
+  {μ : measure α} [is_finite_measure μ]
 
 namespace probability_theory
 
@@ -31,8 +33,13 @@ begin
   ring
 end
 
-noncomputable def partial_avg (X : ℕ → α → ℝ) (a : α) (n : ℕ) :=
-(∑ i in finset.range n, X i a) / n
+noncomputable def cesaro {α : Type*} [add_comm_group α] [module ℝ α] :
+  (ℕ → α) →ₗ[ℝ] (ℕ → α) :=
+begin
+  use λ X n, (n : ℝ)⁻¹ • (∑ i in finset.range n, X i),
+  { intros, ext n, simp [finset.sum_add_distrib] },
+  { intros, ext n, simp [← finset.smul_sum], apply smul_comm }
+end
 
 theorem lln_of_nonneg
   ⦃X : ℕ → α → ℝ⦄
@@ -40,8 +47,20 @@ theorem lln_of_nonneg
   (h_dist : ∀ i, μ.map (X i) = μ.map (X 0))
   (h_indep : pairwise (λ i j, indep_fun (X i) (X j) μ))
   (h_pos : ∀ i, 0 ≤ᵐ[μ] X i) :
-  ∀ᵐ a ∂μ, tendsto (partial_avg X a) at_top (𝓝 (integral μ (X 0))) :=
+  ∀ᵐ a ∂μ, tendsto (λ n, cesaro X n a) at_top (𝓝 (integral μ (X 0))) :=
 sorry
+
+lemma map_map_of_ae_measurable {mβ : measurable_space β} {mγ : measurable_space γ}
+  {g : β → γ} {f : α → β}
+  (hg : ae_measurable g (measure.map f μ)) (hf : ae_measurable f μ) :
+  (μ.map f).map g = μ.map (g ∘ f) :=
+begin
+  have hg' : ae_measurable g (measure.map (hf.mk f) μ) := measure.map_congr hf.ae_eq_mk ▸ hg,
+  rw [measure.map_congr hf.ae_eq_mk, measure.map_congr (hf.ae_eq_mk.fun_comp g),
+    measure.map_congr hg'.ae_eq_mk,
+    measure.map_congr (ae_eq_comp hf.measurable_mk.ae_measurable hg'.ae_eq_mk)],
+  exact measure.map_map hg'.measurable_mk hf.measurable_mk
+end
 
 lemma map_map' [measurable_space β] [measurable_space γ] {g : β → γ} {f : α → β}
   (hg : measurable g) (hf : ae_measurable f μ) :
@@ -59,26 +78,26 @@ theorem lln
   (h_int : ∀ i, integrable (X i) μ)
   (h_dist : ∀ i, μ.map (X i) = μ.map (X 0))
   (h_indep : pairwise (λ i j, indep_fun (X i) (X j) μ)) :
-  ∀ᵐ a ∂μ, tendsto (partial_avg X a) at_top (𝓝 (integral μ (X 0))) :=
+  ∀ᵐ a ∂μ, tendsto (λ n, cesaro X n a) at_top (𝓝 (integral μ (X 0))) :=
 begin
-  have h0 : X⁺ - X⁻ = X := lattice_ordered_comm_group.pos_sub_neg X,
   have h1 : ∀ i a, X⁺ i a - X⁻ i a = X i a := λ _ _, lattice_ordered_comm_group.pos_sub_neg _,
   have h2 : measurable (λ z : ℝ, z⁺) := measurable_id.sup_const 0,
   have h3 : measurable (λ z : ℝ, z⁻) := measurable_id.neg.sup_const 0,
 
-  have Hp : ∀ᵐ a ∂μ, tendsto (partial_avg (X⁺) a) at_top (𝓝 (integral μ (X⁺ 0))),
+  have Hp : ∀ᵐ a ∂μ, tendsto (λ n, cesaro (X⁺) n a) at_top (𝓝 (integral μ (X⁺ 0))),
     from lln_of_nonneg (λ i, (h_int i).max_zero)
       (λ i, bla2 (h_int i).ae_measurable (h_int 0).ae_measurable (h_dist i) h2)
       (h_indep.mono (λ i j hij, hij.comp h2 h2)) (λ i, ae_of_all _ (λ a, le_sup_right)),
 
-  have Hn : ∀ᵐ a ∂μ, tendsto (partial_avg (X⁻) a) at_top (𝓝 (integral μ (X⁻ 0))),
+  have Hn : ∀ᵐ a ∂μ, tendsto (λ n, cesaro (X⁻) n a) at_top (𝓝 (integral μ (X⁻ 0))),
     from lln_of_nonneg (λ i, (h_int i).neg.max_zero)
       (λ i, bla2 (h_int i).ae_measurable (h_int 0).ae_measurable (h_dist i) h3)
       (h_indep.mono (λ i j hij, hij.comp h3 h3)) (λ i, ae_of_all _ (λ a, le_sup_right)),
 
   refine (Hp.and Hn).mono (λ a c, _),
   convert c.1.sub c.2,
-  { exact funext (λ x, by simp_rw [partial_avg, ← sub_div, ← finset.sum_sub_distrib, h1]) },
+  { funext n, rw [← congr_arg cesaro (lattice_ordered_comm_group.pos_sub_neg X),
+    linear_map.map_sub, pi.sub_apply, pi.sub_apply] },
   { exact (congr_arg (integral μ) (funext (λ a, (h1 0 a).symm))).trans
     (integral_sub (h_int 0).max_zero (h_int 0).neg.max_zero) }
 end
