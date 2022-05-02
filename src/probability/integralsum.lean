@@ -4,9 +4,9 @@ import measure_theory.measure.measure_space
 open measure_theory measure_theory.measure
 open_locale big_operators measure_theory topological_space
 
-variables {α : Type*} [measurable_space α]
+variables {α : Type*} [fintype α]
 
-instance sum_is_finite_measure {ι : Type*} [fintype ι] {μ : ι → measure α}
+instance sum_is_finite_measure {α ι : Type*} [measurable_space α] [fintype ι] {μ : ι → measure α}
   [∀ i, is_finite_measure (μ i)] : is_finite_measure (sum μ) :=
 begin
   refine ⟨_⟩,
@@ -17,26 +17,23 @@ begin
   { apply_instance }
 end
 
-instance [fintype α] : is_finite_measure (count : measure α) :=
+instance [measurable_space α] : is_finite_measure (count : measure α) :=
 by apply sum_is_finite_measure
 
-lemma linf [fintype α] [nonempty α] (f : α → ℝ) :
-  mem_ℒp f ⊤ (@count α ⊤) :=
+lemma lp (p : ennreal) (f : α → ℝ) :
+  mem_ℒp f p (@count α ⊤) :=
 begin
-  refine ⟨measurable_from_top.ae_strongly_measurable, _⟩,
-  simp [snorm_ess_sup, ess_sup, filter.limsup_eq],
-  apply Inf_lt_iff.mpr,
-  obtain ⟨x, hx⟩ := fintype.exists_max (λ x, ∥f x∥₊),
-  refine ⟨∥f x∥₊, _, by simp only [ennreal.coe_lt_top]⟩,
-  simp,
-  exact @ae_of_all _ ⊤ _ _ hx
+  refine mem_ℒp.mem_ℒp_of_exponent_le _ le_top,
+  suffices : ∃ b : nnreal, ∀ x : α, ∥f x∥₊ ≤ b,
+  { obtain ⟨b, hb⟩ := this,
+    exact mem_ℒp_top_of_bound measurable_from_top.ae_strongly_measurable _ (@ae_of_all _ ⊤ _ _ hb) },
+  by_cases nonempty α,
+  { obtain ⟨x, hx⟩ := by exactI fintype.exists_max (λ x, ∥f x∥₊),
+    refine ⟨_, hx⟩ },
+  { exact ⟨0, λ x, false.rec _ (h ⟨x⟩)⟩ }
 end
 
-lemma lp [fintype α] [nonempty α] (p : ennreal) (f : α → ℝ) :
-  mem_ℒp f p (@count α ⊤) :=
-(linf f).mem_ℒp_of_exponent_le le_top
-
-lemma integral_count {α : Type*} [fintype α] {f : α → ℝ} :
+lemma integral_count {f : α → ℝ} :
   ∫ a, f a ∂(@count α ⊤) = ∑ a, f a :=
 begin
   simp [count],
@@ -47,8 +44,11 @@ begin
     simp only [ennreal.coe_lt_top] }
 end
 
-lemma cauchy_schwarz {α : Type*} [fintype α] (f g : α → ℝ) :
+lemma cauchy_schwarz (f g : α → ℝ) :
   (∑ x, f x * g x) ^ 2 ≤ (∑ x, f x ^ 2) * (∑ x, g x ^ 2) :=
 begin
-  simp_rw [← integral_count], sorry
+  simp_rw [← integral_count],
+  let ff := mem_ℒp.to_Lp f (lp 2 f),
+  let gg := mem_ℒp.to_Lp g (lp 2 g),
+  sorry
 end
