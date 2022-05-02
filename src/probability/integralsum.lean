@@ -1,4 +1,5 @@
 import measure_theory.integral.bochner
+import measure_theory.function.l2_space
 import measure_theory.measure.measure_space
 
 open measure_theory measure_theory.measure
@@ -29,7 +30,7 @@ begin
     exact mem_ℒp_top_of_bound measurable_from_top.ae_strongly_measurable _ (@ae_of_all _ ⊤ _ _ hb) },
   by_cases nonempty α,
   { obtain ⟨x, hx⟩ := by exactI fintype.exists_max (λ x, ∥f x∥₊),
-    refine ⟨_, hx⟩ },
+    exact ⟨_, hx⟩ },
   { exact ⟨0, λ x, false.rec _ (h ⟨x⟩)⟩ }
 end
 
@@ -45,10 +46,51 @@ begin
 end
 
 lemma cauchy_schwarz (f g : α → ℝ) :
-  (∑ x, f x * g x) ^ 2 ≤ (∑ x, f x ^ 2) * (∑ x, g x ^ 2) :=
+  (∑ x, f x * g x) ≤ (∑ x, f x ^ 2) ^ (2⁻¹ : ℝ) * (∑ x, g x ^ 2) ^ (2⁻¹ : ℝ) :=
 begin
-  simp_rw [← integral_count],
-  let ff := mem_ℒp.to_Lp f (lp 2 f),
-  let gg := mem_ℒp.to_Lp g (lp 2 g),
+  simp_rw [← integral_count, pow_two],
+  rw ← integral_congr_ae ((lp 2 f).coe_fn_to_Lp.mul (lp 2 g).coe_fn_to_Lp),
+  rw ← integral_congr_ae ((lp 2 f).coe_fn_to_Lp.mul (lp 2 f).coe_fn_to_Lp),
+  rw ← integral_congr_ae ((lp 2 g).coe_fn_to_Lp.mul (lp 2 g).coe_fn_to_Lp),
+  simp,
+  let ff := (lp 2 f).to_Lp f,
+  let gg := (lp 2 g).to_Lp g,
+  have := @real_inner_le_norm _ _ ff gg,
+  convert ← this using 1,
+  simp [snorm, snorm'],
+  congr,
+  { have := lintegral_coe_eq_integral (λ x, ∥f x∥₊^2) _,
+    { simp at this,
+      rw [this, ennreal.of_real_rpow_of_nonneg, ennreal.to_real_of_real],
+      { simp_rw pow_two,
+        congr' 1,
+        convert integral_congr_ae ((lp 2 f).coe_fn_to_Lp.mul (lp 2 f).coe_fn_to_Lp).symm,
+        funext,
+        exact abs_mul_abs_self _},
+      { apply real.rpow_nonneg_of_nonneg,
+        apply integral_nonneg,
+        rw pi.le_def,
+        intro i,
+        apply pow_two_nonneg },
+      { apply integral_nonneg,
+        rw pi.le_def,
+        intro i,
+        apply pow_two_nonneg },
+      { norm_num } },
+    { sorry }
+  },
   sorry
+
+
+
+  -- have := mul_le_mul this this (is_R_or_C.abs_nonneg _) _,
+  -- convert ← this using 1,
+  -- { simp [L2.inner_def, ← pow_two],
+  --   congr' 1,
+  --   apply integral_congr_ae,
+  --   exact (lp 2 f).coe_fn_to_Lp.mul (lp 2 g).coe_fn_to_Lp },
+  -- { simp [snorm, snorm'],
+
+  --   sorry },
+  -- { exact mul_nonneg (norm_nonneg _) (norm_nonneg _) }
 end
