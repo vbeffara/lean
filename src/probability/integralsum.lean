@@ -1,6 +1,7 @@
 import measure_theory.integral.bochner
 import measure_theory.function.l2_space
 import measure_theory.measure.measure_space
+import measure_theory.function.l1_space
 
 open measure_theory measure_theory.measure
 open_locale big_operators measure_theory topological_space
@@ -45,37 +46,28 @@ begin
     simp only [ennreal.coe_lt_top] }
 end
 
-lemma lemma_2 {α : Type u_1} [fintype α] (f : ↥(Lp ℝ 2 (@count α ⊤))) :
-  ∥f∥ = (∫ (a : α), f a ^ 2 ∂(@count α ⊤)) ^ (2⁻¹ : ℝ) :=
+lemma lemma_2 {α : Type u_1} [fintype α] [measurable_space α] {μ : measure α} [is_finite_measure μ]
+  (f : (Lp ℝ 2 μ)) :
+  ∥f∥ = (∫ (a : α), f a ^ 2 ∂μ) ^ (2⁻¹ : ℝ) :=
 begin
   simp only [norm, snorm, snorm', ennreal.bit0_eq_zero_iff, one_ne_zero, ennreal.bit0_eq_top_iff,
     ennreal.one_ne_top, ennreal.to_real_bit0, ennreal.one_to_real, ennreal.rpow_two, one_div,
     if_false],
-  have := lintegral_coe_eq_integral (λ x, ∥f x∥₊^2) _,
-  { simp at this,
+  have := lintegral_coe_eq_integral (λ x, ∥f x∥₊ ^ 2) _,
+  { simp only [ennreal.coe_pow, nnreal.coe_pow, coe_nnnorm] at this,
     rw [this, ennreal.of_real_rpow_of_nonneg, ennreal.to_real_of_real],
     { congr,
-      funext,
-      simp only [pow_two],
-      exact abs_mul_abs_self _ },
+      exact funext (λ _, sq_abs _) },
     { apply real.rpow_nonneg_of_nonneg,
       apply integral_nonneg,
       rw pi.le_def,
-      intro i,
-      apply pow_two_nonneg },
+      exact λ i, pow_two_nonneg _ },
     { apply integral_nonneg,
       rw pi.le_def,
-      intro i,
-      apply pow_two_nonneg },
+      exact λ i, pow_two_nonneg _ },
     { norm_num } },
-  { split,
-    { exact measurable_from_top.ae_strongly_measurable },
-    { rw has_finite_integral,
-      convert @lintegral_rpow_nnnorm_lt_top_of_snorm_lt_top α ℝ ⊤ 2 (@count α ⊤) _ f _ _ _,
-      { simp },
-      { simp },
-      { simp },
-      { exact Lp.snorm_lt_top f } } }
+  { have := (Lp.mem_ℒp f).integrable_norm_rpow',
+    simpa [this] }
 end
 
 lemma cauchy_schwarz (f g : α → ℝ) :
